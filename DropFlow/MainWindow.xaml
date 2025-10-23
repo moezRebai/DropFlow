@@ -1,0 +1,183 @@
+﻿<Window x:Class="DropFlow.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:viewModels="clr-namespace:DropFlow.ViewModels"
+        xmlns:views="clr-namespace:DropFlow.Views"
+        Title="PhonyX"
+        WindowState="Maximized"
+        Icon="Resources/Icon.ico"
+        WindowStartupLocation="CenterScreen"
+        Background="WhiteSmoke">
+
+    <!-- Material Design resources -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <DataTemplate DataType="{x:Type viewModels:HomeViewModel}">
+                <views:HomeView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModels:DeliveriesViewModel}">
+                <views:DeliveriesView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModels:StockViewModel}">
+                <views:StockView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModels:ClientsViewModel}">
+                <views:ClientsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModels:InvoicesViewModel}">
+                <views:InvoicesView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type viewModels:SettingsViewModel}">
+                <views:SettingsView />
+            </DataTemplate>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="80" /> <!-- Profile Header -->
+            <RowDefinition Height="*" />   <!-- Sidebar + Content -->
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="SidebarColumn" Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===== Profile Header (Row 0) ===== -->
+        <!-- Sidebar Profile Area -->
+        <Border Grid.Row="0" Grid.Column="0"
+                Background="#F3F3F3">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6">
+                <Ellipse Width="40" Height="40" Stroke="LightGray" StrokeThickness="1">
+                    <Ellipse.Fill>
+                        <ImageBrush ImageSource="Resources/Profile.png" Stretch="UniformToFill" />
+                    </Ellipse.Fill>
+                </Ellipse>
+
+                <!-- User info -->
+                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="John Doe" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="john.doe@example.com" FontSize="11" Foreground="Black" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- ===== Main Layout (Row 1) ===== -->
+        <!-- Sidebar -->
+        <DockPanel Grid.Row="1" Grid.Column="0"
+                   Background="#F3F3F3">
+            <!-- Collapse Button -->
+            <Button DockPanel.Dock="Bottom" Height="40" Margin="10"
+                    Click="ToggleSidebar_Click"
+                    Style="{StaticResource MaterialDesignFlatButton}">
+                <materialDesign:PackIcon Kind="Menu" Width="32" Height="32" Foreground="Black"/>
+            </Button>
+
+            <!-- Menu Items -->
+            <ListBox x:Name="SidebarMenu"
+                     BorderThickness="0"
+                     ItemsSource="{Binding Items}"
+                     SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                     Background="Transparent"
+                     SelectionMode="Single"
+                     Cursor="Hand"
+                     SelectedIndex="0">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Grid Background="Transparent">
+                                        <Grid.ColumnDefinitions>
+                                            <!-- Left selection indicator -->
+                                            <ColumnDefinition Width="4" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Selection Indicator -->
+                                        <Border x:Name="Indicator"
+                                                Width="4"
+                                                Background="Transparent"
+                                                CornerRadius="2,0,0,2">
+                                            <Border.RenderTransform>
+                                                <TranslateTransform x:Name="IndicatorTransform" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <!-- Item Content -->
+                                        <Border x:Name="ContentBorder"
+                                                Grid.Column="1"
+                                                Background="Transparent"
+                                                Padding="12,8">
+                                            <ContentPresenter />
+                                        </Border>
+                                    </Grid>
+
+                                    <ControlTemplate.Triggers>
+                                        <!-- Hover -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="ContentBorder" Property="Background" Value="#F0F0F0" />
+                                        </Trigger>
+
+                                        <!-- Selected -->
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ContentBorder" Property="Background" Value="#E6E6E6" />
+                                            <Setter TargetName="Indicator" Property="Background" Value="#0078D4" />
+                                        </Trigger>
+
+                                        <!-- Animate selection indicator -->
+                                        <EventTrigger RoutedEvent="Selected">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="IndicatorTransform"
+                                                                     Storyboard.TargetProperty="X"
+                                                                     From="-10" To="0"
+                                                                     Duration="0:0:0.2"
+                                                                     DecelerationRatio="0.7" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+
+                                        <!-- Animate when unselected (slide back) -->
+                                        <EventTrigger RoutedEvent="Unselected">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="IndicatorTransform"
+                                                                     Storyboard.TargetProperty="X"
+                                                                     From="0" To="-10"
+                                                                     Duration="0:0:0.2"
+                                                                     AccelerationRatio="0.7" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="{Binding Icon}"
+                                                     Width="24" Height="24" Margin="6"
+                                                     Foreground="{DynamicResource PrimaryHueMidBrush}" />
+                            <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <mah:TransitioningContentControl Grid.Row="0" Grid.Column="1"
+                                         Grid.RowSpan="2"
+                                         Content="{Binding CurrentViewModel}" 
+                                         Transition="Up" />
+
+    </Grid>
+</Window>

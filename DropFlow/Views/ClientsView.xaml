@@ -1,0 +1,110 @@
+﻿<UserControl x:Class="DropFlow.Views.ClientsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+             xmlns:skiaSharpView="clr-namespace:LiveChartsCore.SkiaSharpView;assembly=LiveChartsCore.SkiaSharpView"
+             mc:Ignorable="d"
+             d:DesignHeight="900" d:DesignWidth="1400">
+
+    <Grid Background="#FAFAFA" Margin="16">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- KPI Cards -->
+            <RowDefinition Height="Auto"/> <!-- Quick Actions -->
+            <RowDefinition Height="*"/>    <!-- Latest Deliveries + Chart -->
+            <RowDefinition Height="*"/>    <!-- Alerts + Driver workload -->
+            <RowDefinition Height="Auto"/> <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- ======================================= -->
+        <!-- 1. KPI CARDS -->
+        <!-- ======================================= -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <Border Background="White" Padding="16" CornerRadius="8" Width="200" Height="100">
+                <TextBlock Text="KPI Card 1" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+            <Border Background="White" Padding="16" CornerRadius="8" Width="200" Height="100">
+                <TextBlock Text="KPI Card 2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+            <Border Background="White" Padding="16" CornerRadius="8" Width="200" Height="100">
+                <TextBlock Text="KPI Card 3" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+            <Border Background="White" Padding="16" CornerRadius="8" Width="200" Height="100">
+                <TextBlock Text="KPI Card 4" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+        </StackPanel>
+
+        <!-- ======================================= -->
+        <!-- 2. QUICK ACTIONS -->
+        <!-- ======================================= -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,16">
+            <Button Content="➕ New Delivery" Padding="12,6"/>
+            <Button Content="📦 Plan Route" Padding="12,6"/>
+            <Button Content="🧾 Create Invoice" Padding="12,6"/>
+            <Button Content="👤 Assign Driver" Padding="12,6"/>
+        </StackPanel>
+
+        <!-- ======================================= -->
+        <!-- 3. LATEST DELIVERIES + CHART -->
+        <!-- ======================================= -->
+        <Grid Grid.Row="2" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Latest Deliveries -->
+            <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="16">
+                <TextBlock Text="Latest Deliveries Table" FontWeight="Bold"/>
+            </Border>
+
+            <!-- Chart -->
+            <Grid Grid.Column="1" Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>   <!-- Title -->
+                    <RowDefinition Height="*"/>      <!-- Chart -->
+                </Grid.RowDefinitions>
+
+                <!-- Chart Title -->
+                <TextBlock Text="Monthly Revenues/Deliveries" FontWeight="Bold"/>
+                <!-- Chart -->
+                <lvc:CartesianChart Grid.Row="1"
+                                    Series="{Binding Series}"
+                                    XAxes="{Binding XAxes}"
+                                    YAxes="{Binding YAxes}" />
+                </Grid>
+        </Grid>
+
+        <!-- ======================================= -->
+        <!-- 4. ALERTS + DRIVER WORKLOAD -->
+        <!-- ======================================= -->
+        <Grid Grid.Row="3" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Alerts -->
+            <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="16">
+                <TextBlock Text="Alerts / Warnings" FontWeight="Bold"/>
+            </Border>
+
+            <!-- Driver Workload -->
+            <Border Grid.Column="1" Background="White" CornerRadius="8" Padding="16">
+                <TextBlock Text="Driver Workload Panel" FontWeight="Bold"/>
+            </Border>
+        </Grid>
+
+        <!-- ======================================= -->
+        <!-- 5. FOOTER -->
+        <!-- ======================================= -->
+        <DockPanel Grid.Row="4" Background="#EEEEEE" Height="32" VerticalAlignment="Bottom" LastChildFill="False">
+            <TextBlock Text="Status: Synced" VerticalAlignment="Center" Margin="0,0,16,0"/>
+            <TextBlock Text="Last Update: 10:45" VerticalAlignment="Center" Margin="0,0,16,0"/>
+            <TextBlock Text="Version 1.0.0" VerticalAlignment="Center"/>
+        </DockPanel>
+
+    </Grid>
+</UserControl>

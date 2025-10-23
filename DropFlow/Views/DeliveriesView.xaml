@@ -1,0 +1,807 @@
+﻿<UserControl x:Class="DropFlow.Views.DeliveriesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:views="clr-namespace:DropFlow.Views"
+             mc:Ignorable="d"
+             d:DesignHeight="800"
+             d:DesignWidth="1400">
+
+    <UserControl.Resources>
+        <views:AdaptiveCardWidthConverter x:Key="AdaptiveCardWidthConverter" />
+        <views:PageEqualsConverter x:Key="PageEqualsConverter" />
+        <!-- ═══════════════════════════════════════════════════════════════
+     REMPLACEZ VOS DataTemplate DANS UserControl.Resources
+     ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- 📦 TEMPLATE LIVRAISON - IMAGES CENTRÉES -->
+        <DataTemplate x:Key="DeliveryCardTemplate">
+            <materialDesign:Card Margin="6"
+                                 Cursor="Hand"
+                                 materialDesign:ElevationAssist.Elevation="Dp2">
+                <materialDesign:Card.InputBindings>
+                    <MouseBinding MouseAction="LeftClick"
+                                  Command="{Binding DataContext.SelectDeliveryCommand, 
+                           RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding}" />
+                </materialDesign:Card.InputBindings>
+
+                <materialDesign:Card.Style>
+                    <Style TargetType="materialDesign:Card" BasedOn="{StaticResource {x:Type materialDesign:Card}}">
+                        <Setter Property="Background" 
+                                Value="#FFFAF0" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp6" />
+                                <Setter Property="Background" Value="#F8F8F8" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </materialDesign:Card.Style>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- HEADER -->
+                    <Grid Grid.Row="0" Margin="12,12,12,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding ClientName}"
+                                   FontWeight="SemiBold"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+
+                        <Border Grid.Column="1"
+                                CornerRadius="10"
+                                Padding="8,3"
+                                Background="{Binding StatusColor}">
+                            <materialDesign:PackIcon Kind="{Binding StatusIcon}"
+                                                     Width="14" Height="14"
+                                                     Foreground="White" />
+                        </Border>
+                    </Grid>
+
+                    <!-- IMAGE 100px - CENTRÉE -->
+                    <Border Grid.Row="1"
+                            Height="100"
+                            CornerRadius="8"
+                            Margin="12,0,12,8"
+                            Background="#F5F5F5">
+                        <Grid>
+                            <!-- Image centrée avec ClipToBounds -->
+                            <Image Stretch="Uniform"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Width="140"
+                                   ClipToBounds="True">
+                                <Image.Style>
+                                    <Style TargetType="Image">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ProductImageUrl}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ProductImageUrl}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Image.Style>
+                                <Image.Source>
+                                    <Binding Path="ProductImageUrl">
+                                        <Binding.TargetNullValue>
+                                            <x:Null />
+                                        </Binding.TargetNullValue>
+                                    </Binding>
+                                </Image.Source>
+                            </Image>
+
+                            <!-- Icône par défaut centrée -->
+                            <materialDesign:PackIcon Kind="Sofa"
+                                                     Width="36" Height="36"
+                                                     VerticalAlignment="Center"
+                                                     HorizontalAlignment="Center"
+                                                     Foreground="#BDBDBD">
+                                <materialDesign:PackIcon.Style>
+                                    <Style TargetType="materialDesign:PackIcon">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ProductImageUrl}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ProductImageUrl}" Value="">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </materialDesign:PackIcon.Style>
+                            </materialDesign:PackIcon>
+
+                            <!-- Badge produits -->
+                            <Border VerticalAlignment="Bottom"
+                                    HorizontalAlignment="Right"
+                                    Background="#212121"
+                                    CornerRadius="8"
+                                    Padding="6,2"
+                                    Margin="6"
+                                    Opacity="0.9">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Package"
+                                                             Width="12" Height="12"
+                                                             Foreground="White"
+                                                             Margin="0,0,3,0" />
+                                    <TextBlock Text="{Binding ProductCount, FallbackValue=1}"
+                                               Foreground="White"
+                                               FontSize="10"
+                                               FontWeight="Bold" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- INFOS -->
+                    <StackPanel Grid.Row="2" Margin="12,0,12,12">
+                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <materialDesign:PackIcon Kind="Store"
+                                                     Width="14" Height="14"
+                                                     Opacity="0.6"
+                                                     Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding StoreName}"
+                                       FontSize="12"
+                                       Opacity="0.8"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <materialDesign:PackIcon Kind="CalendarClock"
+                                                     Width="14" Height="14"
+                                                     Opacity="0.6"
+                                                     Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding Date, StringFormat='{}{0:dd MMM HH:mm}'}"
+                                       FontSize="11"
+                                       Opacity="0.8" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
+        </DataTemplate>
+
+        <!-- ➕ TEMPLATE AJOUTER - AVEC IMAGE ATTRACTIVE -->
+        <DataTemplate x:Key="AddNewCardTemplate">
+            <materialDesign:Card Margin="6"
+                                 Cursor="Hand"
+                                 materialDesign:ElevationAssist.Elevation="Dp2">
+                <materialDesign:Card.Style>
+                    <Style TargetType="materialDesign:Card" BasedOn="{StaticResource {x:Type materialDesign:Card}}">
+                        <Setter Property="Background" Value="{DynamicResource MaterialDesignCardBackground}" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F0F8FF" />
+                                <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp6" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </materialDesign:Card.Style>
+
+                <Button
+                    Command="{Binding DataContext.AddNewDeliveryCommand, 
+                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    Height="220"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Style="{StaticResource MaterialDesignFlatButton}">
+                    <Grid>
+                        <!-- Contenu au premier plan -->
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center">
+                            <!-- Icône avec gradient -->
+                            <Border Width="60" Height="60"
+                                    CornerRadius="30"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,16">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#4CAF50" Offset="0" />
+                                        <GradientStop Color="#81C784" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <materialDesign:PackIcon Kind="TruckPlus"
+                                                         Width="32" Height="32"
+                                                         Foreground="White"
+                                                         HorizontalAlignment="Center"
+                                                         VerticalAlignment="Center" />
+                            </Border>
+
+                            <!-- Texte -->
+                            <TextBlock Text="Nouvelle"
+                                       FontWeight="Bold"
+                                       FontSize="16"
+                                       HorizontalAlignment="Center"
+                                       Foreground="#2E7D32"
+                                       Margin="0,0,0,2" />
+                            <TextBlock Text="Livraison"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       HorizontalAlignment="Center"
+                                       Foreground="#2E7D32"
+                                       Opacity="0.8" />
+
+                            <!-- Ligne décorative -->
+                            <Border Height="2"
+                                    Width="60"
+                                    Background="#4CAF50"
+                                    CornerRadius="1"
+                                    Margin="0,12,0,0"
+                                    HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Button>
+            </materialDesign:Card>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!-- 🧭 LAYOUT GLOBAL -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!-- Header -->
+                <RowDefinition Height="Auto" />
+                <!-- Stats KPI -->
+                <RowDefinition Height="Auto" />
+                <!-- Filtres & Search -->
+                <RowDefinition Height="*" />
+                <!-- Contenu -->
+                <RowDefinition Height="Auto" />
+                <!-- Pagination -->
+            </Grid.RowDefinitions>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 HEADER
+                 ═══════════════════════════════════════════════════════════════ -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="📦 Livraisons"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Gérez vos livraisons et suivez leur statut en temps réel"
+                               FontSize="14"
+                               Opacity="0.7" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Command="{Binding RefreshDataCommand}"
+                            ToolTip="Actualiser"
+                            Margin="8,0"
+                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Refresh"
+                                                     Width="18" Height="18"
+                                                     Margin="0,0,6,0" />
+                            <TextBlock Text="Actualiser" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ExportDeliveriesCommand}"
+                            ToolTip="Exporter"
+                            Margin="8,0"
+                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Download"
+                                                     Width="18" Height="18"
+                                                     Margin="0,0,6,0" />
+                            <TextBlock Text="Exporter" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding AddNewDeliveryCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus"
+                                                     Width="18" Height="18"
+                                                     Margin="0,0,6,0" />
+                            <TextBlock Text="Nouvelle Livraison" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 BARRE DE RECHERCHE & FILTRES
+                 ═══════════════════════════════════════════════════════════════ -->
+            <materialDesign:Card Grid.Row="2"
+                                 Margin="0,0,0,20"
+                                 materialDesign:ElevationAssist.Elevation="Dp2"
+                                 Background="{DynamicResource MaterialDesignCardBackground}">
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.25*" />
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Search -->
+                    <TextBox Grid.Column="0"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="🔍 Rechercher..."
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             VerticalAlignment="Center"
+                             HorizontalAlignment="Stretch"
+                             Margin="0,0,8,0" />
+
+                    <!-- Quick filters -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                HorizontalAlignment="Left" Margin="0,0,8,0">
+                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  materialDesign:HintAssist.Hint="Client"
+                                  ItemsSource="{Binding ClientsList}"
+                                  SelectedItem="{Binding SelectedClient}"
+                                  MinWidth="120" Margin="4,0" />
+                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  materialDesign:HintAssist.Hint="Magasin"
+                                  ItemsSource="{Binding StoresList}"
+                                  SelectedItem="{Binding SelectedStore}"
+                                  MinWidth="120" Margin="4,0" />
+
+                        <!-- Status / Dates -->
+                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  materialDesign:HintAssist.Hint="Statut"
+                                  ItemsSource="{Binding StatusList}"
+                                  SelectedItem="{Binding SelectedStatus}"
+                                  MinWidth="120" Margin="4,0" />
+                        <DatePicker materialDesign:HintAssist.Hint="Date début"
+                                    SelectedDate="{Binding MinDate}"
+                                    Style="{StaticResource MaterialDesignOutlinedDatePicker}"
+                                    MinWidth="120" Margin="4,0" />
+                        <DatePicker materialDesign:HintAssist.Hint="Date fin"
+                                    SelectedDate="{Binding MaxDate}"
+                                    Style="{StaticResource MaterialDesignOutlinedDatePicker}"
+                                    MinWidth="120" Margin="4,0" />
+                    </StackPanel>
+
+                    <!-- View selector -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0" HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <Button Command="{Binding ResetFiltersCommand}" ToolTip="Réinitialiser les filtres"
+                                Foreground="Black" Style="{StaticResource MaterialDesignIconButton}" Margin="8,0,0,0">
+                            <materialDesign:PackIcon Kind="FilterRemove" Width="20" Height="20" />
+                        </Button>
+
+                        <!-- RadioButtons unchanged from your original -->
+                        <RadioButton ToolTip="Cartes"
+                                     IsChecked="{Binding IsGridView, Mode=OneWay}"
+                                     Command="{Binding SwitchToGridCommand}"
+                                     Style="{StaticResource MaterialDesignChoiceChipPrimaryRadioButton}"
+                                     Margin="4,0">
+                            <RadioButton.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="ViewGrid" Width="16" Height="16"
+                                                                 Margin="0,0,4,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </RadioButton.ContentTemplate>
+                        </RadioButton>
+
+                        <RadioButton ToolTip="Status"
+                                     IsChecked="{Binding IsKanbanView, Mode=OneWay}"
+                                     Command="{Binding SwitchToKanbanCommand}"
+                                     Style="{StaticResource MaterialDesignChoiceChipPrimaryRadioButton}"
+                                     Margin="4,0">
+                            <RadioButton.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="ViewColumn" Width="16" Height="16"
+                                                                 Margin="0,0,4,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </RadioButton.ContentTemplate>
+                        </RadioButton>
+
+                        <RadioButton ToolTip="Liste"
+                                     IsChecked="{Binding IsTableView, Mode=OneWay}"
+                                     Command="{Binding SwitchToTableCommand}"
+                                     Style="{StaticResource MaterialDesignChoiceChipPrimaryRadioButton}"
+                                     Margin="4,0">
+                            <RadioButton.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="TableLarge" Width="16" Height="16"
+                                                                 Margin="0,0,4,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </RadioButton.ContentTemplate>
+                        </RadioButton>
+                    </StackPanel>
+                </Grid>
+
+            </materialDesign:Card>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 CONTENU PRINCIPAL (Grid / Kanban / Table)
+                 ═══════════════════════════════════════════════════════════════ -->
+            <ContentControl Grid.Row="3" Content="{Binding}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Style.Triggers>
+
+                            <!-- 🟦 MODE GRILLE -->
+                            <DataTrigger Binding="{Binding IsGridView}" Value="True">
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <!-- Border autour de la zone des cartes -->
+                                            <Border Background="{DynamicResource MaterialDesignCardBackground}"
+                                                    BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="12"
+                                                    Padding="16"
+                                                    materialDesign:ElevationAssist.Elevation="Dp2">
+                                                <ScrollViewer VerticalScrollBarVisibility="Disabled"
+                                                              HorizontalScrollBarVisibility="Disabled"
+                                                              Padding="0,0,8,0">
+                                                    <ItemsControl ItemsSource="{Binding Deliveries}"
+                                                                  HorizontalAlignment="Center">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel Orientation="Horizontal"
+                                                                           HorizontalAlignment="Center" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+
+                                                        <ItemsControl.ItemContainerStyle>
+                                                            <Style TargetType="ContentPresenter">
+                                                                <Setter Property="Width">
+                                                                    <Setter.Value>
+                                                                        <MultiBinding
+                                                                            Converter="{StaticResource AdaptiveCardWidthConverter}">
+                                                                            <Binding
+                                                                                RelativeSource="{RelativeSource AncestorType=ScrollViewer}"
+                                                                                Path="ActualWidth" />
+                                                                            <Binding Path="Deliveries.Count" />
+                                                                        </MultiBinding>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </Style>
+                                                        </ItemsControl.ItemContainerStyle>
+
+                                                        <ItemsControl.ItemTemplateSelector>
+                                                            <views:DeliveryTemplateSelector
+                                                                DefaultTemplate="{StaticResource DeliveryCardTemplate}"
+                                                                AddNewTemplate="{StaticResource AddNewCardTemplate}" />
+                                                        </ItemsControl.ItemTemplateSelector>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                            </Border>
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+
+                            <!-- 🟨 MODE KANBAN -->
+                            <DataTrigger Binding="{Binding IsKanbanView}" Value="True">
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                                <Grid Margin="0,0,0,20">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Colonne PLANIFIÉ -->
+                                                    <Border Grid.Column="0"
+                                                            Background="#E3F2FD"
+                                                            CornerRadius="12"
+                                                            Margin="4"
+                                                            Padding="12">
+                                                        <DockPanel>
+                                                            <StackPanel DockPanel.Dock="Top"
+                                                                        Orientation="Horizontal"
+                                                                        Margin="0,0,0,12">
+                                                                <Border Width="10" Height="10"
+                                                                        Background="#2196F3"
+                                                                        CornerRadius="5"
+                                                                        Margin="0,0,8,0"
+                                                                        VerticalAlignment="Center" />
+                                                                <TextBlock Text="Planifié"
+                                                                           FontWeight="SemiBold"
+                                                                           FontSize="14"
+                                                                           VerticalAlignment="Center" />
+                                                                <Border Background="White"
+                                                                        CornerRadius="10"
+                                                                        Padding="6,2"
+                                                                        Margin="8,0,0,0">
+                                                                    <TextBlock Text="{Binding PlannedDeliveries.Count}"
+                                                                               FontSize="11"
+                                                                               FontWeight="Bold" />
+                                                                </Border>
+                                                            </StackPanel>
+
+                                                            <ScrollViewer VerticalScrollBarVisibility="Disabled"
+                                                                          HorizontalScrollBarVisibility="Disabled">
+                                                                <ItemsControl ItemsSource="{Binding PlannedDeliveries}"
+                                                                              ItemTemplate="{StaticResource DeliveryCardTemplate}" />
+                                                            </ScrollViewer>
+                                                        </DockPanel>
+                                                    </Border>
+
+                                                    <!-- Colonne CONFIRMÉ -->
+                                                    <Border Grid.Column="1"
+                                                            Background="#FFF3E0"
+                                                            CornerRadius="12"
+                                                            Margin="4"
+                                                            Padding="12">
+                                                        <DockPanel>
+                                                            <StackPanel DockPanel.Dock="Top"
+                                                                        Orientation="Horizontal"
+                                                                        Margin="0,0,0,12">
+                                                                <Border Width="10" Height="10"
+                                                                        Background="#FF9800"
+                                                                        CornerRadius="5"
+                                                                        Margin="0,0,8,0"
+                                                                        VerticalAlignment="Center" />
+                                                                <TextBlock Text="Confirmé"
+                                                                           FontWeight="SemiBold"
+                                                                           FontSize="14"
+                                                                           VerticalAlignment="Center" />
+                                                                <Border Background="White"
+                                                                        CornerRadius="10"
+                                                                        Padding="6,2"
+                                                                        Margin="8,0,0,0">
+                                                                    <TextBlock
+                                                                        Text="{Binding ConfirmedDeliveries.Count}"
+                                                                        FontSize="11"
+                                                                        FontWeight="Bold" />
+                                                                </Border>
+                                                            </StackPanel>
+
+                                                            <ScrollViewer VerticalScrollBarVisibility="Disabled"
+                                                                          HorizontalScrollBarVisibility="Disabled">
+                                                                <ItemsControl
+                                                                    ItemsSource="{Binding ConfirmedDeliveries}"
+                                                                    ItemTemplate="{StaticResource DeliveryCardTemplate}" />
+                                                            </ScrollViewer>
+                                                        </DockPanel>
+                                                    </Border>
+
+                                                    <!-- Colonne ANNULÉ -->
+                                                    <Border Grid.Column="2"
+                                                            Background="#FFEBEE"
+                                                            CornerRadius="12"
+                                                            Margin="4"
+                                                            Padding="12">
+                                                        <DockPanel>
+                                                            <StackPanel DockPanel.Dock="Top"
+                                                                        Orientation="Horizontal"
+                                                                        Margin="0,0,0,12">
+                                                                <Border Width="10" Height="10"
+                                                                        Background="#F44336"
+                                                                        CornerRadius="5"
+                                                                        Margin="0,0,8,0"
+                                                                        VerticalAlignment="Center" />
+                                                                <TextBlock Text="Annulé"
+                                                                           FontWeight="SemiBold"
+                                                                           FontSize="14"
+                                                                           VerticalAlignment="Center" />
+                                                                <Border Background="White"
+                                                                        CornerRadius="10"
+                                                                        Padding="6,2"
+                                                                        Margin="8,0,0,0">
+                                                                    <TextBlock
+                                                                        Text="{Binding CanceledDeliveries.Count}"
+                                                                        FontSize="11"
+                                                                        FontWeight="Bold" />
+                                                                </Border>
+                                                            </StackPanel>
+
+                                                            <ScrollViewer VerticalScrollBarVisibility="Disabled"
+                                                                          HorizontalScrollBarVisibility="Disabled">
+                                                                <ItemsControl
+                                                                    ItemsSource="{Binding CanceledDeliveries}"
+                                                                    ItemTemplate="{StaticResource DeliveryCardTemplate}" />
+                                                            </ScrollViewer>
+                                                        </DockPanel>
+                                                    </Border>
+
+                                                    <!-- Colonne TERMINÉ -->
+                                                    <Border Grid.Column="3"
+                                                            Background="#E8F5E9"
+                                                            CornerRadius="12"
+                                                            Margin="4"
+                                                            Padding="12">
+                                                        <DockPanel>
+                                                            <StackPanel DockPanel.Dock="Top"
+                                                                        Orientation="Horizontal"
+                                                                        Margin="0,0,0,12">
+                                                                <Border Width="10" Height="10"
+                                                                        Background="#4CAF50"
+                                                                        CornerRadius="5"
+                                                                        Margin="0,0,8,0"
+                                                                        VerticalAlignment="Center" />
+                                                                <TextBlock Text="Terminé"
+                                                                           FontWeight="SemiBold"
+                                                                           FontSize="14"
+                                                                           VerticalAlignment="Center" />
+                                                                <Border Background="White"
+                                                                        CornerRadius="10"
+                                                                        Padding="6,2"
+                                                                        Margin="8,0,0,0">
+                                                                    <TextBlock Text="{Binding DoneDeliveries.Count}"
+                                                                               FontSize="11"
+                                                                               FontWeight="Bold" />
+                                                                </Border>
+                                                            </StackPanel>
+
+                                                            <ScrollViewer VerticalScrollBarVisibility="Disabled"
+                                                                          HorizontalScrollBarVisibility="Disabled">
+                                                                <ItemsControl ItemsSource="{Binding DoneDeliveries}"
+                                                                              ItemTemplate="{StaticResource DeliveryCardTemplate}" />
+                                                            </ScrollViewer>
+                                                        </DockPanel>
+                                                    </Border>
+                                                </Grid>
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+
+                            <!-- 🟩 MODE TABLE -->
+                            <DataTrigger Binding="{Binding IsTableView}" Value="True">
+                                <Setter Property="ContentTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <!-- Border autour de la table -->
+                                            <Border Background="{DynamicResource MaterialDesignCardBackground}"
+                                                    BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="12"
+                                                    materialDesign:ElevationAssist.Elevation="Dp2">
+                                                <DataGrid ItemsSource="{Binding Deliveries}"
+                                                          AutoGenerateColumns="False"
+                                                          CanUserAddRows="False"
+                                                          IsReadOnly="True"
+                                                          HeadersVisibility="Column"
+                                                          RowHeight="50"
+                                                          materialDesign:DataGridAssist.CellPadding="12 8"
+                                                          materialDesign:DataGridAssist.ColumnHeaderPadding="12 8">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Date"
+                                                                            Binding="{Binding Date, StringFormat={}{0:dd/MM/yyyy HH:mm}}"
+                                                                            Width="150" />
+                                                        <DataGridTextColumn Header="Client"
+                                                                            Binding="{Binding ClientName}"
+                                                                            Width="*" />
+                                                        <DataGridTextColumn Header="Magasin"
+                                                                            Binding="{Binding StoreName}"
+                                                                            Width="*" />
+                                                        <DataGridTemplateColumn Header="Statut" Width="150">
+                                                            <DataGridTemplateColumn.CellTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Background="{Binding StatusColor}"
+                                                                            CornerRadius="12"
+                                                                            Padding="10,4"
+                                                                            HorizontalAlignment="Center">
+                                                                        <TextBlock Text="{Binding Status}"
+                                                                            Foreground="White"
+                                                                            FontSize="11"
+                                                                            FontWeight="Bold"
+                                                                            HorizontalAlignment="Center" />
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </DataGridTemplateColumn.CellTemplate>
+                                                        </DataGridTemplateColumn>
+                                                        <DataGridTemplateColumn Header="Actions" Width="150">
+                                                            <DataGridTemplateColumn.CellTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal"
+                                                                        HorizontalAlignment="Center">
+                                                                        <Button Command="{Binding DetailsCommand}"
+                                                                            ToolTip="Détails"
+                                                                            Style="{StaticResource MaterialDesignToolButton}"
+                                                                            Margin="2">
+                                                                            <materialDesign:PackIcon Kind="Eye" />
+                                                                        </Button>
+                                                                        <Button Command="{Binding EditCommand}"
+                                                                            ToolTip="Modifier"
+                                                                            Style="{StaticResource MaterialDesignToolButton}"
+                                                                            Margin="2">
+                                                                            <materialDesign:PackIcon Kind="Pencil" />
+                                                                        </Button>
+                                                                        <Button Command="{Binding DeleteCommand}"
+                                                                            ToolTip="Supprimer"
+                                                                            Style="{StaticResource MaterialDesignToolButton}"
+                                                                            Margin="2">
+                                                                            <materialDesign:PackIcon Kind="Delete" />
+                                                                        </Button>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </DataGridTemplateColumn.CellTemplate>
+                                                        </DataGridTemplateColumn>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 PAGINATION (cachée en mode Kanban)
+                 ═══════════════════════════════════════════════════════════════ -->
+            <StackPanel Grid.Row="4"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,20,0,0">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsKanbanView}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+
+                <Button Command="{Binding GoToFirstPageCommand}"
+                        ToolTip="Première page"
+                        Style="{StaticResource MaterialDesignIconButton}"
+                        Margin="4">
+                    <materialDesign:PackIcon Kind="PageFirst" Width="20" Height="20" />
+                </Button>
+
+                <Button Command="{Binding PreviousPageCommand}"
+                        ToolTip="Page précédente"
+                        Style="{StaticResource MaterialDesignIconButton}"
+                        Margin="4">
+                    <materialDesign:PackIcon Kind="ChevronLeft" Width="20" Height="20" />
+                </Button>
+
+                <TextBlock Text="{Binding CurrentPageDisplay}"
+                           VerticalAlignment="Center"
+                           Margin="12,0"
+                           FontWeight="Medium" />
+
+                <Button Command="{Binding NextPageCommand}"
+                        ToolTip="Page suivante"
+                        Style="{StaticResource MaterialDesignIconButton}"
+                        Margin="4">
+                    <materialDesign:PackIcon Kind="ChevronRight" Width="20" Height="20" />
+                </Button>
+
+                <Button Command="{Binding GoToLastPageCommand}"
+                        ToolTip="Dernière page"
+                        Style="{StaticResource MaterialDesignIconButton}"
+                        Margin="4">
+                    <materialDesign:PackIcon Kind="PageLast" Width="20" Height="20" />
+                </Button>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
