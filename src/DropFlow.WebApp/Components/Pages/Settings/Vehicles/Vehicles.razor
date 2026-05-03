@@ -1,0 +1,198 @@
+@page "/settings/vehicules"
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Véhicules - DropFlow</PageTitle>
+
+<AuthorizeView Roles="@Roles.ManagerOrAdmin" Context="_">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 mb-8">
+
+            <!-- Header -->
+            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border-left: 4px solid var(--mud-palette-secondary);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudBreadcrumbs Items="_breadcrumbs">
+                            <ItemTemplate Context="item">
+                                <MudLink Href="@item.Href" Style="color: #6B7280;">
+                                    @item.Text
+                                </MudLink>
+                            </ItemTemplate>
+                        </MudBreadcrumbs>
+                        <MudText Typo="Typo.h5" Style="font-weight: 600;">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Class="mr-2" Style="color: var(--mud-palette-secondary);"/>
+                            Véhicules
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #64748b;">
+                            Gérez votre flotte de véhicules de livraison
+                        </MudText>
+                    </MudStack>
+
+                    <MudFab StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog"
+                            Size="Size.Large"
+                            Color="Color.Secondary"/>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Liste des véhicules -->
+            <MudPaper Elevation="2" Class="pa-4">
+                @if (_loading)
+                {
+                    <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Secondary"/>
+                        <MudText Typo="Typo.body2" Style="color: #64748b;">Chargement...</MudText>
+                    </MudStack>
+                }
+                else if (!_vehicles.Any())
+                {
+                    <MudStack AlignItems="AlignItems.Center" Class="py-8" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalShipping"
+                                 Size="Size.Large"
+                                 Style="font-size: 4rem; color: #CBD5E1;"/>
+                        <MudText Typo="Typo.h6" Style="color: #64748b;">
+                            Aucun véhicule configuré
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #94A3B8; text-align: center;">
+                            Ajoutez votre premier véhicule pour commencer à<br/>
+                            organiser vos tournées de livraison
+                        </MudText>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="OpenCreateDialog"
+                                   Class="mt-2">
+                            Créer le premier véhicule
+                        </MudButton>
+                    </MudStack>
+                }
+                else
+                {
+                    <!-- Filtres -->
+                    <MudGrid Spacing="2" Class="mb-4">
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_searchTerm"
+                                          Label="Rechercher"
+                                          Placeholder="Marque, modèle, plaque..."
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Search"
+                                          Immediate="true"
+                                          Margin="Margin.None"
+                                          DebounceInterval="300"
+                                          T="string"
+                                          OnDebounceIntervalElapsed="OnSearchChanged"
+                                          Clearable="true"
+                                          FullWidth="true"
+                                          Variant="Variant.Outlined"/>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="bool?"
+                                       Value="_filterIsActive"
+                                       Label="Statut"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.None"
+                                       Clearable="true"
+                                       AdornmentIcon="@Icons.Material.Filled.FilterList"
+                                       Adornment="Adornment.Start"
+                                       ValueChanged="v => OnSearchChanged(v)">
+                                <MudSelectItem Value="@((bool?)true)">
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                                 Size="Size.Small"
+                                                 Color="Color.Success"/>
+                                        <MudText>Actif</MudText>
+                                    </MudStack>
+                                </MudSelectItem>
+                                <MudSelectItem Value="@((bool?)false)">
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Cancel"
+                                                 Size="Size.Small"
+                                                 Color="Color.Error"/>
+                                        <MudText>Inactif</MudText>
+                                    </MudStack>
+                                </MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudTable Items="@_filteredVehicles"
+                              Hover="true"
+                              Dense="true"
+                              Striped="true"
+                              Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Véhicule</MudTh>
+                            <MudTh>Immatriculation</MudTh>
+                            <MudTh>Max Livraisons</MudTh>
+                            <MudTh>Volume Max</MudTh>
+                            <MudTh>Statut</MudTh>
+                            <MudTh Style="text-align: center;">Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Véhicule">
+                                <MudStack Spacing="0">
+                                    <MudText Style="font-weight: 600;">
+                                        @context.Brand @context.Model
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Style="color: #94A3B8;">
+                                        Créé le @context.CreatedDate.ToString("dd/MM/yyyy")
+                                    </MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd DataLabel="Immatriculation">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">
+                                    🚚 @context.PlateNumber
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Max Livraisons">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">
+                                    📦 @context.MaxDeliveries
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Volume Max">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">
+                                    📏 @context.MaxVolume m³
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Statut">
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@(context.IsActive ? Color.Success : Color.Default)"
+                                         Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)">
+                                    @(context.IsActive ? "Actif" : "Inactif")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Actions" Style="text-align: center;">
+                                <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                                    <MudTooltip Text="Modifier">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Size="Size.Small"
+                                                       Color="Color.Primary"
+                                                       OnClick="@(() => OpenEditDialog(context))"/>
+                                    </MudTooltip>
+                                    <MudTooltip Text="@(context.IsActive ? "Désactiver" : "Activer")">
+                                        <MudIconButton
+                                            Icon="@(context.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                                            Size="Size.Small"
+                                            Color="@(context.IsActive ? Color.Warning : Color.Success)"
+                                            OnClick="@(() => ToggleVehicleStatus(context))"/>
+                                    </MudTooltip>
+                                    <MudTooltip Text="Supprimer">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Size="Size.Small"
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => DeleteVehicle(context))"/>
+                                    </MudTooltip>
+                                </MudStack>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>

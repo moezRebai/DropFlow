@@ -1,0 +1,219 @@
+@using DropFlow.Shared.Tenants
+@using DropFlow.WebApp.Interfaces
+@inject ITenantManagementService TenantService
+@inject ISnackbar Snackbar
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudCard Outlined="true">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Informations légales</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Ces informations apparaîtront sur vos factures
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudForm @ref="_form" @bind-IsValid="@_formValid">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.Siret" 
+                                        Label="SIRET"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="14"
+                                        HelperText="14 chiffres (ex: 12345678901234)"
+                                        Mask="@(new PatternMask("00 000 000 000 00"))" />
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.VatNumber" 
+                                        Label="Numéro de TVA"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="13"
+                                        HelperText="FR + 11 chiffres (ex: FR12345678901)"
+                                        Mask="@(new PatternMask("AA00000000000"))" />
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="6">
+                            <MudSelect @bind-Value="_model.LegalForm" 
+                                      Label="Forme juridique"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Clearable="true">
+                                @foreach (var form in LegalForms.All)
+                                {
+                                    <MudSelectItem Value="@form">@form</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@GetFormattedLegalForm()" 
+                                        Label="Aperçu"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        ReadOnly="true"
+                                        HelperText="Exemple de mention légale" />
+                        </MudItem>
+                        
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.LegalMentions" 
+                                        Label="Mentions légales personnalisées"
+                                        Variant="Variant.Outlined"
+                                        Lines="3"
+                                        MaxLength="2000"
+                                        HelperText="Mentions additionnelles pour les factures (ex: RCS, capital social)" />
+                        </MudItem>
+                        
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.BankDetails" 
+                                        Label="Coordonnées bancaires"
+                                        Variant="Variant.Outlined"
+                                        Lines="2"
+                                        MaxLength="500"
+                                        HelperText="IBAN et BIC pour paiements (ex: IBAN: FR76... / BIC: BNPAFRPP)" />
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Save"
+                          OnClick="SaveLegalInfo"
+                          Disabled="@(!_formValid || _saving)">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        <span>Enregistrement...</span>
+                    }
+                    else
+                    {
+                        <span>Enregistrer</span>
+                    }
+                </MudButton>
+                <MudButton Variant="Variant.Text" 
+                          OnClick="ResetForm"
+                          Disabled="@_saving">
+                    Annuler
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    
+    @* Preview Card *@
+    @if (!string.IsNullOrEmpty(_model.Siret) || !string.IsNullOrEmpty(_model.VatNumber) || !string.IsNullOrEmpty(_model.LegalForm))
+    {
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    Aperçu sur les factures :
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @GetFullLegalPreview()
+                </MudText>
+            </MudAlert>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public TenantDto Tenant { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback OnUpdated { get; set; }
+
+    private MudForm _form = null!;
+    private bool _formValid;
+    private bool _saving;
+    
+    private UpdateTenantLegalInfoDto _model = new();
+
+    protected override void OnParametersSet()
+    {
+        // Initialiser le formulaire avec les données du tenant
+        _model = new UpdateTenantLegalInfoDto
+        {
+            Siret = Tenant.Siret,
+            VatNumber = Tenant.VatNumber,
+            LegalForm = Tenant.LegalForm,
+            LegalMentions = Tenant.LegalMentions,
+            BankDetails = Tenant.BankDetails
+        };
+    }
+
+    private async Task SaveLegalInfo()
+    {
+        _saving = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await TenantService.UpdateLegalInfoAsync(_model);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Informations légales mises à jour avec succès", Severity.Success);
+                await OnUpdated.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add($"Erreur : {result.Message}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        OnParametersSet();
+        StateHasChanged();
+    }
+
+    private string GetFormattedLegalForm()
+    {
+        if (string.IsNullOrEmpty(_model.LegalForm))
+            return "";
+
+        var parts = new List<string>();
+        
+        if (!string.IsNullOrEmpty(_model.LegalForm))
+            parts.Add(_model.LegalForm);
+        
+        if (!string.IsNullOrEmpty(_model.Siret))
+            parts.Add($"SIRET: {_model.Siret}");
+
+        return string.Join(" - ", parts);
+    }
+
+    private string GetFullLegalPreview()
+    {
+        var parts = new List<string>();
+        
+        if (!string.IsNullOrEmpty(_model.LegalForm))
+            parts.Add(_model.LegalForm);
+        
+        if (!string.IsNullOrEmpty(_model.Siret))
+            parts.Add($"SIRET: {_model.Siret}");
+        
+        if (!string.IsNullOrEmpty(_model.VatNumber))
+            parts.Add($"TVA: {_model.VatNumber}");
+        
+        if (!string.IsNullOrEmpty(_model.LegalMentions))
+            parts.Add(_model.LegalMentions);
+
+        return string.Join(" - ", parts);
+    }
+}

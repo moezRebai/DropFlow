@@ -1,0 +1,197 @@
+@page "/tournees"
+@using DropFlow.Domain.Enums
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Feuilles de Route</PageTitle>
+
+<AuthorizeView Roles="@Roles.ManagerOrAdmin" Context="_">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+            <!-- Page header -->
+            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border-left: 4px solid #55E085; background: white;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1F2937;">
+                            <MudIcon Icon="@Icons.Material.Filled.Route" Class="mr-2" Style="color: #4FE081;"/>
+                            Tournées
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6B7280;">
+                            Visualisez et gérez vos feuilles de route.
+                        </MudText>
+                    </MudStack>
+
+                    <MudFab Variant="Variant.Filled"
+                            Color="Color.Success"
+                            StartIcon="@Icons.Material.Filled.Add"
+                            OnClick="@(() => NavigationManager.NavigateTo("/tournees/create"))" />
+                </MudStack>
+            </MudPaper>
+
+            <!-- Filters toolbar -->
+            <MudPaper Elevation="1" Class="mb-4 px-3 py-2 rounded-lg">
+                <MudStack Row="true"
+                          AlignItems="AlignItems.Center"
+                          Spacing="2"
+                          Justify="Justify.SpaceBetween">
+
+                    <!-- Filters (50%) -->
+                    <MudStack Row="true"
+                              AlignItems="AlignItems.Center"
+                              Spacing="2"
+                              Style="flex: 1 1 50%; max-width: 50%;">
+
+                        <MudDatePicker Label="Date"
+                                       @bind-Date="_filterDate"
+                                       Clearable="true"
+                                       Variant="Variant.Outlined"
+                                       Placeholder="Toutes les dates"
+                                       Style="flex:1" />
+
+                        <MudSelect T="RouteStatus?"
+                                   Label="Statut"
+                                   @bind-Value="_filterStatus"
+                                   Clearable="true"
+                                   Variant="Variant.Outlined"
+                                   Placeholder="Tous les statuts"
+                                   Style="flex:1">
+                            @foreach (var status in Enum.GetValues<RouteStatus>())
+                            {
+                                <MudSelectItem Value="@((RouteStatus?)status)">
+                                    @GetStatusDisplay(status)
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+
+                    </MudStack>
+
+                    <!-- Actions (right aligned, unchanged) -->
+                    <MudStack Row="true"
+                              AlignItems="AlignItems.End"
+                              Justify="Justify.FlexEnd"
+                              Spacing="1">
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="ApplyFilters"
+                                   Size="Size.Large"
+                                   StartIcon="@Icons.Material.Filled.Search">
+                            Rechercher
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Secondary"
+                                   OnClick="ResetFilters"
+                                   Size="Size.Large"
+                                   StartIcon="@Icons.Material.Filled.Clear">
+                            Réinitialiser
+                        </MudButton>
+
+                    </MudStack>
+
+                </MudStack>
+            </MudPaper>
+
+
+            <!-- Data card -->
+            <MudCard Elevation="2" Class="rounded-lg">
+                <MudCardContent Class="p-0">
+                    <MudTable Items="@_routes"
+                              Hover="true"
+                              Dense="true"
+                              Striped="true"
+                              Bordered="false"
+                              Breakpoint="Breakpoint.Sm"
+                              Loading="@_loading"
+                              FixedHeader="true"
+                              Height="60vh"
+                              LoadingProgressColor="Color.Primary">
+
+                        <HeaderContent>
+                            <MudTh>Référence</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Véhicule</MudTh>
+                            <MudTh>Chauffeur</MudTh>
+                            <MudTh>Livraisons</MudTh>
+                            <MudTh>Distance</MudTh>
+                            <MudTh>Durée</MudTh>
+                            <MudTh Style="min-width: 250px;">Statut & Actions</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd DataLabel="Référence">
+                                <MudText Typo="Typo.body2" Class="font-weight-medium">
+                                    @context.Reference
+                                </MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Date">
+                                <MudText Typo="Typo.body2">
+                                    @context.Date.ToString("dd/MM/yyyy")
+                                </MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Véhicule">
+                                <MudText Typo="Typo.body2">@context.VehicleName</MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Chauffeur">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                                    <MudText Typo="Typo.body2">@context.MainDriverName</MudText>
+                                    @if (context.TeamCount > 1)
+                                    {
+                                        <MudChip T="int" Size="Size.Small"
+                                                 Color="Color.Info"
+                                                 Variant="Variant.Outlined"
+                                                 Icon="@Icons.Material.Filled.Group">
+                                            +@(context.TeamCount - 1)
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </MudTd>
+
+                            <MudTd DataLabel="Livraisons">
+                                <MudChip T="int" Size="Size.Small"
+                                         Color="Color.Primary"
+                                         Variant="Variant.Outlined"
+                                         Icon="@Icons.Material.Filled.LocalShipping">
+                                    @context.TotalDeliveries
+                                </MudChip>
+                            </MudTd>
+
+                            <MudTd DataLabel="Distance">
+                                <MudText Typo="Typo.body2">
+                                    @context.TotalDistance.ToString("F1") km
+                                </MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Durée">
+                                <MudText Typo="Typo.body2">
+                                    @FormatDuration(context.TotalDuration)
+                                </MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Statut & Actions">
+                                <!-- ✅ NOUVEAU COMPOSANT -->
+                                <RouteStatusActions Route="@context"
+                                                    OnStatusChanged="LoadRoutes"
+                                                    OnEdit="@(() => Edit(context.Id))"
+                                                    OnView="@(() => ViewDetails(context.Id))"
+                                                    OnDelete="@(() => Delete(context.Id, context.Reference))"/>
+                            </MudTd>
+                        </RowTemplate>
+
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"
+                                           RowsPerPageString="Lignes par page:" />
+                        </PagerContent>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied />
+    </NotAuthorized>
+</AuthorizeView>

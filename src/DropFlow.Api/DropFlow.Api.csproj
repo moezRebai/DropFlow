@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>latestmajor</LangVersion>
+      <UserSecretsId>51c6e72c-8e25-4b77-9b44-772706662a74</UserSecretsId>
+  </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Bogus" Version="35.6.5" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.0" />
+        <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" /> <!-- 10.0.0 is for .NET 10 -->
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" /> <!-- Latest stable for .NET 9 -->
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <ProjectReference Include="..\DropFlow.Application\DropFlow.Application.csproj" />
+        <ProjectReference Include="..\DropFlow.Domain\DropFlow.Domain.csproj" />
+        <ProjectReference Include="..\DropFlow.Infrastructure\DropFlow.Infrastructure.csproj" />
+    </ItemGroup>
+
+
+</Project>

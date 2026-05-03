@@ -1,0 +1,428 @@
+@using System.Globalization
+@using DropFlow.Domain.Enums
+@using DropFlow.WebApp.Models.Routes
+@inject ISnackbar Snackbar
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            Vérifiez les informations avant de créer la tournée
+        </MudText>
+    </MudItem>
+
+    <!-- Informations Générales -->
+    <MudItem xs="12" md="6">
+        <MudCard Outlined="true">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">📅 Informations Générales</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudList T="RouteWizardState" Dense="true">
+                    <MudListItem T="RouteWizardState"  Icon="@Icons.Material.Filled.CalendarToday">
+                        <MudText Typo="Typo.body2">
+                            <strong>Date:</strong> @State.Date?.ToString("dddd dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))
+                        </MudText>
+                    </MudListItem>
+                    <MudListItem T="RouteWizardState"  Icon="@Icons.Material.Filled.AccessTime">
+                        <MudText Typo="Typo.body2">
+                            <strong>Heure départ:</strong> @State.StartTime.ToString(@"h\:mm")
+                        </MudText>
+                    </MudListItem>
+                    <MudListItem T="RouteWizardState"  Icon="@Icons.Material.Filled.DirectionsCar">
+                        <MudText Typo="Typo.body2">
+                            <strong>Véhicule:</strong> @State.VehicleName
+                        </MudText>
+                    </MudListItem>
+                    <MudListItem T="RouteWizardState"  Icon="@Icons.Material.Filled.Place">
+                        <MudText Typo="Typo.body2">
+                            <strong>Départ:</strong> @State.DepartureAddress
+                        </MudText>
+                    </MudListItem>
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Équipe -->
+    <MudItem xs="12" md="6">
+        <MudCard Outlined="true">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">👥 Équipe (@State.TeamMembers.Count)</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudList T="TeamMemberState"  Dense="true">
+                    @foreach (var member in State.TeamMembers)
+                    {
+                        <MudListItem T="TeamMemberState" Icon="@GetCrewIcon(member.Role)">
+                            <MudText Typo="Typo.body2">
+                                <strong>@member.DriverName</strong> - @GetRoleDisplay(member.Role)
+                            </MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Statistiques -->
+    <MudItem xs="12">
+        <MudPaper Class="pa-4" Elevation="0" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+            <MudGrid>
+                <MudItem xs="12" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@State.OptimizedDeliveries.Count</MudText>
+                    <MudText Typo="Typo.body2">Livraisons</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@State.TotalDistanceKm.ToString("F1")</MudText>
+                    <MudText Typo="Typo.body2">Kilomètres</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@FormatDuration(State.TotalDurationWithService)</MudText>
+                    <MudText Typo="Typo.body2">Durée estimée</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">
+                        @State.EndTime.ToString(@"h\:mm")
+                    </MudText>
+                    <MudText Typo="Typo.body2">Fin estimée</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <!-- ✨ Timeline Horizontale CENTRÉE et AÉRÉE -->
+    <MudItem xs="12">
+        <MudCard Outlined="true">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">🗺️ Itinéraire de la Tournée</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <div style="overflow-x: auto; padding: 20px 10px;">
+                    <div style="display: flex; align-items: stretch; justify-content: center; gap: 16px; min-width: min-content;">
+
+                        <!-- ✅ Point de départ -->
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <MudPaper Elevation="3" Class="pa-4" Style="width: 180px; border-top: 4px solid var(--mud-palette-success); background: linear-gradient(to bottom, rgba(46, 125, 50, 0.05) 0%, white 100%);">
+                                <MudStack Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Home" Color="Color.Success" Size="Size.Large" />
+                                    <MudText Typo="Typo.h6" Class="font-weight-bold" Color="Color.Success">Départ</MudText>
+                                    <MudDivider />
+                                    <MudText Typo="Typo.h4" Class="font-weight-bold" Style="color: #2e7d32;">
+                                        @State.StartTime.ToString(@"h\:mm")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Class="text-center" Style="line-height: 1.4; min-height: 40px;">
+                                        @GetShortAddress(State.DepartureAddress)
+                                    </MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Man">
+                                        @State.TeamMembers.FirstOrDefault(v => v.Role == TeamMemberRole.MainDriver).DriverName
+                                    </MudChip>
+                                </MudStack>
+                            </MudPaper>
+                        </div>
+
+                        <!-- ✅ Livraisons intermédiaires -->
+                        @foreach (var delivery in State.OptimizedDeliveries.OrderBy(d => d.SequenceOrder))
+                        {
+                            var travelMinutes = delivery.DurationMinutes;
+                            var distanceKm = delivery.DistanceToNextMeters / 1000.0m;
+
+                            <!-- Connecteur avec camion et infos -->
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
+                                <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Default" Size="Size.Small" />
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Primary" Size="Size.Medium" />
+                                    @if (travelMinutes > 0)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.AccessTime" Color="Color.Default">
+                                            @FormatDuration(travelMinutes)
+                                        </MudChip>
+                                    }
+                                    @if (distanceKm > 0)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Route" Color="Color.Default">
+                                            @distanceKm.ToString("F1") km
+                                        </MudChip>
+                                    }
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Default" Size="Size.Small" />
+                                </MudStack>
+                            </div>
+
+                            <!-- Carte livraison -->
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <MudPaper Elevation="3" Class="pa-4" Style="width: 190px; border-top: 4px solid var(--mud-palette-primary); background: linear-gradient(to bottom, rgba(33, 150, 243, 0.05) 0%, white 100%);">
+                                    <MudStack Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudAvatar Color="Color.Primary" Size="Size.Large">
+                                            <MudText Typo="Typo.h5" Class="font-weight-bold">@delivery.SequenceOrder</MudText>
+                                        </MudAvatar>
+                                        <MudText Typo="Typo.h6" Class="font-weight-bold text-center" Style="line-height: 1.3;">
+                                            @delivery.ClientName
+                                        </MudText>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.h4" Color="Color.Primary" Class="font-weight-bold">
+                                            @delivery.EstimatedArrivalTime.ToString(@"h\:mm")
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="text-center" Style="line-height: 1.4; min-height: 40px;">
+                                            @GetShortAddress(delivery.Address)
+                                        </MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Timer">
+                                            Prestation: @delivery.ServiceDurationMinutes min
+                                        </MudChip>
+                                    </MudStack>
+                                </MudPaper>
+                            </div>
+                        }
+
+                        <!-- Connecteur final -->
+                        @if (State.OptimizedDeliveries.Any())
+                        {
+                            var lastDelivery = State.OptimizedDeliveries.OrderBy(d => d.SequenceOrder).Last();
+                            var returnMinutes = lastDelivery.DurationMinutes;
+                            var returnKm = lastDelivery.DistanceToNextMeters / 1000.0m;
+
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
+                                <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Default" Size="Size.Small" />
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Primary" Size="Size.Medium" />
+                                    @if (returnMinutes > 0)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.AccessTime" Color="Color.Default">
+                                            @FormatDuration(returnMinutes)
+                                        </MudChip>
+                                    }
+                                    @if (returnKm > 0)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Route" Color="Color.Default">
+                                            @returnKm.ToString("F1") km
+                                        </MudChip>
+                                    }
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Default" Size="Size.Small" />
+                                </MudStack>
+                            </div>
+                        }
+
+                        <!-- ✅ Point d'arrivée -->
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <MudPaper Elevation="3" Class="pa-4" Style="width: 180px; border-top: 4px solid var(--mud-palette-error); background: linear-gradient(to bottom, rgba(211, 47, 47, 0.05) 0%, white 100%);">
+                                <MudStack Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Flag" Color="Color.Error" Size="Size.Large" />
+                                    <MudText Typo="Typo.h6" Class="font-weight-bold" Color="Color.Error">Fin de Tournée</MudText>
+                                    <MudDivider />
+                                    <MudText Typo="Typo.h4" Class="font-weight-bold" Style="color: #d32f2f;">
+                                        @State.EndTime.ToString(@"h\:mm")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Class="text-center" Style="line-height: 1.4; min-height: 40px;">
+                                        Retour au dépôt
+                                    </MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Schedule">
+                                        Total: @FormatDuration(State.TotalDurationWithService)
+                                    </MudChip>
+                                </MudStack>
+                            </MudPaper>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Légende -->
+                <MudDivider Class="my-3" />
+                <MudStack Row="true" Justify="Justify.Center" Spacing="4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.body2">Trajet entre étapes</MudText>
+                    </MudStack>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Color="Color.Info" />
+                        <MudText Typo="Typo.body2">Durée de prestation</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Liste Livraisons avec Créneaux -->
+    <MudItem xs="12">
+        <MudCard Outlined="true">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">📦 Récapitulatif Livraisons</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudTable Items="@State.OptimizedDeliveries.OrderBy(d => d.SequenceOrder)"
+                          Dense="true"
+                          Hover="true"
+                          Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>#</MudTh>
+                        <MudTh>Référence</MudTh>
+                        <MudTh>Client</MudTh>
+                        <MudTh>Adresse</MudTh>
+                        <MudTh>Arrivée</MudTh>
+                        <MudTh>Créneau</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="#">
+                            <MudChip T="int" Size="Size.Small" Color="Color.Primary">@context.SequenceOrder</MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Référence">
+                            <MudText Typo="Typo.body2" Class="font-weight-bold">@context.Reference</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Client">
+                            <MudText Typo="Typo.body2">@context.ClientName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Adresse">
+                            <MudText Typo="Typo.body2">@context.Address</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Arrivée">
+                            <MudText Typo="Typo.body2" Class="font-weight-bold">
+                                @context.EstimatedArrivalTime.ToString(@"h\:mm")
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Créneau">
+                            <MudStack Row="true" Spacing="1">
+                                <MudTimePicker Time="context.TimeSlotStart"
+                                               AmPm="false"
+                                               TimeFormat="HH:mm"
+                                               Variant="Variant.Text"
+                                               Margin="Margin.Dense" />
+                                <MudText Typo="Typo.body2" Class="align-self-center">-</MudText>
+                                <MudTimePicker Time="context.TimeSlotEnd"
+                                               AmPm="false"
+                                               TimeFormat="HH:mm"
+                                               Variant="Variant.Text"
+                                               Margin="Margin.Dense" />
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Avertissements -->
+    @if (_validationMessages.Any())
+    {
+        <MudItem xs="12">
+            @foreach (var message in _validationMessages)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-2">@message</MudAlert>
+            }
+        </MudItem>
+    }
+
+    <!-- Confirmation finale -->
+    <MudItem xs="12">
+        <MudCheckBox Value="State.IsValidated"
+                     Color="Color.Primary"
+                     T="bool"
+                     ValueChanged="OnValidChanged">
+            <MudText Typo="Typo.body1">
+                Je confirme que toutes les informations sont correctes et je souhaite créer cette tournée
+            </MudText>
+        </MudCheckBox>
+    </MudItem>
+
+    @if (State.IsValidated)
+    {
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Success" Dense="true">
+                ✅ Prêt à créer la tournée ! Cliquez sur "Créer la Tournée" ci-dessous.
+            </MudAlert>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter] public RouteWizardState State { get; set; } = null!;
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback<bool> OnValidationChanged { get; set; }
+
+    private List<string> _validationMessages = [];
+
+    public void OnStepEntered()
+    {
+        ValidateFinalState();
+    }
+
+    private async Task OnValidChanged(bool isValidated)
+    {
+        State.IsValidated = isValidated;
+        await OnValidationChanged.InvokeAsync(isValidated);
+        StateHasChanged();
+    }
+
+    private void ValidateFinalState()
+    {
+        _validationMessages.Clear();
+
+        // Vérifier les créneaux horaires
+        for (int i = 0; i < State.OptimizedDeliveries.Count; i++)
+        {
+            var delivery = State.OptimizedDeliveries[i];
+
+            if (delivery.TimeSlotStart >= delivery.TimeSlotEnd)
+            {
+                _validationMessages.Add($"Livraison #{delivery.SequenceOrder}: Le créneau de début doit être avant la fin");
+            }
+
+            if (i > 0)
+            {
+                var previous = State.OptimizedDeliveries[i - 1];
+                if (delivery.TimeSlotStart < previous.TimeSlotEnd)
+                {
+                    _validationMessages.Add($"Livraison #{delivery.SequenceOrder}: Chevauchement avec la livraison précédente");
+                }
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private string GetCrewIcon(TeamMemberRole role)
+    {
+        return role switch
+        {
+            TeamMemberRole.MainDriver => Icons.Material.Filled.DriveEta,
+            TeamMemberRole.Helper => Icons.Material.Filled.Person,
+            _ => Icons.Material.Filled.Person
+        };
+    }
+
+    private string GetRoleDisplay(TeamMemberRole role)
+    {
+        return role switch
+        {
+            TeamMemberRole.MainDriver => "Chauffeur Principal",
+            TeamMemberRole.Helper => "Monteur",
+            _ => role.ToString()
+        };
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        var hours = minutes / 60;
+        var mins = minutes % 60;
+
+        if (hours > 0)
+            return $"{hours}h{mins:D2}";
+        return $"{mins}min";
+    }
+
+    private string GetShortAddress(string fullAddress)
+    {
+        if (string.IsNullOrWhiteSpace(fullAddress))
+            return "Adresse non spécifiée";
+
+        // Prendre les 35 premiers caractères
+        if (fullAddress.Length > 35)
+            return fullAddress.Substring(0, 32) + "...";
+
+        return fullAddress;
+    }
+}

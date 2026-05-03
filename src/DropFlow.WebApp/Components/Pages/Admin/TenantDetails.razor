@@ -1,0 +1,496 @@
+@page "/admin/tenants/{TenantId:int}"
+@using DropFlow.Shared.Admin
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IDialogService DialogService
+@inject IAdminService AdminService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Détails Tenant - DropFlow Admin</PageTitle>
+
+<AuthorizeView Roles="@Roles.Admin">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+            @if (_isLoading)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else if (_tenant == null)
+            {
+                <MudAlert Severity="Severity.Error">Tenant introuvable</MudAlert>
+            }
+            else
+            {
+                <!-- Breadcrumb -->
+                <MudBreadcrumbs Items="_breadcrumbs" Class="mb-4" />
+
+                <!-- Header -->
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudText Typo="Typo.h4">@_tenant.Name</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="@GetPlanColor(_tenant.PlanType)">
+                                    @_tenant.PlanType
+                                </MudChip>
+                                <MudChip T="bool" Size="Size.Small" Color="@(_tenant.IsActive ? Color.Success : Color.Error)">
+                                    @(_tenant.IsActive ? "Actif" : "Inactif")
+                                </MudChip>
+                            </MudStack>
+                            @if (!string.IsNullOrEmpty(_tenant.SubDomain))
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" /> @_tenant.SubDomain
+                                </MudText>
+                            }
+                        </MudStack>
+
+                        <!-- Actions Header -->
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Variant="Variant.Filled" 
+                                      Color="Color.Info"
+                                      StartIcon="@Icons.Material.Filled.Edit"
+                                      OnClick="@(() => EditTenantPlan())">
+                                Modifier Plan
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" 
+                                      Color="@(_tenant.IsActive ? Color.Error : Color.Success)"
+                                      StartIcon="@(_tenant.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)"
+                                      OnClick="@ToggleTenantStatusAsync">
+                                @(_tenant.IsActive ? "Désactiver" : "Activer")
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" 
+                                      Color="Color.Error"
+                                      StartIcon="@Icons.Material.Filled.Delete"
+                                      OnClick="@DeleteTenantAsync">
+                                Supprimer
+                            </MudButton>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Tabs -->
+                <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                    <!-- Tab 1: Informations Générales -->
+                    <MudTabPanel Text="Informations" Icon="@Icons.Material.Filled.Info">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudCard Elevation="0" Outlined="true" Style="height: 100%;">
+                                    <MudCardHeader>
+                                        <CardHeaderContent>
+                                            <MudText Typo="Typo.h6">Détails du Compte</MudText>
+                                        </CardHeaderContent>
+                                    </MudCardHeader>
+                                    <MudCardContent>
+                                        <MudStack Spacing="3">
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Nom du Tenant</MudText>
+                                                <MudText Typo="Typo.body1"><strong>@_tenant.Name</strong></MudText>
+                                            </div>
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Plan d'Abonnement</MudText>
+                                                <MudChip T="string" Size="Size.Small" Color="@GetPlanColor(_tenant.PlanType)">@_tenant.PlanType</MudChip>
+                                            </div>
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Statut</MudText>
+                                                <MudChip T="string" Size="Size.Small" Color="@(_tenant.IsActive ? Color.Success : Color.Error)">
+                                                    @(_tenant.IsActive ? "Actif" : "Inactif")
+                                                </MudChip>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(_tenant.SubDomain))
+                                            {
+                                                <div>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Sous-domaine</MudText>
+                                                    <MudText Typo="Typo.body1">@_tenant.SubDomain</MudText>
+                                                </div>
+                                            }
+                                        </MudStack>
+                                    </MudCardContent>
+                                </MudCard>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudCard Elevation="0" Outlined="true" Style="height: 100%;">
+                                    <MudCardHeader>
+                                        <CardHeaderContent>
+                                            <MudText Typo="Typo.h6">Limites & Quotas</MudText>
+                                        </CardHeaderContent>
+                                    </MudCardHeader>
+                                    <MudCardContent>
+                                        <MudStack Spacing="3">
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Utilisateurs Maximum</MudText>
+                                                <MudText Typo="Typo.body1">
+                                                    <strong>@_tenant.MaxUsers</strong>
+                                                    @(_tenant.PlanType == "Enterprise" ? " (Illimité)" : "")
+                                                </MudText>
+                                            </div>
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Livraisons Maximum / Mois</MudText>
+                                                <MudText Typo="Typo.body1">
+                                                    <strong>@_tenant.MaxDeliveries</strong>
+                                                    @(_tenant.PlanType == "Enterprise" ? " (Illimité)" : "")
+                                                </MudText>
+                                            </div>
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Utilisateurs Actifs</MudText>
+                                                <MudText Typo="Typo.body1">
+                                                    <strong>@_tenant.ActiveUserCount</strong> / @_tenant.MaxUsers
+                                                </MudText>
+                                                <MudProgressLinear Color="Color.Primary" 
+                                                                  Value="@GetUsagePercentage(_tenant.ActiveUserCount, _tenant.MaxUsers)" 
+                                                                  Class="mt-1" />
+                                            </div>
+                                        </MudStack>
+                                    </MudCardContent>
+                                </MudCard>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudCard Elevation="0" Outlined="true">
+                                    <MudCardHeader>
+                                        <CardHeaderContent>
+                                            <MudText Typo="Typo.h6">Dates Importantes</MudText>
+                                        </CardHeaderContent>
+                                    </MudCardHeader>
+                                    <MudCardContent>
+                                        <MudStack Spacing="3">
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Date de Création</MudText>
+                                                <MudText Typo="Typo.body1">@_tenant.CreatedDate.ToString("dd MMMM yyyy à HH:mm")</MudText>
+                                            </div>
+                                            <div>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Date d'Expiration</MudText>
+                                                @if (_tenant.ExpiryDate.HasValue)
+                                                {
+                                                    var isExpired = _tenant.ExpiryDate.Value < DateTime.Now;
+                                                    <MudText Typo="Typo.body1" Color="@(isExpired ? Color.Error : Color.Default)">
+                                                        @_tenant.ExpiryDate.Value.ToString("dd MMMM yyyy")
+                                                        @if (isExpired)
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Class="ml-2">Expiré</MudChip>
+                                                        }
+                                                    </MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.body1" Color="Color.Success">
+                                                        <strong>∞</strong> Aucune expiration
+                                                    </MudText>
+                                                }
+                                            </div>
+                                            @if (_tenant.LastActivityDate.HasValue)
+                                            {
+                                                <div>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Dernière Activité</MudText>
+                                                    <MudText Typo="Typo.body1">@_tenant.LastActivityDate.Value.ToString("dd MMMM yyyy à HH:mm")</MudText>
+                                                </div>
+                                            }
+                                        </MudStack>
+                                    </MudCardContent>
+                                </MudCard>
+                            </MudItem>
+                        </MudGrid>
+                    </MudTabPanel>
+
+                    <!-- Tab 2: Utilisateurs -->
+                    <MudTabPanel Text="Utilisateurs"
+                                 Icon="@Icons.Material.Filled.People"
+                                 BadgeData="@_users.Count"
+                                 BadgeColor="Color.Secondary">
+                        <MudTable Items="@_users" 
+                                 Hover="true" 
+                                 Striped="true" 
+                                 Dense="true"
+                                 Loading="@_loadingUsers"
+                                 LoadingProgressColor="Color.Primary">
+                            <HeaderContent>
+                                <MudTh>Email</MudTh>
+                                <MudTh>Nom Complet</MudTh>
+                                <MudTh>Rôle</MudTh>
+                                <MudTh>Dernière Connexion</MudTh>
+                                <MudTh>Statut</MudTh>
+                                <MudTh Style="text-align: right;">Actions</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="user">
+                                <MudTd DataLabel="Email">@user.Email</MudTd>
+                                <MudTd DataLabel="Nom">@user.FullName</MudTd>
+                                <MudTd DataLabel="Rôle">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(user.Role)">
+                                        @user.Role
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="Dernière Connexion">
+                                    @if (user.LastLoginDate.HasValue)
+                                    {
+                                        <MudText Typo="Typo.body2">@user.LastLoginDate.Value.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Jamais</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Statut">
+                                    <MudSwitch Value="@user.IsActive" 
+                                              Color="Color.Success" 
+                                              UnCheckedColor="Color.Default"
+                                              ThumbIcon="@(user.IsActive ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                              ThumbIconColor="@(user.IsActive ? Color.Success : Color.Error)"
+                                              ValueChanged="@(async (bool value) => await ToggleUserStatusAsync(user, value))" />
+                                </MudTd>
+                                <MudTd DataLabel="Actions" Style="text-align: right;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                  Color="Color.Info" 
+                                                  Size="Size.Small"
+                                                  Disabled="true"
+                                                  Title="Modifier (prochainement)" />
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+                                    Aucun utilisateur trouvé pour ce tenant
+                                </MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudTabPanel>
+
+                    <!-- Tab 3: Statistiques (Phase 3) -->
+                    <MudTabPanel Text="Statistiques" Icon="@Icons.Material.Filled.Analytics">
+                        <MudAlert Severity="Severity.Info">
+                            Les statistiques détaillées seront disponibles dans la Phase 3
+                        </MudAlert>
+                    </MudTabPanel>
+
+                    <!-- Tab 4: Historique (Phase 3) -->
+                    <MudTabPanel Text="Historique" Icon="@Icons.Material.Filled.History">
+                        <MudAlert Severity="Severity.Info">
+                            L'historique d'audit sera disponible dans la Phase 3
+                        </MudAlert>
+                    </MudTabPanel>
+                </MudTabs>
+            }
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+            <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Error" Class="mb-4" />
+                <MudText Typo="Typo.h5" Class="mb-2">Accès Réservé aux Administrateurs</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary">
+                    Vous devez être administrateur de la plateforme DropFlow pour accéder à cette page.
+                </MudText>
+            </MudPaper>
+        </MudContainer>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Parameter] public int TenantId { get; set; }
+
+    private TenantDetailsDto? _tenant;
+    private List<TenantUserDto> _users = new();
+    private bool _isLoading = true;
+    private bool _loadingUsers = true;
+
+    private List<BreadcrumbItem> _breadcrumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTenantDetailsAsync();
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadTenantDetailsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _tenant = await AdminService.GetTenantDetailsAsync(TenantId);
+            
+            if (_tenant != null)
+            {
+                _breadcrumbs =
+                [
+                    new BreadcrumbItem("Admin", href: "/admin"),
+                    new BreadcrumbItem("Tenants", href: "/admin/tenants"),
+                    new BreadcrumbItem(_tenant.Name, href: null, disabled: true)
+                ];
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        _loadingUsers = true;
+        try
+        {
+            _users = await AdminService.GetTenantUsersAsync(TenantId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement des utilisateurs: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loadingUsers = false;
+        }
+    }
+
+    private Color GetPlanColor(string planType) => planType switch
+    {
+        "Free" => Color.Default,
+        "Starter" => Color.Info,
+        "Business" => Color.Success,
+        "Enterprise" => Color.Error,
+        _ => Color.Default
+    };
+
+    private Color GetRoleColor(string role) => role switch
+    {
+        "Admin" => Color.Error,
+        "Manager" => Color.Info,
+        "Livreur" => Color.Success,
+        _ => Color.Default
+    };
+
+    private double GetUsagePercentage(int current, int max)
+    {
+        if (max == 0) return 0;
+        return (double)current / max * 100;
+    }
+
+    private async Task ToggleTenantStatusAsync()
+    {
+        if (_tenant == null) return;
+
+        var newStatus = !_tenant.IsActive;
+        var action = newStatus ? "activer" : "désactiver";
+        
+        var confirmed = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Voulez-vous vraiment {action} ce tenant ?",
+            yesText: "Confirmer",
+            cancelText: "Annuler");
+
+        if (confirmed != true) return;
+
+        var success = newStatus
+            ? await AdminService.ActivateTenantAsync(_tenant.Id)
+            : await AdminService.DeactivateTenantAsync(_tenant.Id);
+
+        if (success.Succeeded)
+        {
+            _tenant.IsActive = newStatus;
+            Snackbar.Add($"Tenant {(newStatus ? "activé" : "désactivé")} avec succès", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Échec de l'opération", Severity.Error);
+        }
+    }
+
+    private async Task EditTenantPlan()
+    {
+        if (_tenant == null) return;
+
+        var parameters = new DialogParameters<UpdateTenantPlanDialog>
+        {
+            { x => x.Tenant, _tenant }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<UpdateTenantPlanDialog>(
+            "Modifier le Plan",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is UpdateTenantPlanDto request)
+        {
+            var success = await AdminService.UpdateTenantPlanAsync(_tenant.Id, request);
+            if (success.Succeeded)
+            {
+                Snackbar.Add("Plan mis à jour avec succès", Severity.Success);
+                await LoadTenantDetailsAsync();
+            }
+            else
+            {
+                Snackbar.Add("Échec de la mise à jour du plan", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteTenantAsync()
+    {
+        if (_tenant == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Supprimer le Tenant",
+            new MarkupString($"Êtes-vous <strong>absolument certain</strong> de vouloir supprimer le tenant '<strong>{_tenant.Name}</strong>' ?<br/><br/>" +
+                           "Cette action est <strong>irréversible</strong> et supprimera toutes les données associées."),
+            yesText: "Supprimer définitivement",
+            cancelText: "Annuler",
+            options: new DialogOptions { MaxWidth = MaxWidth.Small });
+
+        if (confirmed != true) return;
+
+        var success = await AdminService.DeleteTenantAsync(_tenant.Id);
+        if (success.Succeeded)
+        {
+            Snackbar.Add("Tenant supprimé avec succès", Severity.Success);
+            Navigation.NavigateTo("/admin/tenants");
+        }
+        else
+        {
+            Snackbar.Add("Échec de la suppression", Severity.Error);
+        }
+    }
+
+    private async Task ToggleUserStatusAsync(TenantUserDto user, bool newStatus)
+    {
+        var action = newStatus ? "activer" : "désactiver";
+        var confirmed = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Voulez-vous vraiment {action} l'utilisateur '{user.Email}' ?",
+            yesText: "Confirmer",
+            cancelText: "Annuler");
+
+        if (confirmed != true)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var success = newStatus
+            ? await AdminService.ActivateTenantUserAsync(TenantId, user.Id)
+            : await AdminService.DeactivateTenantUserAsync(TenantId, user.Id);
+
+        if (success.Succeeded)
+        {
+            user.IsActive = newStatus;
+            Snackbar.Add($"Utilisateur {(newStatus ? "activé" : "désactivé")} avec succès", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Échec de l'opération", Severity.Error);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}

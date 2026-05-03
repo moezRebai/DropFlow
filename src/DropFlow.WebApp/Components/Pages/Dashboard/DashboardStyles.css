@@ -1,0 +1,337 @@
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD STYLES - À ajouter dans MainLayout.razor <style>
+   ═══════════════════════════════════════════════════════════════ */
+
+/* === GREETING SECTION === */
+.df-greeting-card {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border-radius: 16px;
+    padding: 24px;
+    color: white;
+    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.3);
+    margin-bottom: 24px;
+}
+
+.df-greeting-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.df-greeting-subtitle {
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+.df-greeting-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    margin-top: 8px;
+}
+
+/* === KPI CARDS === */
+.df-kpi-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid #f1f5f9;
+    height: 100%;
+}
+
+.df-kpi-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+}
+
+.df-kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.df-kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 12px 0 4px 0;
+    line-height: 1;
+}
+
+.df-kpi-label {
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.df-kpi-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.df-kpi-trend-up {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.df-kpi-trend-down {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.df-kpi-trend-neutral {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* === ACTIONS RAPIDES === */
+.df-quick-actions {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+    margin-bottom: 24px;
+}
+
+.df-action-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.df-action-button:hover {
+    background: #e0f2fe;
+    border-color: #0ea5e9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+}
+
+.df-action-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.df-action-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.df-action-subtitle {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+/* === NOTIFICATIONS POPOVER === */
+.df-notifications-popover {
+    border-radius: 12px !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    overflow: hidden;
+    min-width: 400px;
+    max-width: 450px;
+}
+
+.df-notification-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.df-notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.df-notification-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s ease;
+    cursor: pointer;
+}
+
+.df-notification-item:hover {
+    background: #f8fafc;
+}
+
+.df-notification-item:last-child {
+    border-bottom: none;
+}
+
+.df-notification-item-unread {
+    background: #f0f9ff;
+}
+
+.df-notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.df-notification-content {
+    flex: 1;
+}
+
+.df-notification-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+
+.df-notification-message {
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.df-notification-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.df-notification-footer {
+    padding: 12px 20px;
+    background: #f8fafc;
+    text-align: center;
+}
+
+/* === DASHBOARD TABLE === */
+.df-dashboard-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+}
+
+.df-table-header {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.df-table-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.df-table-subtitle {
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+/* === STATUS BADGES === */
+.df-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.df-status-planned {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.df-status-confirmed {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.df-status-inprogress {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.df-status-delivered {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.df-status-cancelled {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.df-status-late {
+    background: #fee2e2;
+    color: #dc2626;
+    animation: pulse-late 2s ease-in-out infinite;
+}
+
+@keyframes pulse-late {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 960px) {
+    .df-greeting-card {
+        padding: 20px;
+    }
+    
+    .df-greeting-title {
+        font-size: 1.5rem;
+    }
+    
+    .df-kpi-card {
+        padding: 16px;
+    }
+    
+    .df-kpi-value {
+        font-size: 1.75rem;
+    }
+    
+    .df-notifications-popover {
+        min-width: 320px;
+        max-width: 100vw;
+    }
+    
+    .df-action-button {
+        padding: 12px;
+    }
+}

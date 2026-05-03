@@ -1,0 +1,126 @@
+<MudStack Spacing="4">
+    <MudText Typo="Typo.body1">
+        Gérez efficacement votre base de clients, leurs coordonnées et l'historique de vos relations commerciales.
+    </MudText>
+
+    <MudExpansionPanels MultiExpansion="true">
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Comment ajouter un nouveau client ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Module <strong>Clients → Nouveau client</strong>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Choisissez le type : Particulier ou Entreprise
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Remplissez les coordonnées de contact
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Ajoutez une ou plusieurs adresses de livraison
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Configurez les conditions de paiement (optionnel)
+                        </MudListItem>
+                    </MudList>
+
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                        💡 Un client peut avoir plusieurs adresses de livraison. Définissez-en une par défaut.
+                    </MudAlert>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Comment importer une liste de clients ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudText Typo="Typo.body2">
+                        Importez rapidement vos clients existants depuis Excel ou CSV :
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Download">
+                            Téléchargez le modèle d'import Excel
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Edit">
+                            Remplissez avec vos données clients
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Upload">
+                            Importez le fichier : Clients → Importer
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle">
+                            Vérifiez et confirmez les données importées
+                        </MudListItem>
+                    </MudList>
+
+                    <MudCard Elevation="0" Style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;" Class="mt-2">
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                Colonnes requises :
+                            </MudText>
+                            <MudText Typo="Typo.caption">
+                                Nom • Email • Téléphone • Adresse • Code postal • Ville
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Comment consulter l'historique client ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudText Typo="Typo.body2">
+                        Chaque fiche client contient un historique complet :
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.LocalShipping">
+                            <strong>Livraisons :</strong> Toutes les livraisons effectuées avec statuts et dates
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Receipt">
+                            <strong>Factures :</strong> Historique de facturation et paiements
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.TrendingUp">
+                            <strong>Statistiques :</strong> CA total, nombre de livraisons, taux de ponctualité
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.ShoppingCart">
+                            <strong>Produits favoris :</strong> Produits les plus commandés par ce client
+                        </MudListItem>
+                    </MudList>
+
+                    <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
+                        ✨ Ces données vous aident à mieux comprendre vos clients et anticiper leurs besoins.
+                    </MudAlert>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+</MudStack>
+
+@code {
+    
+}

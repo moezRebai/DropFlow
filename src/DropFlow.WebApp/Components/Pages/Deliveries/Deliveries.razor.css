@@ -1,0 +1,38 @@
+﻿/* Style du groupe de toggle */
+::deep .view-toggle-group {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+::deep .view-toggle-group .mud-toggleitem {
+    min-width: 60px;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+}
+
+::deep .view-toggle-group .mud-toggleitem:hover {
+    background-color: rgba(33, 150, 243, 0.08);
+}
+
+::deep .view-toggle-group .mud-toggleitem.mud-selected {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: white;
+}
+
+::deep .view-toggle-group .mud-toggleitem.mud-selected .mud-icon-root {
+    color: white !important;
+}
+
+::deep .view-toggle-group .mud-toggleitem:not(.mud-selected) .mud-icon-root {
+    color: #6b7280;
+}
+
+/* Border entre les items */
+::deep .view-toggle-group .mud-toggleitem:not(:last-child) {
+    border-right: 1px solid #e5e7eb;
+}
+
+::deep .view-toggle-group .mud-toggleitem.mud-selected + .mud-toggleitem {
+    border-left-color: transparent;
+}

@@ -1,0 +1,238 @@
+@using DropFlow.Shared.Admin
+@using DropFlow.WebApp.Models.Audit
+
+<MudCard Elevation="0" Outlined="true" Class="mb-4">
+    <MudCardContent>
+        <MudGrid Spacing="2">
+            <!-- Filtre Tenant -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudAutocomplete T="TenantDto"
+                                Value="_selectedTenant"
+                                Label="Filtrer par Tenant"
+                                SearchFunc="SearchTenants"
+                                ToStringFunc="@(t => t?.Name ?? "")"
+                                Variant="Variant.Outlined"
+                                Dense="true"
+                                Clearable="true"
+                                AdornmentIcon="@Icons.Material.Filled.Business"
+                                AdornmentColor="Color.Primary"
+                                ResetValueOnEmptyText="true"
+                                CoerceText="false"
+                                ValueChanged="OnTenantChanged" />
+            </MudItem>
+
+            <!-- Filtre Action -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                          @bind-Value="_selectedAction"
+                          Label="Filtrer par Action"
+                          Variant="Variant.Outlined"
+                          Dense="true"
+                          Clearable="true"
+                          AdornmentIcon="@Icons.Material.Filled.FilterList"
+                          AdornmentColor="Color.Primary">
+                    <MudSelectItem T="string" Value="@("TenantCreated")">Tenant Créé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("TenantUpdated")">Tenant Modifié</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("TenantActivated")">Tenant Activé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("TenantDeactivated")">Tenant Désactivé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("TenantDeleted")">Tenant Supprimé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("UserCreated")">Utilisateur Créé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("UserUpdated")">Utilisateur Modifié</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("UserActivated")">Utilisateur Activé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("UserDeactivated")">Utilisateur Désactivé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("UserDeleted")">Utilisateur Supprimé</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Login")">Connexion</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Logout")">Déconnexion</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("PasswordChanged")">Mot de passe changé</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <!-- Filtre Sévérité -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                          @bind-Value="_selectedSeverity"
+                          Label="Filtrer par Sévérité"
+                          Variant="Variant.Outlined"
+                          Dense="true"
+                          Clearable="true"
+                          AdornmentIcon="@Icons.Material.Filled.Warning"
+                          AdornmentColor="Color.Primary">
+                    <MudSelectItem T="string" Value="@("Info")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" />
+                            <span>Info</span>
+                        </MudStack>
+                    </MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Warning")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" />
+                            <span>Warning</span>
+                        </MudStack>
+                    </MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Error")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Small" />
+                            <span>Error</span>
+                        </MudStack>
+                    </MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Critical")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.GppBad" Color="Color.Error" Size="Size.Small" />
+                            <span>Critical</span>
+                        </MudStack>
+                    </MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <!-- Période -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                          Value="_selectedPeriod"
+                          Label="Période"
+                          Variant="Variant.Outlined"
+                          Dense="true"
+                          AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                          AdornmentColor="Color.Primary"
+                          ValueChanged="OnPeriodChanged">
+                    <MudSelectItem T="string" Value="@("today")">Aujourd'hui</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("yesterday")">Hier</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("week")">7 derniers jours</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("month")">30 derniers jours</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("custom")">Période personnalisée</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            @if (_selectedPeriod == "custom")
+            {
+                <!-- Date Début -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_startDate"
+                                  Label="Date de début"
+                                  Variant="Variant.Outlined"
+                                  Dense="true"
+                                  MaxDate="DateTime.Today"
+                                  AdornmentIcon="@Icons.Material.Filled.DateRange"
+                                  AdornmentColor="Color.Primary" />
+                </MudItem>
+
+                <!-- Date Fin -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker @bind-Date="_endDate"
+                                  Label="Date de fin"
+                                  Variant="Variant.Outlined"
+                                  Dense="true"
+                                  MinDate="_startDate"
+                                  MaxDate="DateTime.Today"
+                                  AdornmentIcon="@Icons.Material.Filled.DateRange"
+                                  AdornmentColor="Color.Primary" />
+                </MudItem>
+            }
+
+            <!-- Actions -->
+            <MudItem xs="12" Class="d-flex justify-end gap-2">
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Default"
+                          StartIcon="@Icons.Material.Filled.Clear"
+                          OnClick="ResetFilters">
+                    Réinitialiser
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Search"
+                          OnClick="ApplyFilters">
+                    Appliquer
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public List<TenantDto> Tenants { get; set; } = new();
+    [Parameter] public EventCallback<AuditFilters> OnFiltersChanged { get; set; }
+
+    private TenantDto? _selectedTenant;
+    private string? _selectedAction;
+    private string? _selectedSeverity;
+    private string _selectedPeriod = "week";
+    private DateTime? _startDate;
+    private DateTime? _endDate;
+
+    protected override void OnInitialized()
+    {
+        // Par défaut : 7 derniers jours
+        _endDate = DateTime.Today;
+        _startDate = DateTime.Today.AddDays(-7);
+    }
+    
+    private Task<IEnumerable<TenantDto>> SearchTenants(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult<IEnumerable<TenantDto>>(Tenants);
+
+        return Task.FromResult(Tenants.Where(t => t.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private async Task OnTenantChanged(TenantDto? tenant)
+    {
+        _selectedTenant = tenant;
+        await ApplyFilters();
+    }
+
+    private async Task OnPeriodChanged(string period)
+    {
+        _selectedPeriod = period;
+        
+        var today = DateTime.Today;
+        switch (period)
+        {
+            case "today":
+                _startDate = today;
+                _endDate = today.AddDays(1).AddSeconds(-1);
+                break;
+            case "yesterday":
+                _startDate = today.AddDays(-1);
+                _endDate = today.AddSeconds(-1);
+                break;
+            case "week":
+                _startDate = today.AddDays(-7);
+                _endDate = today.AddDays(1).AddSeconds(-1);
+                break;
+            case "month":
+                _startDate = today.AddDays(-30);
+                _endDate = today.AddDays(1).AddSeconds(-1);
+                break;
+            case "custom":
+                // Utilisateur saisit manuellement
+                break;
+        }
+        
+        await ApplyFilters();
+    }
+
+    private async Task ApplyFilters()
+    {
+        var filters = new AuditFilters
+        {
+            TenantId = _selectedTenant?.Id,
+            Action = _selectedAction,
+            Severity = _selectedSeverity,
+            StartDate = _startDate,
+            EndDate = _endDate
+        };
+
+        await OnFiltersChanged.InvokeAsync(filters);
+    }
+
+    private async Task ResetFilters()
+    {
+        _selectedTenant = null;
+        _selectedAction = null;
+        _selectedSeverity = null;
+        _selectedPeriod = "week";
+        _startDate = DateTime.Today.AddDays(-7);
+        _endDate = DateTime.Today.AddDays(1).AddSeconds(-1);
+
+        await ApplyFilters();
+    }
+}

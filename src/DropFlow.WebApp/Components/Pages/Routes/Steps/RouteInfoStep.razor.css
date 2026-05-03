@@ -1,0 +1,109 @@
+/* RouteInfoStep - Custom styles */
+
+/* Animation pour le champ d'adresse personnalisé */
+.custom-address-field {
+    transition: all 0.3s ease;
+}
+
+.custom-address-field:focus-within {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Style pour les suggestions Google Maps */
+.pac-container {
+    font-family: 'Roboto', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    border: none;
+    margin-top: 4px;
+    z-index: 9999 !important;
+}
+
+.pac-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.pac-item:hover {
+    background-color: #f5f5f5;
+}
+
+.pac-item-query {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.pac-matched {
+    font-weight: 700;
+    color: #594AE2;
+}
+
+/* Animation de chargement */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.checking-deliveries {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Badge pour le compteur de livraisons */
+.deliveries-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.deliveries-badge.success {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.deliveries-badge.warning {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.deliveries-badge.error {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+/* Icône animée pour GPS */
+@keyframes gps-pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.gps-icon {
+    animation: gps-pulse 2s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .pac-container {
+        max-width: calc(100vw - 32px);
+    }
+}

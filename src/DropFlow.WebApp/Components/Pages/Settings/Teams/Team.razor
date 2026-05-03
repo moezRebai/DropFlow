@@ -1,0 +1,700 @@
+@page "/settings/equipe"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using DropFlow.Shared.Common
+@using DropFlow.Shared.Profil
+@using DropFlow.Shared.UserManagement
+@using DropFlow.WebApp.Components.Pages.Admin
+@using DropFlow.WebApp.Components.Shared
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@inject IUserManagementService UserManagementService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IProfileService ProfileService
+
+<PageTitle>Gestion des Utilisateurs - DropFlow</PageTitle>
+
+<AuthorizeView Roles="@Roles.Manager">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 mb-8">
+            <!-- Header -->
+            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h5" Style="font-weight: 600;">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2"/>
+                            Gestion des Utilisateurs
+                            @if (!string.IsNullOrWhiteSpace(_tenantName))
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Medium"
+                                         Color="Color.Primary"
+                                         Variant="Variant.Text"
+                                         Icon="@Icons.Material.Filled.Business"
+                                         Class="ml-2">
+                                    @_tenantName
+                                </MudChip>
+                            }
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #64748b;">
+                            Invitez et gérez les utilisateurs de votre entreprise
+                        </MudText>
+                    </MudStack>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PersonAdd"
+                               OnClick="OpenInviteDialog"
+                               Size="Size.Large">
+                        Inviter un utilisateur
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Stats rapides -->
+            <MudGrid Class="mb-4">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.caption" Style="color: #64748b;">Total utilisateurs</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 600; color: var(--mud-palette-primary);">
+                                @_users.Count
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.caption" Style="color: #64748b;">Actifs</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 600; color: #10b981;">
+                                @_users.Count(u => u.IsActive && !u.DeletedDate.HasValue)
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.caption" Style="color: #64748b;">Managers</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 600; color: var(--mud-palette-primary);">
+                                @_users.Count(u => u.Role == "Manager" && !u.DeletedDate.HasValue)
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.caption" Style="color: #64748b;">Livreurs</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 600; color: #06b6d4;">
+                                @_users.Count(u => u.Role == "Livreur" && !u.DeletedDate.HasValue)
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Table -->
+            <MudPaper Elevation="2">
+                <MudToolBar Dense="true" Style="background-color: #f8fafc;">
+                    <MudText Typo="Typo.h6">Utilisateurs</MudText>
+                    <MudSpacer />
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudCheckBox Value="_includeDeactivated" 
+                                   Label="Afficher désactivés" 
+                                   Color="Color.Warning"
+                                   T="bool"
+                                   Dense="true"
+                                   Class="mr-2"
+                                   ValueChanged="OnIncludeDeactivatedChanged" />
+                        <MudCheckBox Value="_includeDeleted" 
+                                   Label="Afficher archivés" 
+                                   Color="Color.Error"
+                                   T="bool"
+                                   Dense="true"
+                                   ValueChanged="OnIncludeDeletedChanged" />
+                        <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
+                        <MudText Typo="Typo.body2" Style="color: #64748b;">
+                            @_filteredUsers.Count utilisateurs
+                        </MudText>
+                    </MudStack>
+                </MudToolBar>
+
+                <MudDataGrid T="UserProfileDto"
+                             Items="@_filteredUsers"
+                             Filterable="true"
+                             FilterMode="DataGridFilterMode.Simple"
+                             SortMode="SortMode.Multiple"
+                             Loading="@_isLoading"
+                             Elevation="0"
+                             Dense="false"
+                             Hover="true">
+                    <Columns>
+                        <!-- Email -->
+                        <PropertyColumn Property="x => x.Email" Title="Email">
+                            <CellTemplate Context="user">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                                        @user.Item.Email
+                                        @if (IsCurrentUser(user.Item.Id))
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                                     Variant="Variant.Text" Class="ml-2">Vous
+                                            </MudChip>
+                                        }
+                                    </MudText>
+                                    @if (!string.IsNullOrWhiteSpace(user.Item.FullName))
+                                    {
+                                        <MudText Typo="Typo.caption"
+                                                 Style="color: #64748b;">@user.Item.FullName</MudText>
+                                    }
+                                </MudStack>
+                            </CellTemplate>
+                        </PropertyColumn>
+
+                        <!-- Téléphone -->
+                        <PropertyColumn Property="x => x.PhoneNumber" Title="Téléphone">
+                            <CellTemplate Context="user">
+                                @if (!string.IsNullOrWhiteSpace(user.Item.PhoneNumber))
+                                {
+                                    <MudText Typo="Typo.body2">@user.Item.PhoneNumber</MudText>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2" Style="color: #94a3b8;">-</MudText>
+                                }
+                            </CellTemplate>
+                        </PropertyColumn>
+
+                        <!-- Rôle -->
+                        <PropertyColumn Property="x => x.Role" Title="Rôle">
+                            <CellTemplate Context="user">
+                                <MudChip T="string"
+                                         Color="@GetRoleColor(user.Item.Role)"
+                                         Size="Size.Small"
+                                         Variant="Variant.Filled">
+                                    @GetRoleDisplayName(user.Item.Role)
+                                </MudChip>
+                            </CellTemplate>
+                        </PropertyColumn>
+
+                        <!-- Statut -->
+                        <TemplateColumn Title="Statut" Sortable="true" SortBy="@(x => x.IsActive)">
+                            <CellTemplate Context="user">
+                                @if (user.Item.DeletedDate.HasValue)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Delete">
+                                        Archivé
+                                    </MudChip>
+                                }
+                                else if (!user.Item.IsActive)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Pause">
+                                        Désactivé
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                        Actif
+                                    </MudChip>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+
+                        <!-- Date création -->
+                        <PropertyColumn Property="x => x.CreatedDate" Title="Créé le" Format="dd/MM/yyyy"/>
+
+                        <!-- Dernière connexion -->
+                        <PropertyColumn Property="x => x.LastLoginDate" Title="Dernière connexion">
+                            <CellTemplate Context="user">
+                                @if (user.Item.LastLoginDate.HasValue)
+                                {
+                                    <MudText Typo="Typo.body2">@user.Item.LastLoginDate.Value.ToString("dd/MM/yyyy HH:mm")</MudText>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2" Style="color: #94a3b8;">Jamais</MudText>
+                                }
+                            </CellTemplate>
+                        </PropertyColumn>
+
+                        <!-- Actions -->
+                        <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                            <CellTemplate Context="user">
+                                @if (!IsCurrentUser(user.Item.Id))
+                                {
+                                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
+                                        @if (user.Item.DeletedDate.HasValue)
+                                        {
+                                            <!-- User SUPPRIMÉ - Seule action: Restaurer -->
+                                            <MudMenuItem OnClick="@(() => RestoreUserAsync(user.Item))" 
+                                                        Icon="@Icons.Material.Filled.RestorePage">
+                                                Restaurer
+                                            </MudMenuItem>
+                                        }
+                                        else if (!user.Item.IsActive)
+                                        {
+                                            <!-- User DÉSACTIVÉ - Actions: Activer, Supprimer -->
+                                            <MudMenuItem OnClick="@(() => ToggleUserStatusAsync(user.Item, true))" 
+                                                         Icon="@Icons.Material.Filled.PlayArrow"
+                                                         IconColor="Color.Success">
+                                                Activer
+                                            </MudMenuItem>
+                                            <MudDivider />
+                                            <MudMenuItem OnClick="@(() => DeleteUserAsync(user.Item))" 
+                                                        Icon="@Icons.Material.Filled.Delete"
+                                                        IconColor="Color.Error">
+                                                Supprimer (Archiver)
+                                            </MudMenuItem>
+                                        }
+                                        else
+                                        {
+                                            <!-- User ACTIF - Actions: Modifier rôle, Désactiver, Supprimer -->
+                                            <MudMenuItem OnClick="@(() => ChangeUserRole(user.Item))" 
+                                                         Icon="@Icons.Material.Filled.Badge"
+                                                         IconColor="Color.Secondary">
+                                                Changer le rôle
+                                            </MudMenuItem>
+                                            <MudDivider />
+                                            <MudMenuItem OnClick="@(() => ToggleUserStatusAsync(user.Item, false))" 
+                                                        Icon="@Icons.Material.Filled.Pause"
+                                                        IconColor="Color.Warning">
+                                                Désactiver
+                                            </MudMenuItem>
+                                            <MudMenuItem OnClick="@(() => DeleteUserAsync(user.Item))" 
+                                                        Icon="@Icons.Material.Filled.Delete"
+                                                        IconColor="Color.Error">
+                                                Supprimer (Archiver)
+                                            </MudMenuItem>
+                                        }
+                                    </MudMenu>
+                                }
+                                else
+                                {
+                                    <MudTooltip Text="Vous ne pouvez pas modifier votre propre compte">
+                                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                                       Color="Color.Default"
+                                                       Size="Size.Small"
+                                                       Disabled="true"/>
+                                    </MudTooltip>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+
+                    <PagerContent>
+                        <MudDataGridPager T="UserProfileDto"/>
+                    </PagerContent>
+                </MudDataGrid>
+            </MudPaper>
+        </MudContainer>
+    </Authorized>
+
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    private List<UserProfileDto> _users = [];
+    private List<UserProfileDto> _filteredUsers = [];
+    private bool _isLoading = true;
+    private readonly string _searchString = string.Empty;
+    private string _currentUserId = string.Empty;
+    private string _tenantName = string.Empty;
+    
+    // Nouveaux filtres pour affichage désactivés/supprimés
+    private bool _includeDeactivated = false;
+    private bool _includeDeleted = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUserInfo();
+        await LoadUsers();
+    }
+
+    private async Task LoadCurrentUserInfo()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            _currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                             ?? authState.User.FindFirst("sub")?.Value
+                             ?? string.Empty;
+
+            // Charger le profil pour récupérer le TenantName
+            var profile = await ProfileService.GetProfileAsync();
+            if (profile != null)
+            {
+                _tenantName = profile.TenantName;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur LoadCurrentUserInfo: {ex.Message}");
+        }
+    }
+
+    private bool IsCurrentUser(string userId)
+    {
+        return !string.IsNullOrEmpty(_currentUserId) && _currentUserId == userId;
+    }
+
+    private async Task LoadUsers()
+    {
+        _isLoading = true;
+        try
+        {
+            _users = await UserManagementService.GetUsersAsync(
+                includeDeactivated: _includeDeactivated,
+                includeDeleted: _includeDeleted);
+            FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Erreur lors du chargement des utilisateurs", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void FilterUsers()
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+        {
+            _filteredUsers = _users;
+        }
+        else
+        {
+            var search = _searchString.ToLower();
+            _filteredUsers = _users.Where(u =>
+                u.Email.ToLower().Contains(search) ||
+                u.FirstName.ToLower().Contains(search) ||
+                u.LastName.ToLower().Contains(search) ||
+                u.Role.ToLower().Contains(search) ||
+                (!string.IsNullOrWhiteSpace(u.PhoneNumber) && u.PhoneNumber.ToLower().Contains(search))
+            ).ToList();
+        }
+    }
+
+    private async Task OnIncludeDeactivatedChanged(bool value)
+    {
+        _includeDeactivated = value;
+        await LoadUsers();
+    }
+
+    private async Task OnIncludeDeletedChanged(bool value)
+    {
+        _includeDeleted = value;
+        await LoadUsers();
+    }
+
+    /// <summary>
+    /// Désactiver (IsActive=false) ou Activer (IsActive=true) un utilisateur
+    /// </summary>
+    private async Task ToggleUserStatusAsync(UserProfileDto user, bool newValue)
+    {
+        // Protection: empêcher l'utilisateur de se désactiver lui-même
+        if (IsCurrentUser(user.Id))
+        {
+            Snackbar.Add("Vous ne pouvez pas désactiver votre propre compte", Severity.Warning);
+            return;
+        }
+
+        var action = newValue ? "activer" : "désactiver";
+        
+        var dialogParams = new DialogParameters
+        {
+            { "ContentText", GetDeactivateDialogContent(user, newValue) },
+            { "ButtonText", newValue ? "Activer" : "Désactiver" },
+            { "Color", newValue ? Color.Success : Color.Warning }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            newValue ? "▶️ Activer l'utilisateur" : "⏸️ Désactiver l'utilisateur", 
+            dialogParams, 
+            options);
+        
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        ResponseResult success;
+        if (newValue)
+        {
+            success = await UserManagementService.ActivateUserAsync(user.Id);
+        }
+        else
+        {
+            success = await UserManagementService.DeactivateUserAsync(user.Id);
+        }
+
+        if (success.Succeeded)
+        {
+            Snackbar.Add($"Utilisateur {user.Email} {action}é avec succès", Severity.Success);
+            await LoadUsers();
+        }
+        else
+        {
+            Snackbar.Add($"Erreur: {success.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Supprimer (soft delete) un utilisateur - marque DeletedDate
+    /// </summary>
+    private async Task DeleteUserAsync(UserProfileDto user)
+    {
+        // Protection: empêcher l'utilisateur de se supprimer lui-même
+        if (IsCurrentUser(user.Id))
+        {
+            Snackbar.Add("Vous ne pouvez pas supprimer votre propre compte", Severity.Warning);
+            return;
+        }
+
+        var dialogParams = new DialogParameters
+        {
+            { "ContentText", GetDeleteDialogContent(user) },
+            { "ButtonText", "Supprimer" },
+            { "Color", Color.Error }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            $"🗑️ Supprimer {user.FullName}", 
+            dialogParams, 
+            options);
+        
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        var success = await UserManagementService.DeleteUserAsync(user.Id);
+
+        if (success.Succeeded)
+        {
+            Snackbar.Add($"Utilisateur {user.Email} supprimé (archivé) avec succès", Severity.Success);
+            
+            // Si on n'affiche pas les supprimés, recharger pour le retirer de la liste
+            if (!_includeDeleted)
+                await LoadUsers();
+            else
+            {
+                // Sinon, juste mettre à jour localement
+                user.DeletedDate = DateTime.UtcNow;
+                user.IsActive = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        else
+        {
+            Snackbar.Add($"Échec de la suppression: {success.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Restaurer un utilisateur supprimé - remet DeletedDate à null et IsActive à true
+    /// </summary>
+    private async Task RestoreUserAsync(UserProfileDto user)
+    {
+        var dialogParams = new DialogParameters
+        {
+            { "ContentText", GetRestoreDialogContent(user) },
+            { "ButtonText", "Restaurer" },
+            { "Color", Color.Success }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            $"♻️ Restaurer {user.FullName}", 
+            dialogParams, 
+            options);
+        
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        var success = await UserManagementService.RestoreUserAsync(user.Id);
+
+        if (success.Succeeded)
+        {
+            Snackbar.Add($"Utilisateur {user.Email} restauré avec succès", Severity.Success);
+            await LoadUsers();
+        }
+        else
+        {
+            Snackbar.Add($"Échec de la restauration: {success.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ChangeUserRole(UserProfileDto user)
+    {
+        // Protection: empêcher de changer son propre rôle
+        if (IsCurrentUser(user.Id))
+        {
+            Snackbar.Add("Vous ne pouvez pas changer votre propre rôle", Severity.Warning);
+            return;
+        }
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var parameters = new DialogParameters
+        {
+            { "User", user }
+        };
+
+        try
+        {
+            var dialog = await DialogService.ShowAsync<ChangeUserRoleDialog>(
+                "Changer le Rôle",
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (!result.Canceled && result.Data is string newRole)
+            {
+                var success = await UserManagementService.ChangeUserRoleAsync(user.Id, newRole);
+
+                if (success.Succeeded)
+                {
+                    Snackbar.Add($"Rôle de {user.Email} changé avec succès : {newRole}", Severity.Success);
+                    await LoadUsers();
+                }
+                else
+                {
+                    Snackbar.Add("Échec du changement de rôle", Severity.Error);
+                }
+            }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Snackbar.Add("Vous n'avez pas la permission de modifier ce rôle", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur ChangeUserRole: {ex.Message}");
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenInviteDialog()
+    {
+        var dialog = await DialogService.ShowAsync<InviteMemberDialog>("Inviter un utilisateur",
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseButton = true
+            });
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is InviteUserDto request)
+        {
+            var resultInvite = await UserManagementService.InviteUserAsync(request);
+
+            if (resultInvite.Succeeded)
+            {
+                Snackbar.Add($"Invitation envoyée à {request.Email}", Severity.Success);
+                await LoadUsers();
+            }
+            else
+            {
+                Snackbar.Add($"Erreur lors de l'envoi de l'invitation : {resultInvite.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private static string GetRoleDisplayName(string role)
+    {
+        return role switch
+        {
+            "Admin" => "Administrateur",
+            "Manager" => "Manager",
+            "Livreur" => "Livreur",
+            _ => role
+        };
+    }
+
+    private static Color GetRoleColor(string role)
+    {
+        return role switch
+        {
+            "Admin" => Color.Error,
+            "Manager" => Color.Primary,
+            "Livreur" => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    // ============================================
+    // DIALOG CONTENTS
+    // ============================================
+
+    private string GetDeactivateDialogContent(UserProfileDto user, bool isActivating)
+    {
+        if (isActivating)
+        {
+            return $@"Voulez-vous réactiver {user.FullName} ?
+
+L'utilisateur :
+• Pourra se reconnecter
+• Retrouvera l'accès à ses fonctionnalités
+• Redeviendra visible dans la liste par défaut";
+        }
+
+        return $@"Cette action va :
+• Empêcher {user.FullName} de se connecter
+• Conserver ses livraisons passées
+• Permettre la réactivation ultérieure
+
+⚠️ Utiliser ""Désactiver"" pour :
+  • Congé temporaire
+  • Suspension disciplinaire
+  • Période d'inactivité
+
+💡 Si {user.FirstName} a quitté l'entreprise,
+   utilisez ""Supprimer"" à la place";
+    }
+
+    private string GetDeleteDialogContent(UserProfileDto user)
+    {
+        return $@"Cette action va :
+• Retirer {user.FullName} de la liste par défaut
+• Conserver ses livraisons passées
+• Empêcher sa reconnexion
+
+ℹ️ {user.FirstName} n'apparaîtra plus dans la liste,
+   mais les données seront archivées
+
+✅ Pas de suppression physique des données
+
+⚠️ Cette action est réversible via ""Restaurer""";
+    }
+
+    private string GetRestoreDialogContent(UserProfileDto user)
+    {
+        return $@"Voulez-vous restaurer {user.FullName} ?
+
+L'utilisateur :
+• Redeviendra actif
+• Pourra se reconnecter
+• Réapparaîtra dans la liste
+
+Cette action annule la suppression précédente.";
+    }
+}

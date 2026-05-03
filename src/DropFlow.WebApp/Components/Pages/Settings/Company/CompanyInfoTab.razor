@@ -1,0 +1,311 @@
+@using DropFlow.Shared.Tenants
+@using DropFlow.WebApp.Interfaces
+@inject ITenantManagementService TenantService
+@inject ISnackbar Snackbar
+
+<MudGrid>
+    @* Logo Section *@
+    <MudItem xs="12">
+        <MudCard Outlined="true">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Logo de l'entreprise</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <div class="d-flex align-center gap-4">
+                    @if (Tenant.HasLogo)
+                    {
+                        <MudAvatar Size="Size.Large" 
+                                  Style="width: 80px; height: 80px;">
+                            <MudImage Src="@Tenant.LogoUrl" Alt="Logo" />
+                        </MudAvatar>
+                        
+                        <div class="flex-grow-1">
+                            <MudText Typo="Typo.body2" Class="mb-2">
+                                Logo actuel
+                            </MudText>
+                            <MudTextField @bind-Value="_newLogoUrl" 
+                                          Label="Nouvelle URL du logo"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense" />
+                            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" AlignItems="AlignItems.End">
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Success"
+                                           Size="Size.Large"
+                                           Icon="@Icons.Material.Filled.Update"
+                                           OnClick="UpdateLogo"
+                                           Disabled="@(string.IsNullOrWhiteSpace(_newLogoUrl) || _updatingLogo)">
+                                    Mettre à jour
+                                </MudButton>
+                                <MudButton Variant="Variant.Filled"
+                                               Color="Color.Error"
+                                               Size="Size.Large"
+                                               Icon="@Icons.Material.Filled.Delete"
+                                               OnClick="RemoveLogo"
+                                               Disabled="@_updatingLogo">
+                                    Supprimer
+                                </MudButton>
+                            </MudStack>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudAvatar Size="Size.Large" 
+                                  Color="Color.Secondary"
+                                  Style="width: 80px; height: 80px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" />
+                        </MudAvatar>
+                        
+                        <div class="flex-grow-1">
+                            <MudText Typo="Typo.body2" Class="mb-2">
+                                Aucun logo défini
+                            </MudText>
+                            <MudTextField @bind-Value="_newLogoUrl" 
+                                        Label="URL du logo"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        HelperText="URL d'une image hébergée (ex: https://exemple.com/logo.png)" />
+                        </div>
+                        
+                        <MudButton Variant="Variant.Filled" 
+                                  Color="Color.Primary"
+                                  OnClick="UpdateLogo"
+                                  Disabled="@(string.IsNullOrWhiteSpace(_newLogoUrl) || _updatingLogo)">
+                            Ajouter
+                        </MudButton>
+                    }
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* Company Info Form *@
+    <MudItem xs="12">
+        <MudCard Outlined="true">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Informations générales</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudForm @ref="_form" @bind-IsValid="@_formValid">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.CompanyName" 
+                                        Label="Nom de l'entreprise"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="200" />
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.Email" 
+                                        Label="Email"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        InputType="InputType.Email"
+                                        MaxLength="100" />
+                        </MudItem>
+                        
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Address" 
+                                        Label="Adresse"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="500" />
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="4">
+                            <MudTextField @bind-Value="_model.ZipCode" 
+                                        Label="Code postal"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="10" />
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="8">
+                            <MudTextField @bind-Value="_model.City" 
+                                        Label="Ville"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="100" />
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.Phone" 
+                                        Label="Téléphone"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="20" />
+                        </MudItem>
+                        
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.Website" 
+                                        Label="Site web"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        MaxLength="200"
+                                        Placeholder="https://exemple.com" />
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Save"
+                          OnClick="SaveCompanyInfo"
+                          Disabled="@(!_formValid || _saving)">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        <span>Enregistrement...</span>
+                    }
+                    else
+                    {
+                        <span>Enregistrer</span>
+                    }
+                </MudButton>
+                <MudButton Variant="Variant.Text" 
+                          OnClick="ResetForm"
+                          Disabled="@_saving">
+                    Annuler
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired]
+    public TenantDto Tenant { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback OnUpdated { get; set; }
+
+    private MudForm _form = null!;
+    private bool _formValid;
+    private bool _saving;
+    private bool _updatingLogo;
+    
+    private string? _newLogoUrl;
+    private UpdateTenantCompanyInfoDto _model = new();
+
+    protected override void OnParametersSet()
+    {
+        // Initialiser le formulaire avec les données du tenant
+        _model = new UpdateTenantCompanyInfoDto
+        {
+            CompanyName = Tenant.CompanyName,
+            Address = Tenant.Address,
+            ZipCode = Tenant.ZipCode,
+            City = Tenant.City,
+            Phone = Tenant.Phone,
+            Email = Tenant.Email,
+            Website = Tenant.Website
+        };
+    }
+
+    private async Task SaveCompanyInfo()
+    {
+        _saving = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await TenantService.UpdateCompanyInfoAsync(_model);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Informations mises à jour avec succès", Severity.Success);
+                await OnUpdated.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add($"Erreur : {result.Message}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        OnParametersSet();
+        StateHasChanged();
+    }
+
+    private async Task UpdateLogo()
+    {
+        if (string.IsNullOrWhiteSpace(_newLogoUrl))
+            return;
+
+        _updatingLogo = true;
+        StateHasChanged();
+
+        try
+        {
+            var dto = new UpdateTenantLogoDto { LogoUrl = _newLogoUrl };
+            var result = await TenantService.UpdateLogoAsync(dto);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Logo mis à jour avec succès", Severity.Success);
+                _newLogoUrl = null;
+                await OnUpdated.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add($"Erreur : {result.Message}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _updatingLogo = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemoveLogo()
+    {
+        _updatingLogo = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await TenantService.RemoveLogoAsync();
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Logo supprimé avec succès", Severity.Success);
+                await OnUpdated.InvokeAsync();
+            }
+            else
+            {
+                Snackbar.Add($"Erreur : {result.Message}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _updatingLogo = false;
+            StateHasChanged();
+        }
+    }
+}

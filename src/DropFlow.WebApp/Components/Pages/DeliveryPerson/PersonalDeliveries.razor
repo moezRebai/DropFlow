@@ -1,0 +1,72 @@
+@page "/personal-deliveries"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager NavigationManager
+
+<PageTitle>Mes Livraisons - DropFlow</PageTitle>
+
+<AuthorizeView Roles="Livreur">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+            <MudPaper Elevation="2" Class="pa-8 text-center" Style="border-radius: 16px;">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping"
+                         Size="Size.Large"
+                         Style="font-size: 5rem; color: #0284c7;"
+                         Class="mb-4"/>
+
+                <MudText Typo="Typo.h3" Class="mb-3" Style="font-weight: 700;">
+                    Mes Livraisons du Jour
+                </MudText>
+
+                <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-6">
+                    Page en cours de développement
+                </MudText>
+
+                <MudDivider Class="my-4"/>
+
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+                    Cette page permettra de :
+                </MudText>
+
+                <MudGrid Justify="Justify.Center">
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="1" Class="pa-4">
+                            <MudCardContent>
+                                <MudIcon Icon="@Icons.Material.Filled.Map" Color="Color.Primary" Size="Size.Large"/>
+                                <MudText Typo="Typo.h6" Class="mt-2">Feuille de route</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Itinéraire optimisé</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="1" Class="pa-4">
+                            <MudCardContent>
+                                <MudIcon Icon="@Icons.Material.Filled.Camera" Color="Color.Success" Size="Size.Large"/>
+                                <MudText Typo="Typo.h6" Class="mt-2">Preuve de livraison</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Photo & signature</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="1" Class="pa-4">
+                            <MudCardContent>
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Info"
+                                         Size="Size.Large"/>
+                                <MudText Typo="Typo.h6" Class="mt-2">Statut</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Marquer comme livrée</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    // TODO: Implémenter la feuille de route du livreur
+}

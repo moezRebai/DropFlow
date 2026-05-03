@@ -1,0 +1,170 @@
+@page "/tournees/create"
+@page "/tournees/edit/{Id:int}"
+@using DropFlow.WebApp.Components.Pages.Routes.Steps
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@using DropFlow.WebApp.Models.Routes
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IRouteService RouteService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>@(IsEditMode ? "Modifier la Tournée" : "Créer une Tournée")</PageTitle>
+
+<AuthorizeView Roles="@Roles.ManagerOrAdmin" Context="auth">
+    <Authorized>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">
+                    <MudIcon Icon="@Icons.Material.Filled.Route" Class="mr-2" />
+                    @(IsEditMode ? $"Modifier la Tournée #{Reference}" : "Nouvelle Tournée")
+                </MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudButton Variant="Variant.Text"
+                          StartIcon="@Icons.Material.Filled.Close"
+                          OnClick="Cancel">
+                    Annuler
+                </MudButton>
+            </CardHeaderActions>
+        </MudCardHeader>
+
+        <MudCardContent>
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+                <MudText Typo="Typo.body1">Chargement...</MudText>
+            }
+            else
+            {
+                <MudStepper @bind-ActiveIndex="_activeIndex"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           HeaderSize="Size.Large"
+                           Linear="true">
+
+                    <ChildContent>
+                        <!-- Step 1: Informations de base -->
+                        <MudStep Title="Informations" Icon="@Icons.Material.Filled.Info">
+                            <MudText Typo="Typo.h6" Class="mb-4">Informations de Base</MudText>
+                            
+                            <RouteInfoStep @ref="_step1"
+                                      State="_wizardState"
+                                      OnValidationChanged="HandleStep1Validation" />
+
+                            @if (!string.IsNullOrEmpty(_step1Error))
+                            {
+                                <MudAlert Severity="Severity.Error" Class="mt-4" Dense="true">@_step1Error</MudAlert>
+                            }
+                        </MudStep>
+
+                        <!-- Step 2: Équipe -->
+                        <MudStep Title="Équipe" Icon="@Icons.Material.Filled.Group">
+                            <MudText Typo="Typo.h6" Class="mb-4">Composition de l'Équipe</MudText>
+                            
+                            <RouteTeamStep @ref="_step2"
+                                      State="_wizardState"
+                                      OnValidationChanged="HandleStep2Validation" />
+
+                            @if (!string.IsNullOrEmpty(_step2Error))
+                            {
+                                <MudAlert Severity="Severity.Error" Class="mt-4" Dense="true">@_step2Error</MudAlert>
+                            }
+                        </MudStep>
+
+                        <!-- Step 3: Livraisons -->
+                        <MudStep Title="Livraisons" Icon="@Icons.Material.Filled.LocalShipping">
+                            <MudText Typo="Typo.h6" Class="mb-4">Sélection des Livraisons</MudText>
+                            
+                            <RouteDeliveriesStep @ref="_step3"
+                                            State="_wizardState"
+                                            CurrentRouteId="@Id"
+                                            OnValidationChanged="HandleStep3Validation" />
+
+                            @if (!string.IsNullOrEmpty(_step3Error))
+                            {
+                                <MudAlert Severity="Severity.Error" Class="mt-4" Dense="true">@_step3Error</MudAlert>
+                            }
+                        </MudStep>
+
+                        <!-- Step 4: Optimisation -->
+                        <MudStep Title="Optimisation" Icon="@Icons.Material.Filled.Route">
+                            <RouteOptimizeStep @ref="_step4"
+                                               State="_wizardState"
+                                               IsEditMode="@IsEditMode"
+                                               OnValidationChanged="HandleStep4Validation" />
+
+                            @if (!string.IsNullOrEmpty(_step4Error))
+                            {
+                                <MudAlert Severity="Severity.Error" Class="mt-4" Dense="true">@_step4Error</MudAlert>
+                            }
+                        </MudStep>
+
+                        <!-- Step 5: Validation -->
+                        <MudStep Title="Validation" Icon="@Icons.Material.Filled.CheckCircle">
+                            <MudText Typo="Typo.h6" Class="mb-4">Validation & Récapitulatif</MudText>
+                            
+                            <RouteValidationStep @ref="_step5"
+                                          State="_wizardState"
+                                          OnSubmit="SubmitRoute"
+                                          OnValidationChanged="HandleStep5Validation" />
+                        </MudStep>
+                    </ChildContent>
+
+                    <ActionContent Context="stepper">
+                        <MudButton Variant="Variant.Text"
+                                   OnClick="@(() => stepper.PreviousStepAsync())"
+                                   Disabled="@(_activeIndex <= 0 || _submitting)">
+                            Précédent
+                        </MudButton>
+
+                        <MudSpacer />
+
+                        @if (_activeIndex < 4)
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                      Color="Color.Primary"
+                                      OnClick="@(() => NextStepAsync(stepper))"
+                                      Disabled="@(!IsCurrentStepValid())">
+                                Suivant
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                      Color="Color.Success"
+                                      OnClick="SubmitRoute"
+                                      Disabled="@(!IsStep5Valid() || _submitting)">
+                                @if (_submitting)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                    <span>en cours...</span>
+                                }
+                                else
+                                {
+                                    @if (IsEditMode)
+                                    {
+                                        <span>Modifier la Tournée</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Créer la Tournée</span>
+                                    }
+                                }
+                            </MudButton>
+                        }
+                    </ActionContent>
+
+                </MudStepper>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>

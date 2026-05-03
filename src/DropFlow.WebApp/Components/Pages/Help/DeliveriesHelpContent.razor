@@ -1,0 +1,314 @@
+<MudStack Spacing="4">
+    <!-- Introduction -->
+    <MudText Typo="Typo.body1">
+        Le module Livraisons est au cœur de DropFlow. Découvrez comment gérer efficacement vos livraisons 
+        de la planification à la livraison effective.
+    </MudText>
+
+    <!-- Questions fréquentes -->
+    <MudExpansionPanels MultiExpansion="true">
+        <!-- Question 1 -->
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Comment créer une nouvelle livraison ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudText Typo="Typo.body2">
+                        <strong>Méthode 1 : Depuis le tableau de bord</strong>
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Cliquez sur le bouton "Nouvelle Livraison"
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Remplissez le formulaire (client, adresse, date)
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Ajoutez les produits à livrer (optionnel)
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Assignez un chauffeur ou laissez pour planification ultérieure
+                        </MudListItem>
+                    </MudList>
+
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        <strong>Méthode 2 : Import en masse</strong>
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Téléchargez le modèle Excel fourni
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Remplissez avec vos livraisons
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Importez le fichier depuis Livraisons → Importer
+                        </MudListItem>
+                    </MudList>
+
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                        💡 <strong>Astuce :</strong> Utilisez la fonction "Dupliquer" pour créer rapidement 
+                        des livraisons similaires à une livraison existante.
+                    </MudAlert>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+
+        <!-- Question 2 -->
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Comment optimiser mes tournées de livraison ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudText Typo="Typo.body2">
+                        L'optimisateur de tournées calcule automatiquement le meilleur itinéraire pour vos livraisons :
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                            <strong>Étape 1 :</strong> Sélectionnez les livraisons à optimiser (même jour recommandé)
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                            <strong>Étape 2 :</strong> Cliquez sur "Optimiser la route"
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                            <strong>Étape 3 :</strong> Définissez le point de départ (entrepôt)
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                            <strong>Étape 4 :</strong> Visualisez l'itinéraire sur la carte
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                            <strong>Étape 5 :</strong> Validez pour réordonner automatiquement les livraisons
+                        </MudListItem>
+                    </MudList>
+
+                    <MudCard Elevation="0" Style="background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px;" Class="mt-2">
+                        <MudCardContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" />
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                        Gains typiques de l'optimisation
+                                    </MudText>
+                                    <MudText Typo="Typo.caption">
+                                        -25% de kilomètres • -20% de temps • +30% de livraisons/jour
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+
+        <!-- Question 3 -->
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Quels sont les différents statuts de livraison ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudSimpleTable Dense="true" Style="border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <thead>
+                            <tr>
+                                <th>Statut</th>
+                                <th>Description</th>
+                                <th>Actions possibles</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Style="background: #dbeafe; color: #1e40af;">
+                                        Planifié
+                                    </MudChip>
+                                </td>
+                                <td>Livraison créée, pas encore confirmée</td>
+                                <td>Modifier, Confirmer, Annuler</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Style="background: #fed7aa; color: #c2410c;">
+                                        Confirmé
+                                    </MudChip>
+                                </td>
+                                <td>Client a confirmé, en attente d'assignment</td>
+                                <td>Assigner chauffeur, Modifier</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Style="background: #e9d5ff; color: #7c3aed;">
+                                        En cours
+                                    </MudChip>
+                                </td>
+                                <td>Chauffeur en route vers le client</td>
+                                <td>Suivre sur carte, Contacter</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Style="background: #d1fae5; color: #065f46;">
+                                        Livré
+                                    </MudChip>
+                                </td>
+                                <td>Livraison effectuée avec succès</td>
+                                <td>Voir preuve, Facturer</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Style="background: #fee2e2; color: #991b1b;">
+                                        En retard
+                                    </MudChip>
+                                </td>
+                                <td>Heure prévue dépassée</td>
+                                <td>Notifier client, Reporter</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Style="background: #f3f4f6; color: #4b5563;">
+                                        Annulé
+                                    </MudChip>
+                                </td>
+                                <td>Livraison annulée</td>
+                                <td>Consulter uniquement</td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+
+        <!-- Question 4 -->
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Comment utiliser la vue Kanban ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudText Typo="Typo.body2">
+                        La vue Kanban permet de gérer visuellement vos livraisons par glisser-déposer :
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.ViewKanban">
+                            Accédez à <strong>Livraisons → Vue Kanban</strong>
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.DragIndicator">
+                            Glissez une carte de livraison d'une colonne à l'autre pour changer son statut
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.FilterAlt">
+                            Utilisez les filtres pour afficher par chauffeur, date ou zone
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.RemoveRedEye">
+                            Cliquez sur une carte pour voir les détails complets
+                        </MudListItem>
+                    </MudList>
+
+                    <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
+                        ✨ <strong>Pro tip :</strong> Le changement de statut par glisser-déposer est instantané 
+                        et crée automatiquement une entrée dans l'historique de la livraison.
+                    </MudAlert>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+
+        <!-- Question 5 -->
+        <MudExpansionPanel>
+            <TitleContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                        Comment gérer les preuves de livraison ?
+                    </MudText>
+                </MudStack>
+            </TitleContent>
+            <ChildContent>
+                <MudStack Spacing="2" Class="pa-4">
+                    <MudText Typo="Typo.body2">
+                        Les chauffeurs peuvent capturer des preuves de livraison via l'application mobile :
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Edit">
+                            <strong>Signature électronique :</strong> Le client signe directement sur l'écran
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.PhotoCamera">
+                            <strong>Photo :</strong> Capture photo du colis livré ou de la zone de dépôt
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Notes">
+                            <strong>Notes :</strong> Commentaires additionnels sur la livraison
+                        </MudListItem>
+                    </MudList>
+
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        <strong>Consultation des preuves :</strong>
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Ouvrez la fiche de livraison
+                        </MudListItem>
+                        <MudListItem T="string" T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Section "Preuve de livraison" affiche signature et photos
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Circle" IconSize="Size.Small">
+                            Téléchargez ou partagez avec le client si nécessaire
+                        </MudListItem>
+                    </MudList>
+                </MudStack>
+            </ChildContent>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <!-- Raccourcis clavier -->
+    <MudCard Elevation="0" Style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <MudCardContent>
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                    ⌨️ Raccourcis clavier
+                </MudText>
+                <MudSimpleTable Dense="true">
+                    <tbody>
+                        <tr>
+                            <td><MudChip T="string" Size="Size.Small">Ctrl + N</MudChip></td>
+                            <td>Nouvelle livraison</td>
+                        </tr>
+                        <tr>
+                            <td><MudChip T="string" Size="Size.Small">Ctrl + F</MudChip></td>
+                            <td>Rechercher</td>
+                        </tr>
+                        <tr>
+                            <td><MudChip T="string" Size="Size.Small">Ctrl + K</MudChip></td>
+                            <td>Afficher la vue Kanban</td>
+                        </tr>
+                        <tr>
+                            <td><MudChip T="string" Size="Size.Small">Ctrl + M</MudChip></td>
+                            <td>Afficher sur la carte</td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+</MudStack>
+
+@code {
+    
+}

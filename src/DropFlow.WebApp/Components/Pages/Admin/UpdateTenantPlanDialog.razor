@@ -1,0 +1,197 @@
+@using DropFlow.Shared.Admin
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudStack Spacing="3">
+                <!-- Sélection du plan -->
+                <MudSelect @bind-Value="_request.PlanType" 
+                          Label="Plan d'abonnement" 
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Le plan est obligatoire"
+                          AdornmentIcon="@Icons.Material.Filled.CreditCard"
+                          AdornmentColor="Color.Primary">
+                    <MudSelectItem Value="@("Free")">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body1"><strong>Free</strong></MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">5 utilisateurs · 50 livraisons/mois</MudText>
+                            </div>
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small">Gratuit</MudChip>
+                        </MudStack>
+                    </MudSelectItem>
+                    <MudSelectItem Value="@("Starter")">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body1"><strong>Starter</strong></MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">20 utilisateurs · 500 livraisons/mois</MudText>
+                            </div>
+                            <MudChip T="string" Color="Color.Info" Size="Size.Small">29€/mois</MudChip>
+                        </MudStack>
+                    </MudSelectItem>
+                    <MudSelectItem Value="@("Business")">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body1"><strong>Business</strong></MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">50 utilisateurs · 2000 livraisons/mois</MudText>
+                            </div>
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small">99€/mois</MudChip>
+                        </MudStack>
+                    </MudSelectItem>
+                    <MudSelectItem Value="@("Enterprise")">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body1"><strong>Enterprise</strong></MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Utilisateurs et livraisons illimités</MudText>
+                            </div>
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small">249€/mois</MudChip>
+                        </MudStack>
+                    </MudSelectItem>
+                </MudSelect>
+
+                <!-- Max utilisateurs -->
+                <MudNumericField @bind-Value="_request.MaxUsers" 
+                                Label="Nombre maximum d'utilisateurs" 
+                                Variant="Variant.Outlined"
+                                Min="1"
+                                Required="true"
+                                RequiredError="Le nombre d'utilisateurs est obligatoire"
+                                AdornmentIcon="@Icons.Material.Filled.People"
+                                AdornmentColor="Color.Primary"
+                                HelperText="Nombre maximum d'utilisateurs autorisés pour ce tenant" />
+
+                <!-- Max livraisons -->
+                <MudNumericField @bind-Value="_request.MaxDeliveries" 
+                                Label="Nombre maximum de livraisons/mois" 
+                                Variant="Variant.Outlined"
+                                Min="1"
+                                Required="true"
+                                RequiredError="Le nombre de livraisons est obligatoire"
+                                AdornmentIcon="@Icons.Material.Filled.LocalShipping"
+                                AdornmentColor="Color.Primary"
+                                HelperText="Nombre maximum de livraisons par mois" />
+
+                <!-- Date d'expiration -->
+                <MudDatePicker @bind-Date="_expiryDate" 
+                              Label="Date d'expiration" 
+                              Variant="Variant.Outlined"
+                              MinDate="DateTime.Today"
+                              AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                              AdornmentColor="Color.Primary"
+                              HelperText="Laisser vide pour aucune expiration (∞)"
+                              Clearable="true" />
+
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Annuler</MudButton>
+        <MudButton OnClick="Submit" 
+                   Color="Color.Primary" 
+                   Variant="Variant.Filled"
+                   Disabled="@(!_isValid || _isSubmitting)">
+            @if (_isSubmitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Enregistrer
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    
+    [Parameter] public TenantDto Tenant { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+    
+    private UpdateTenantPlanDto _request = new();
+    private DateTime? _expiryDate;
+
+    protected override void OnInitialized()
+    {
+        // Pré-remplir avec les valeurs actuelles du tenant
+        _request.PlanType = Tenant.PlanType;
+        _request.MaxUsers = Tenant.MaxUsers;
+        _request.MaxDeliveries = Tenant.MaxDeliveries;
+        _expiryDate = Tenant.ExpiryDate;
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Auto-fill MaxUsers et MaxDeliveries selon le plan sélectionné
+        UpdateLimitsBasedOnPlan();
+    }
+
+    private void UpdateLimitsBasedOnPlan()
+    {
+        switch (_request.PlanType)
+        {
+            case "Free":
+                _request.MaxUsers = 5;
+                _request.MaxDeliveries = 50;
+                break;
+            case "Starter":
+                _request.MaxUsers = 20;
+                _request.MaxDeliveries = 500;
+                break;
+            case "Business":
+                _request.MaxUsers = 50;
+                _request.MaxDeliveries = 2000;
+                break;
+            case "Enterprise":
+                _request.MaxUsers = 999999; // Illimité
+                _request.MaxDeliveries = 999999;
+                break;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        
+        if (!_isValid)
+        {
+            _errorMessage = "Veuillez corriger les erreurs avant de soumettre.";
+            return;
+        }
+
+        if (_request.MaxUsers <= 0 || _request.MaxDeliveries <= 0)
+        {
+            _errorMessage = "Les limites doivent être supérieures à 0.";
+            return;
+        }
+
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            // Convertir la date nullable
+            _request.ExpiryDate = _expiryDate;
+            
+            // Retourner la requête au parent
+            MudDialog.Close(DialogResult.Ok(_request));
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erreur: {ex.Message}";
+            _isSubmitting = false;
+        }
+    }
+}

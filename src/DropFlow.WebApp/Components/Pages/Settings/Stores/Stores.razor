@@ -1,0 +1,203 @@
+@page "/settings/enseignes"
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+
+<style>
+
+    /* Barre de filtres MudBlazor */
+    .filter-bar .mud-input-control,
+    .filter-bar .filter-button {
+        height: 56px; /* Hauteur Material Design Outlined */
+    }
+
+    /* S'assure que le bouton remplit la hauteur */
+    .filter-bar .filter-button {
+        align-self: stretch;
+    }
+
+</style>
+<PageTitle>Enseignes - DropFlow</PageTitle>
+
+<AuthorizeView Roles="@Roles.ManagerOrAdmin" Context="auth">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+
+            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border-left: 4px solid #2196F3; background: white;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1F2937;">
+                            <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-2" Style="color: #2196F3;"/>
+                            Enseignes
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6B7280;">
+                            Gérez vos enseignes
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4">
+
+                <!-- Header avec titre et bouton Nouveau -->
+                <div Class="d-flex justify-end gap-2 mb-4">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Size="Size.Large"
+                               OnClick="OpenCreateDialog"
+                               Class="ml-2">
+                        Nouvelle Enseigne
+                    </MudButton>
+                </div>
+
+                <MudDivider Class="mb-4"/>
+
+                <MudGrid Spacing="2" Class="mb-4">
+                    <!-- Recherche -->
+                    <MudItem xs="12" md="4">
+                        <MudTextField @bind-Value="_searchTerm"
+                                      Label="Filtrer"
+                                      Placeholder="Nom, ville, contact..."
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Immediate="true"
+                                      Margin="Margin.Normal"
+                                      DebounceInterval="300"
+                                      OnDebounceIntervalElapsed="OnSearchChanged"
+                                      Clearable="true"
+                                      FullWidth="true"
+                                      Variant="Variant.Outlined"/>
+                    </MudItem>
+
+                    <!-- Statut -->
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="bool?"
+                                   Value="_filterIsActive"
+                                   Label="Statut"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Normal"
+                                   Clearable="true"
+                                   AdornmentIcon="@Icons.Material.Filled.FilterList"
+                                   Adornment="Adornment.Start"
+                                   ValueChanged="IsActivesFilterChanged">
+
+                            <MudSelectItem Value="@((bool?)true)">
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                             Size="Size.Small"
+                                             Color="Color.Success"/>
+                                    <MudText>Actif</MudText>
+                                </MudStack>
+                            </MudSelectItem>
+                            <MudSelectItem Value="@((bool?)false)">
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                             Size="Size.Small"
+                                             Color="Color.Error"/>
+                                    <MudText>Inactif</MudText>
+                                </MudStack>
+                            </MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- MudTable -->
+                <MudTable Items="@_filteredStores"
+                          Hover="true"
+                          Striped="true"
+                          Loading="@_loading"
+                          LoadingProgressColor="Color.Primary"
+                          Elevation="2"
+                          Class="rounded-lg">
+
+                    <HeaderContent>
+                        <MudTh>Nom</MudTh>
+                        <MudTh>Adresse</MudTh>
+                        <MudTh>Ville</MudTh>
+                        <MudTh>Contact</MudTh>
+                        <MudTh>Téléphone</MudTh>
+                        <MudTh>Email</MudTh>
+                        <MudTh>Statut</MudTh>
+                        <MudTh Style="width: 180px; text-align: center;">Actions</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Nom">
+                            <MudText Typo="Typo.body2" Style="font-weight: bold;">@context.Name</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Adresse">
+                            <MudText Typo="Typo.body2">@context.Address</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Ville">
+                            <MudText Typo="Typo.body2">
+                                @context.ZipCode @context.City
+                            </MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Contact">
+                            <MudText Typo="Typo.body2">@context.ContactName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Téléphone">
+                            <MudText Typo="Typo.body2">@context.Phone</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Email">
+                            <MudText Typo="Typo.body2">@context.Email</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Statut">
+                            <MudChip T="bool"
+                                     Size="Size.Small"
+                                     Color="@(context.IsActive ? Color.Success : Color.Default)"
+                                     Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)">
+                                @(context.IsActive ? "Actif" : "Inactif")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Actions" Style="text-align: center;">
+                            <MudTooltip Text="Modifier">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="@(() => OpenEditDialog(context))"/>
+                            </MudTooltip>
+
+                            <MudTooltip Text="@(context.IsActive ? "Désactiver" : "Activer")">
+                                <MudIconButton
+                                    Icon="@(context.IsActive ? Icons.Material.Filled.ToggleOff : Icons.Material.Filled.ToggleOn)"
+                                    Color="@(context.IsActive ? Color.Warning : Color.Success)"
+                                    Size="Size.Small"
+                                    OnClick="@(() => ToggleStoreStatus(context))"/>
+                            </MudTooltip>
+
+                            <MudTooltip Text="Supprimer">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@(() => DeleteStore(context))"/>
+                            </MudTooltip>
+                        </MudTd>
+                    </RowTemplate>
+
+                    <NoRecordsContent>
+                        <MudAlert Severity="Severity.Info" Class="my-4">
+                            @if (string.IsNullOrWhiteSpace(_searchTerm) && _filterIsActive == null)
+                            {
+                                <MudText>Aucune enseigne enregistrée. Cliquez sur "Nouvelle Enseigne" pour commencer.
+                                </MudText>
+                            }
+                            else
+                            {
+                                <MudText>Aucune enseigne trouvée avec ces critères de recherche.</MudText>
+                            }
+                        </MudAlert>
+                    </NoRecordsContent>
+
+                    <LoadingContent>
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+                    </LoadingContent>
+
+                </MudTable>
+            </MudPaper>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>

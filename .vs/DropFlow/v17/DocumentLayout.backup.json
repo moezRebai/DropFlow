@@ -1,0 +1,75 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Solutions\\DropFlow\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{5CAA63E6-21E7-46DD-852A-6FBB882AE8F8}|src\\DropFlow.WebApp\\DropFlow.WebApp.csproj|c:\\solutions\\dropflow\\src\\dropflow.webapp\\components\\pages\\home.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{5CAA63E6-21E7-46DD-852A-6FBB882AE8F8}|src\\DropFlow.WebApp\\DropFlow.WebApp.csproj|solutionrelative:src\\dropflow.webapp\\components\\pages\\home.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DE6F92B-0BAC-458A-B635-311065417376}|src\\DropFlow.Client\\DropFlow.Client.csproj|c:\\solutions\\dropflow\\src\\dropflow.client\\dropflow.client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{8DE6F92B-0BAC-458A-B635-311065417376}|src\\DropFlow.Client\\DropFlow.Client.csproj|solutionrelative:src\\dropflow.client\\dropflow.client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5CAA63E6-21E7-46DD-852A-6FBB882AE8F8}|src\\DropFlow.WebApp\\DropFlow.WebApp.csproj|c:\\solutions\\dropflow\\src\\dropflow.webapp\\dropflow.webapp.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{5CAA63E6-21E7-46DD-852A-6FBB882AE8F8}|src\\DropFlow.WebApp\\DropFlow.WebApp.csproj|solutionrelative:src\\dropflow.webapp\\dropflow.webapp.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Home.razor",
+              "DocumentMoniker": "C:\\Solutions\\DropFlow\\src\\DropFlow.WebApp\\Components\\Pages\\Home.razor",
+              "RelativeDocumentMoniker": "src\\DropFlow.WebApp\\Components\\Pages\\Home.razor",
+              "ToolTip": "C:\\Solutions\\DropFlow\\src\\DropFlow.WebApp\\Components\\Pages\\Home.razor*",
+              "RelativeToolTip": "src\\DropFlow.WebApp\\Components\\Pages\\Home.razor*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-23T15:20:12.695Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DropFlow.WebApp",
+              "DocumentMoniker": "C:\\Solutions\\DropFlow\\src\\DropFlow.WebApp\\DropFlow.WebApp.csproj",
+              "RelativeDocumentMoniker": "src\\DropFlow.WebApp\\DropFlow.WebApp.csproj",
+              "ToolTip": "C:\\Solutions\\DropFlow\\src\\DropFlow.WebApp\\DropFlow.WebApp.csproj",
+              "RelativeToolTip": "src\\DropFlow.WebApp\\DropFlow.WebApp.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-12-23T15:19:20.809Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DropFlow.Client",
+              "DocumentMoniker": "C:\\Solutions\\DropFlow\\src\\DropFlow.Client\\DropFlow.Client.csproj",
+              "RelativeDocumentMoniker": "src\\DropFlow.Client\\DropFlow.Client.csproj",
+              "ToolTip": "C:\\Solutions\\DropFlow\\src\\DropFlow.Client\\DropFlow.Client.csproj",
+              "RelativeToolTip": "src\\DropFlow.Client\\DropFlow.Client.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-12-23T15:19:08.955Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

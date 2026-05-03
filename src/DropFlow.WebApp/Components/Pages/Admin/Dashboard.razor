@@ -1,0 +1,361 @@
+@page "/admin/dashboard"
+@page "/admin"
+@using DropFlow.Shared.Admin
+@using DropFlow.WebApp.Models.Auth
+
+@using DropFlow.WebApp.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAdminService AdminService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard Admin - DropFlow</PageTitle>
+
+<AuthorizeView Roles="@Roles.Admin">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+            <!-- Header -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2"/>
+                        Dashboard Administrateur
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Vue d'ensemble de la plateforme DropFlow
+                    </MudText>
+                </div>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Business"
+                           Href="/admin/tenants">
+                    Gérer les Entreprises
+                </MudButton>
+            </MudStack>
+
+            @if (_isLoading)
+            {
+                <MudProgressCircular Indeterminate="true"/>
+            }
+            else
+            {
+                <!-- KPI Cards Row 1 -->
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2" Style="cursor: pointer;"
+                                 @onclick="@(() => Navigation.NavigateTo("/admin/tenants"))">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total Entreprises</MudText>
+                                        <MudText Typo="Typo.h4" Class="mt-1">@_stats.TotalTenants</MudText>
+                                    </div>
+                                    <MudAvatar Color="Color.Primary" Size="Size.Large" Rounded="true">
+                                        <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large"/>
+                                    </MudAvatar>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Entreprises Actifs</MudText>
+                                        <MudText Typo="Typo.h4" Class="mt-1"
+                                                 Color="Color.Success">@_stats.ActiveTenants</MudText>
+                                    </div>
+                                    <MudAvatar Color="Color.Success" Size="Size.Large" Rounded="true">
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large"/>
+                                    </MudAvatar>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Entreprises Inactifs
+                                        </MudText>
+                                        <MudText Typo="Typo.h4" Class="mt-1"
+                                                 Color="Color.Error">@_stats.InactiveTenants</MudText>
+                                    </div>
+                                    <MudAvatar Color="Color.Error" Size="Size.Large" Rounded="true">
+                                        <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Large"/>
+                                    </MudAvatar>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total Utilisateurs</MudText>
+                                        <MudText Typo="Typo.h4" Class="mt-1">@_stats.TotalUsers</MudText>
+                                    </div>
+                                    <MudAvatar Color="Color.Info" Size="Size.Large" Rounded="true">
+                                        <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large"/>
+                                    </MudAvatar>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- KPI Cards Row 2 - Nouveaux ce mois -->
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nouveaux Entreprises ce
+                                            Mois
+                                        </MudText>
+                                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success"/>
+                                    </MudStack>
+                                    <MudText Typo="Typo.h5">@_stats.TenantsCreatedThisMonth</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nouveaux Entreprises cette
+                                            Semaine
+                                        </MudText>
+                                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Info"/>
+                                    </MudStack>
+                                    <MudText Typo="Typo.h5">@_stats.TenantsCreatedThisWeek</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nouveaux Utilisateurs ce
+                                            Mois
+                                        </MudText>
+                                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Warning"/>
+                                    </MudStack>
+                                    <MudText Typo="Typo.h5">@_stats.UsersCreatedThisMonth</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Répartition par Plan -->
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.PieChart"/>
+                                <MudText Typo="Typo.h6">Répartition des Entreprises par Plan</MudText>
+                            </MudStack>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="3">
+                            @foreach (var plan in _stats.TenantsByPlan)
+                            {
+                                var percentage = _stats.TotalTenants > 0 ? (double)plan.Value / _stats.TotalTenants * 100 : 0;
+                                <div>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center"
+                                              Class="mb-1">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudChip T="string" Size="Size.Small" Color="@GetPlanColor(plan.Key)">
+                                                @plan.Key
+                                            </MudChip>
+                                            <MudText Typo="Typo.body2">@plan.Value tenants</MudText>
+                                        </MudStack>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">@percentage.ToString("F1")%
+                                        </MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Color="@GetPlanColor(plan.Key)" Value="@percentage"/>
+                                </div>
+                            }
+
+                            @if (!_stats.TenantsByPlan.Any())
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true">
+                                    Aucun tenant enregistré pour le moment
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Insights"/>
+                                <MudText Typo="Typo.h6">Statistiques Rapides</MudText>
+                            </MudStack>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="3">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.body2">Taux d'activation</MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Success">
+                                    @GetActivationRate()%
+                                </MudText>
+                            </MudStack>
+                            <MudDivider/>
+
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.body2">Moyenne utilisateurs/tenant</MudText>
+                                <MudText Typo="Typo.h6">
+                                    @GetAverageUsersPerTenant()
+                                </MudText>
+                            </MudStack>
+                            <MudDivider/>
+
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.body2">Entreprises payants</MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Info">
+                                    @GetPaidTenantsCount()
+                                </MudText>
+                            </MudStack>
+                            <MudDivider/>
+
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.body2">CA potentiel mensuel</MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Success">
+                                    @GetPotentialRevenue()€
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+
+                <!-- Actions rapides -->
+                <MudCard Elevation="2" Class="mt-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Actions Rapides</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Row="true" Spacing="3" Wrap="Wrap.Wrap">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Business"
+                                       Href="/admin/tenants">
+                                Gérer les Entreprises
+                            </MudButton>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Secondary"
+                                       StartIcon="@Icons.Material.Filled.History"
+                                       Href="/admin/audit">
+                                Logs d'Audit
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.People"
+                                       Href="/admin/users">
+                                Utilisateurs Globaux
+                            </MudButton>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            }
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private GlobalStatsDto _stats = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatsAsync();
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _stats = await AdminService.GetStatsAsync() ?? new GlobalStatsDto();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement des statistiques: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Color GetPlanColor(string planType) => planType switch
+    {
+        "Free" => Color.Default,
+        "Starter" => Color.Info,
+        "Business" => Color.Success,
+        "Enterprise" => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetActivationRate()
+    {
+        if (_stats.TotalTenants == 0) return "0";
+        var rate = (double)_stats.ActiveTenants / _stats.TotalTenants * 100;
+        return rate.ToString("F1");
+    }
+
+    private string GetAverageUsersPerTenant()
+    {
+        if (_stats.TotalTenants == 0) return "0";
+        var avg = (double)_stats.TotalUsers / _stats.TotalTenants;
+        return avg.ToString("F1");
+    }
+
+    private int GetPaidTenantsCount()
+    {
+        return _stats.TenantsByPlan
+            .Where(p => p.Key != "Free")
+            .Sum(p => p.Value);
+    }
+
+    private int GetPotentialRevenue()
+    {
+        var revenue = 0;
+
+        if (_stats.TenantsByPlan.TryGetValue("Starter", out var starters))
+            revenue += starters * 29;
+
+        if (_stats.TenantsByPlan.TryGetValue("Business", out var business))
+            revenue += business * 99;
+
+        if (_stats.TenantsByPlan.TryGetValue("Enterprise", out var enterprise))
+            revenue += enterprise * 249;
+
+        return revenue;
+    }
+
+}

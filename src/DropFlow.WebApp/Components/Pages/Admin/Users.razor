@@ -1,0 +1,655 @@
+@page "/admin/users"
+@using DropFlow.Shared.Admin
+@using DropFlow.Shared.Profil
+@using DropFlow.WebApp.Components.Shared
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Audit
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAdminService AdminService
+@inject IUserManagementService UserManagementService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Utilisateurs Globaux - DropFlow Admin</PageTitle>
+
+<AuthorizeView Roles="@Roles.Admin">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+            <!-- Header -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2" />
+                        Utilisateurs Globaux
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Vue d'ensemble de tous les utilisateurs de tous les tenants
+                    </MudText>
+                </div>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="ReloadData">
+                        Actualiser
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+
+            <!-- Stats Cards -->
+            <MudGrid Class="mb-4">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Utilisateurs</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1">@_stats.TotalUsers</MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Utilisateurs Actifs</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1" Color="Color.Success">@_stats.ActiveUsers</MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Utilisateurs Inactifs</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1" Color="Color.Error">@_stats.InactiveUsers</MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Large" Color="Color.Error" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nouveaux ce Mois</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1">@_stats.UsersCreatedThisMonth</MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Color="Color.Info" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Répartition par Rôle -->
+            <MudCard Elevation="2" Class="mb-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="mb-3">Répartition par Rôle</MudText>
+                    <MudGrid>
+                        @foreach (var roleGroup in _stats.UsersByRole)
+                        {
+                            var percentage = _stats.TotalUsers > 0 ? (double)roleGroup.Value / _stats.TotalUsers * 100 : 0;
+                            <MudItem xs="12" sm="4">
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(roleGroup.Key)">
+                                            @roleGroup.Key
+                                        </MudChip>
+                                        <MudText Typo="Typo.body1"><strong>@roleGroup.Value</strong> (@percentage.ToString("F1")%)</MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Color="@GetRoleColor(roleGroup.Key)" Value="@percentage" />
+                                </MudStack>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+
+            <!-- Filtres -->
+            <UsersFilters Tenants="@_tenants"
+                          OnFiltersChanged="OnFiltersChanged"
+                          OnShowDeactivatedChanged="OnShowDeactivatedChanged"
+                          OnShowDeletedChanged="OnShowDeletedChanged" />
+
+            <!-- Table des Utilisateurs -->
+            <MudCard Elevation="2">
+                <MudCardContent Class="pa-0">
+                    <MudTable @ref="_table"
+                              ServerData="ServerReload"
+                              Hover="true"
+                              Striped="true"
+                              Dense="true"
+                              FixedHeader="true"
+                              Height="600px">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Utilisateurs</MudText>
+                            <MudSpacer />
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudCheckBox Value="_includeDeactivated"
+                                             Label="Afficher désactivés"
+                                             Color="Color.Warning"
+                                             T="bool"
+                                             Dense="true"
+                                             Class="mr-2"
+                                             ValueChanged="OnIncludeDeactivatedChanged" />
+                                <MudCheckBox Value="_includeDeleted"
+                                             Label="Afficher archivés"
+                                             Color="Color.Error"
+                                             T="bool"
+                                             Dense="true"
+                                             ValueChanged="OnIncludeDeletedChanged" />
+                                <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @_totalItems utilisateurs au total
+                                </MudText>
+                            </MudStack>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>Tenant</MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<UserProfileDto, object>(x => x.Email)">Email</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<UserProfileDto, object>(x => x.LastName)">Nom Complet</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<UserProfileDto, object>(x => x.Role)">Rôle</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<UserProfileDto, object>(x => x.LastLoginDate ?? DateTime.MinValue)">Dernière Connexion</MudTableSortLabel></MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<UserProfileDto, object>(x => x.CreatedDate)">Date Création</MudTableSortLabel></MudTh>
+                            <MudTh>Statut</MudTh>
+                            <MudTh Style="text-align: right;">Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="user">
+                            <MudTd DataLabel="Tenant">
+                                @{
+                                    var tenant = _tenants.FirstOrDefault(t => t.Id == GetTenantIdForUser(user));
+                                }
+                                @if (tenant != null)
+                                {
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="Color.Default"
+                                             OnClick="@(() => Navigation.NavigateTo($"/admin/tenants/{tenant.Id}"))">
+                                        @tenant.Name
+                                    </MudChip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Email">
+                                <MudText Typo="Typo.body2">@user.Email</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Nom">
+                                <MudText Typo="Typo.body2">@user.FullName</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Rôle">
+                                <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(user.Role)">
+                                    @user.Role
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Dernière Connexion">
+                                @if (user.LastLoginDate.HasValue)
+                                {
+                                    <MudText Typo="Typo.body2">
+                                        @user.LastLoginDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </MudText>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        <em>Jamais</em>
+                                    </MudText>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Date Création">
+                                <MudText Typo="Typo.body2">
+                                    @user.CreatedDate.ToString("dd/MM/yyyy")
+                                </MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Statut">
+                                @if (user.DeletedDate.HasValue)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Delete">
+                                        Archivé
+                                    </MudChip>
+                                }
+                                else if (!user.IsActive)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Pause">
+                                        Désactivé
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                        Actif
+                                    </MudChip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Actions" Style="text-align: right;">
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
+                                    @if (user.DeletedDate.HasValue)
+                                    {
+                                        <!-- User SUPPRIMÉ - Seule action: Restaurer -->
+                                        <MudMenuItem OnClick="@(() => RestoreUserAsync(user))"
+                                                     Icon="@Icons.Material.Filled.RestorePage">
+                                            Restaurer
+                                        </MudMenuItem>
+                                    }
+                                    else if (!user.IsActive)
+                                    {
+                                        <!-- User DÉSACTIVÉ - Actions: Activer, Supprimer -->
+                                        <MudMenuItem OnClick="@(() => ToggleUserStatusAsync(user, true))"
+                                                     Icon="@Icons.Material.Filled.PlayArrow">
+                                            Activer
+                                        </MudMenuItem>
+                                        <MudDivider />
+                                        <MudMenuItem OnClick="@(() => DeleteUserAsync(user))"
+                                                     Icon="@Icons.Material.Filled.Delete"
+                                                     IconColor="Color.Error">
+                                            Supprimer (Archiver)
+                                        </MudMenuItem>
+                                    }
+                                    else
+                                    {
+                                        <!-- User ACTIF - Actions: Modifier, Désactiver, Supprimer -->
+                                        <MudMenuItem OnClick="@(() => ViewUserDetails(user))"
+                                                     Icon="@Icons.Material.Filled.Visibility"
+                                                     IconColor="Color.Info">
+                                            Voir détails
+                                        </MudMenuItem>
+                                        <MudMenuItem OnClick="@(() => ChangeUserRole(user))"
+                                                     Icon="@Icons.Material.Filled.Edit"
+                                                     IconColor="Color.Secondary">
+                                            Changer le rôle
+                                        </MudMenuItem>
+                                        <MudDivider />
+                                        <MudMenuItem OnClick="@(() => ToggleUserStatusAsync(user, false))"
+                                                     Icon="@Icons.Material.Filled.Pause"
+                                                     IconColor="Color.Warning">
+                                            Désactiver
+                                        </MudMenuItem>
+                                        <MudMenuItem OnClick="@(() => DeleteUserAsync(user))"
+                                                     Icon="@Icons.Material.Filled.Delete"
+                                                     IconColor="Color.Error">
+                                            Supprimer (Archiver)
+                                        </MudMenuItem>
+                                    }
+                                </MudMenu>
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                        </PagerContent>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private MudTable<UserProfileDto>? _table = null!;
+    private List<TenantDto> _tenants = new();
+    private UserStatsDto _stats = new();
+    private int _totalItems;
+
+    private UserFilters _currentFilters = new();
+
+    // Nouveaux filtres pour affichage désactivés/supprimés
+    private bool _includeDeactivated = false;
+    private bool _includeDeleted = false;
+
+    // Dictionnaire pour mapper userId -> tenantId (optimisation)
+    private Dictionary<string, int> _userTenantMap = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTenantsAsync();
+        await LoadStatsAsync();
+    }
+
+    private async Task LoadTenantsAsync()
+    {
+        try
+        {
+            _tenants = await AdminService.GetTenantsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement des tenants: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        try
+        {
+            _stats = await AdminService.GetUserStatsAsync() ?? new UserStatsDto();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement des stats: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<TableData<UserProfileDto>> ServerReload(TableState state, CancellationToken token)
+    {
+        try
+        {
+            var users = await AdminService.GetAllUsersAsync(
+                tenantId: _currentFilters.TenantId,
+                role: _currentFilters.Role,
+                isActive: _currentFilters.IsActive,
+                searchTerm: _currentFilters.SearchTerm,
+                includeDeactivated: _includeDeactivated,
+                includeDeleted: _includeDeleted,
+                pageNumber: state.Page + 1,
+                pageSize: state.PageSize);
+
+            _totalItems = users.Count;
+
+            return new TableData<UserProfileDto>
+            {
+                TotalItems = _totalItems,
+                Items = users
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement: {ex.Message}", Severity.Error);
+            return new TableData<UserProfileDto> { TotalItems = 0, Items = new List<UserProfileDto>() };
+        }
+    }
+
+    private async Task OnFiltersChanged(UserFilters filters)
+    {
+        _currentFilters = filters;
+        if (_table != null)
+            await _table.ReloadServerData();
+    }
+
+    private async Task OnShowDeactivatedChanged(bool show)
+    {
+        _includeDeactivated = show;
+        if (_table != null)
+            await _table.ReloadServerData();
+    }
+
+    private async Task OnShowDeletedChanged(bool show)
+    {
+        _includeDeleted = show;
+        if (_table != null)
+            await _table.ReloadServerData();
+    }
+
+    private async Task OnIncludeDeactivatedChanged(bool value)
+    {
+        _includeDeactivated = value;
+        if (_table != null)
+            await _table.ReloadServerData();
+    }
+
+    private async Task OnIncludeDeletedChanged(bool value)
+    {
+        _includeDeleted = value;
+        if (_table != null)
+            await _table.ReloadServerData();
+    }
+
+    private static Color GetRoleColor(string role) => role switch
+    {
+        "Admin" => Color.Error,
+        "Manager" => Color.Info,
+        "Livreur" => Color.Success,
+        _ => Color.Default
+    };
+
+    private int GetTenantIdForUser(UserProfileDto user)
+    {
+        return _userTenantMap.GetValueOrDefault(user.Id, 0);
+    }
+
+    /// <summary>
+    /// Désactiver (IsActive=false) ou Activer (IsActive=true) un utilisateur
+    /// </summary>
+    private async Task ToggleUserStatusAsync(UserProfileDto user, bool newStatus)
+    {
+        var action = newStatus ? "activer" : "désactiver";
+
+        var dialogParams = new DialogParameters
+        {
+            { "ContentText", GetDeactivateDialogContent(user, newStatus) },
+            { "ButtonText", newStatus ? "Activer" : "Désactiver" },
+            { "Color", newStatus ? Color.Success : Color.Warning }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            newStatus ? "▶️ Activer l'utilisateur" : "⏸️ Désactiver l'utilisateur",
+            dialogParams,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result.Canceled)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var success = newStatus
+            ? await AdminService.ActivateUserAsync(user.Id)
+            : await AdminService.DeactivateUserAsync(user.Id);
+
+        if (success.Succeeded)
+        {
+            user.IsActive = newStatus;
+            Snackbar.Add($"Utilisateur {(newStatus ? "activé" : "désactivé")} avec succès", Severity.Success);
+            await LoadStatsAsync();
+        }
+        else
+        {
+            Snackbar.Add($"Échec de l'opération: {success.Message}", Severity.Error);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Supprimer (soft delete) un utilisateur - marque DeletedDate
+    /// </summary>
+    private async Task DeleteUserAsync(UserProfileDto user)
+    {
+        var dialogParams = new DialogParameters
+        {
+            { "ContentText", GetDeleteDialogContent(user) },
+            { "ButtonText", "Supprimer" },
+            { "Color", Color.Error }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            $"🗑️ Supprimer {user.FullName}",
+            dialogParams,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result != null && result.Canceled)
+            return;
+
+        var success = await UserManagementService.DeleteUserAsync(user.Id);
+
+        if (success.Succeeded)
+        {
+            user.DeletedDate = DateTime.UtcNow;
+            user.IsActive = false;
+            Snackbar.Add("Utilisateur supprimé (archivé) avec succès", Severity.Success);
+            await LoadStatsAsync();
+
+            // Si on n'affiche pas les supprimés, recharger la table pour le retirer
+            if (!_includeDeleted)
+                await _table?.ReloadServerData()!;
+            else
+                await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            Snackbar.Add($"Échec de la suppression: {success.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>
+    /// Restaurer un utilisateur supprimé - remet DeletedDate à null et IsActive à true
+    /// </summary>
+    private async Task RestoreUserAsync(UserProfileDto user)
+    {
+        var dialogParams = new DialogParameters
+        {
+            { "ContentText", GetRestoreDialogContent(user) },
+            { "ButtonText", "Restaurer" },
+            { "Color", Color.Success }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>(
+            $"♻️ Restaurer {user.FullName}",
+            dialogParams,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result != null && result.Canceled)
+            return;
+
+        var success = await UserManagementService.RestoreUserAsync(user.Id);
+
+        if (success.Succeeded)
+        {
+            user.DeletedDate = null;
+            user.IsActive = true;
+            Snackbar.Add("Utilisateur restauré avec succès", Severity.Success);
+            await LoadStatsAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            Snackbar.Add($"Échec de la restauration: {success.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ChangeUserRole(UserProfileDto user)
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var parameters = new DialogParameters
+        {
+            { "User", user }
+        };
+
+        var dialog = await DialogService.ShowAsync<ChangeUserRoleDialog>("Changer le Rôle", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string newRole)
+        {
+            var success = await UserManagementService.ChangeUserRoleAsync(user.Id, newRole);
+
+            if (success.Succeeded)
+            {
+                user.Role = newRole;
+                Snackbar.Add($"Rôle changé avec succès : {newRole}", Severity.Success);
+                await LoadStatsAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                Snackbar.Add("Échec du changement de rôle", Severity.Error);
+            }
+        }
+    }
+
+    private void ViewUserDetails(UserProfileDto user)
+    {
+        Snackbar.Add($"Détails de {user.Email} - Fonctionnalité à venir", Severity.Info);
+    }
+
+    private async Task ReloadData()
+    {
+        await LoadStatsAsync();
+        await _table?.ReloadServerData()!;
+        Snackbar.Add("Données actualisées", Severity.Success);
+    }
+
+    // ============================================
+    // DIALOG CONTENTS
+    // ============================================
+
+    private string GetDeactivateDialogContent(UserProfileDto user, bool isActivating)
+    {
+        if (isActivating)
+        {
+            return $@"Voulez-vous réactiver {user.FullName} ?
+
+L'utilisateur :
+• Pourra se reconnecter
+• Retrouvera l'accès à ses fonctionnalités
+• Redeviendra visible dans la liste par défaut";
+        }
+
+        return $@"Cette action va :
+• Empêcher {user.FullName} de se connecter
+• Conserver ses livraisons passées
+• Permettre la réactivation ultérieure
+
+⚠️ Utiliser ""Désactiver"" pour :
+  • Congé temporaire
+  • Suspension disciplinaire
+  • Période d'inactivité
+
+💡 Si {user.FirstName} a quitté l'entreprise,
+   utilisez ""Supprimer"" à la place";
+    }
+
+    private string GetDeleteDialogContent(UserProfileDto user)
+    {
+        return $@"Cette action va :
+• Retirer {user.FullName} de la liste par défaut
+• Conserver ses livraisons passées
+• Empêcher sa reconnexion
+
+ℹ️ {user.FirstName} n'apparaîtra plus dans la liste,
+   mais les données seront archivées
+
+✅ Pas de suppression physique des données
+
+⚠️ Cette action est réversible via ""Restaurer""";
+    }
+
+    private string GetRestoreDialogContent(UserProfileDto user)
+    {
+        return $@"Voulez-vous restaurer {user.FullName} ?
+
+L'utilisateur :
+• Redeviendra actif
+• Pourra se reconnecter
+• Réapparaîtra dans la liste
+
+Cette action annule la suppression précédente.";
+    }
+}

@@ -1,0 +1,1799 @@
+﻿@page "/dashboard"
+@using System.Security.Claims
+@using DropFlow.Shared.Dashboard
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDashboardService DashboardService
+
+<style>
+    /* === CSS Variables === */
+    :root {
+        --df-primary: #0284c7;
+        --df-primary-light: #38bdf8;
+        --df-primary-dark: #0369a1;
+        --df-secondary: #14b8a6;
+        --df-success: #10b981;
+        --df-warning: #f59e0b;
+        --df-error: #ef4444;
+        --df-info: #3b82f6;
+
+        --df-surface: #ffffff;
+        --df-background: #f8fafc;
+        --df-text-primary: #0f172a;
+        --df-text-secondary: #64748b;
+        --df-text-muted: #94a3b8;
+        --df-border: #e2e8f0;
+
+        --df-gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        --df-gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --df-gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        --df-gradient-error: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+
+        --df-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --df-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        --df-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        --df-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+        --df-radius-sm: 8px;
+        --df-radius-md: 12px;
+        --df-radius-lg: 16px;
+        --df-radius-xl: 20px;
+    }
+
+    /* === Page Header === */
+    .df-page-header {
+        margin-bottom: 28px;
+    }
+
+    .df-greeting {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 4px;
+    }
+
+    .df-greeting-text {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--df-text-primary);
+        letter-spacing: -0.025em;
+    }
+
+    .df-greeting-emoji {
+        font-size: 1.5rem;
+        animation: wave 2.5s infinite;
+        transform-origin: 70% 70%;
+    }
+
+    @@keyframes wave {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+        10% {
+            transform: rotate(14deg);
+        }
+        20% {
+            transform: rotate(-8deg);
+        }
+        30% {
+            transform: rotate(14deg);
+        }
+        40% {
+            transform: rotate(-4deg);
+        }
+        50% {
+            transform: rotate(10deg);
+        }
+        60%, 100% {
+            transform: rotate(0deg);
+        }
+    }
+
+    .df-subtitle {
+        color: var(--df-text-secondary);
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .df-date-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        background: rgba(2, 132, 199, 0.08);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--df-primary);
+    }
+
+    /* === KPI Cards === */
+    .df-kpi-card {
+        position: relative;
+        border-radius: var(--df-radius-lg);
+        padding: 20px 24px;
+        background: var(--df-surface);
+        border: 1px solid var(--df-border);
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        height: 100%;
+    }
+
+    .df-kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--df-shadow-lg);
+        border-color: transparent;
+    }
+
+    .df-kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .df-kpi-card:hover::before {
+        opacity: 1;
+    }
+
+    .df-kpi-card--primary::before {
+        background: var(--df-gradient-primary);
+    }
+
+    .df-kpi-card--warning::before {
+        background: var(--df-gradient-warning);
+    }
+
+    .df-kpi-card--success::before {
+        background: var(--df-gradient-success);
+    }
+
+    .df-kpi-card--error::before {
+        background: var(--df-gradient-error);
+    }
+
+    .df-kpi-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .df-kpi-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--df-radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease;
+    }
+
+    .df-kpi-card:hover .df-kpi-icon {
+        transform: scale(1.1);
+    }
+
+    .df-kpi-icon--primary {
+        background: rgba(2, 132, 199, 0.1);
+        color: var(--df-primary);
+    }
+
+    .df-kpi-icon--warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--df-warning);
+    }
+
+    .df-kpi-icon--success {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--df-success);
+    }
+
+    .df-kpi-icon--error {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--df-error);
+    }
+
+    .df-kpi-trend {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .df-kpi-trend--up {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--df-success);
+    }
+
+    .df-kpi-trend--down {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--df-error);
+    }
+
+    .df-kpi-trend--neutral {
+        background: rgba(100, 116, 139, 0.1);
+        color: var(--df-text-secondary);
+    }
+
+    .df-kpi-value {
+        font-size: 2.25rem;
+        font-weight: 800;
+        color: var(--df-text-primary);
+        line-height: 1;
+        margin-bottom: 6px;
+        letter-spacing: -0.025em;
+    }
+
+    .df-kpi-label {
+        font-size: 0.875rem;
+        color: var(--df-text-secondary);
+        font-weight: 500;
+    }
+
+    /* === Section Cards === */
+    .df-section-card {
+        background: var(--df-surface);
+        border-radius: var(--df-radius-lg);
+        border: 1px solid var(--df-border);
+        height: 100%;
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .df-section-card:hover {
+        box-shadow: var(--df-shadow-md);
+    }
+
+    .df-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--df-border);
+    }
+
+    .df-section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--df-text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .df-section-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: rgba(2, 132, 199, 0.1);
+        color: var(--df-primary);
+    }
+
+    .df-section-content {
+        padding: 20px 24px;
+    }
+
+    .df-section-link {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--df-primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: gap 0.2s ease;
+    }
+
+    .df-section-link:hover {
+        gap: 8px;
+    }
+
+    /* === Quick Actions Grid === */
+    .df-quick-actions {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    @@media (max-width: 1200px) {
+        .df-quick-actions {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .df-quick-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .df-quick-action {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px 16px;
+        border-radius: var(--df-radius-md);
+        border: 1px dashed var(--df-border);
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none;
+        gap: 10px;
+    }
+
+    .df-quick-action:hover {
+        border-style: solid;
+        background: rgba(2, 132, 199, 0.04);
+        border-color: var(--df-primary);
+        transform: translateY(-2px);
+    }
+
+    .df-quick-action-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--df-radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.25s ease;
+    }
+
+    .df-quick-action:hover .df-quick-action-icon {
+        transform: scale(1.1);
+    }
+
+    .df-quick-action-icon--primary {
+        background: var(--df-gradient-primary);
+        color: white;
+    }
+
+    .df-quick-action-icon--warning {
+        background: var(--df-gradient-warning);
+        color: white;
+    }
+
+    .df-quick-action-icon--success {
+        background: var(--df-gradient-success);
+        color: white;
+    }
+
+    .df-quick-action-icon--info {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+    }
+
+    .df-quick-action-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--df-text-primary);
+        text-align: center;
+    }
+
+    .df-quick-action-desc {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+        text-align: center;
+    }
+
+    /* === Activity Stats === */
+    .df-activity-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .df-activity-item {
+        text-align: center;
+        padding: 16px;
+        border-radius: var(--df-radius-md);
+        background: var(--df-background);
+        transition: all 0.25s ease;
+        border: 1px solid transparent;
+    }
+
+    .df-activity-item:hover {
+        background: rgba(2, 132, 199, 0.04);
+        border-color: var(--df-border);
+    }
+
+    .df-activity-icon {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 10px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .df-activity-icon--routes {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--df-info);
+    }
+
+    .df-activity-icon--drivers {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--df-success);
+    }
+
+    .df-activity-icon--vehicles {
+        background: rgba(100, 116, 139, 0.1);
+        color: var(--df-text-secondary);
+    }
+
+    .df-activity-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--df-text-primary);
+        line-height: 1.2;
+    }
+
+    .df-activity-label {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+        margin-top: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 500;
+    }
+
+    /* === Notifications Panel === */
+    .df-notifications {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .df-notification {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px;
+        border-radius: var(--df-radius-md);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        position: relative;
+        border-left: 3px solid transparent;
+    }
+
+    .df-notification:hover {
+        background: var(--df-background);
+    }
+
+    .df-notification--success {
+        background: rgba(16, 185, 129, 0.05);
+        border-left-color: var(--df-success);
+    }
+
+    .df-notification--warning {
+        background: rgba(245, 158, 11, 0.05);
+        border-left-color: var(--df-warning);
+    }
+
+    .df-notification--error {
+        background: rgba(239, 68, 68, 0.05);
+        border-left-color: var(--df-error);
+    }
+
+    .df-notification--info {
+        background: rgba(59, 130, 246, 0.05);
+        border-left-color: var(--df-info);
+    }
+
+    .df-notification-icon {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .df-notification--success .df-notification-icon {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--df-success);
+    }
+
+    .df-notification--warning .df-notification-icon {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--df-warning);
+    }
+
+    .df-notification--error .df-notification-icon {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--df-error);
+    }
+
+    .df-notification--info .df-notification-icon {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--df-info);
+    }
+
+    .df-notification-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .df-notification-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--df-text-primary);
+        margin-bottom: 2px;
+    }
+
+    .df-notification-time {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+    }
+
+    .df-notification-dismiss {
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .df-notification:hover .df-notification-dismiss {
+        opacity: 1;
+    }
+
+    /* === Deliveries Table === */
+    .df-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .df-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .df-table th {
+        text-align: left;
+        padding: 12px 16px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--df-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--df-border);
+        background: var(--df-background);
+    }
+
+    .df-table td {
+        padding: 14px 16px;
+        font-size: 0.875rem;
+        color: var(--df-text-primary);
+        border-bottom: 1px solid var(--df-border);
+        vertical-align: middle;
+    }
+
+    .df-table tbody tr {
+        transition: background 0.15s ease;
+    }
+
+    .df-table tbody tr:hover {
+        background: rgba(2, 132, 199, 0.03);
+    }
+
+    .df-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .df-client-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .df-client-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--df-gradient-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .df-client-name {
+        font-weight: 600;
+        color: var(--df-text-primary);
+    }
+
+    .df-client-ref {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+    }
+
+    .df-address {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--df-text-secondary);
+    }
+
+    .df-address-icon {
+        color: var(--df-text-muted);
+    }
+
+    .df-time {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+    }
+
+    .df-time-icon {
+        color: var(--df-text-muted);
+    }
+
+    .df-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .df-status-badge--planned {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--df-info);
+    }
+
+    .df-status-badge--confirmed {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+    }
+
+    .df-status-badge--inprogress {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--df-warning);
+    }
+
+    .df-status-badge--delivered {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--df-success);
+    }
+
+    .df-status-badge--late {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--df-error);
+    }
+
+    .df-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .df-table-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    /* === Chart Section === */
+    .df-chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .df-chart-period-selector {
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        background: var(--df-background);
+        border-radius: var(--df-radius-sm);
+    }
+
+    .df-period-btn {
+        min-width: auto !important;
+        padding: 6px 14px !important;
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
+        text-transform: none !important;
+        border-radius: 6px !important;
+    }
+
+    .df-period-btn--active {
+        background: white !important;
+        box-shadow: var(--df-shadow-sm);
+    }
+
+    .df-chart-container {
+        height: 350px;
+    }
+
+    .df-chart-summary {
+        display: flex;
+        gap: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--df-border);
+        margin-top: 20px;
+    }
+
+    .df-chart-stat {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .df-chart-stat-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+
+    .df-chart-stat-dot--deliveries {
+        background: var(--df-primary);
+    }
+
+    .df-chart-stat-dot--revenue {
+        background: var(--df-success);
+    }
+
+    .df-chart-stat-label {
+        font-size: 0.8rem;
+        color: var(--df-text-muted);
+    }
+
+    .df-chart-stat-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--df-text-primary);
+    }
+
+    /* === Risk Alerts === */
+    .df-risk-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .df-risk-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: var(--df-radius-md);
+        background: var(--df-background);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+    }
+
+    .df-risk-item:hover {
+        transform: translateX(4px);
+    }
+
+    .df-risk-item--warning {
+        border-left-color: var(--df-warning);
+    }
+
+    .df-risk-item--error {
+        border-left-color: var(--df-error);
+    }
+
+    .df-risk-item--info {
+        border-left-color: var(--df-info);
+    }
+
+    .df-risk-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .df-risk-item--warning .df-risk-icon {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--df-warning);
+    }
+
+    .df-risk-item--error .df-risk-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--df-error);
+    }
+
+    .df-risk-item--info .df-risk-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--df-info);
+    }
+
+    .df-risk-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .df-risk-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--df-text-primary);
+    }
+
+    .df-risk-subtitle {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .df-risk-meta {
+        text-align: right;
+    }
+
+    .df-risk-chip {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 10px;
+    }
+
+    .df-risk-item--warning .df-risk-chip {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--df-warning);
+    }
+
+    .df-risk-item--error .df-risk-chip {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--df-error);
+    }
+
+    .df-risk-item--info .df-risk-chip {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--df-info);
+    }
+
+    .df-risk-time {
+        font-size: 0.7rem;
+        color: var(--df-text-muted);
+        margin-top: 4px;
+    }
+
+    /* === Timeline === */
+    .df-timeline {
+        position: relative;
+        padding-left: 24px;
+    }
+
+    .df-timeline::before {
+        content: '';
+        position: absolute;
+        left: 7px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background: var(--df-border);
+    }
+
+    .df-timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+
+    .df-timeline-item:last-child {
+        padding-bottom: 0;
+    }
+
+    .df-timeline-dot {
+        position: absolute;
+        left: -20px;
+        top: 4px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid var(--df-border);
+        background: white;
+    }
+
+    .df-timeline-item--success .df-timeline-dot {
+        background: var(--df-success);
+        border-color: var(--df-success);
+    }
+
+    .df-timeline-item--info .df-timeline-dot {
+        background: var(--df-info);
+        border-color: var(--df-info);
+    }
+
+    .df-timeline-item--warning .df-timeline-dot {
+        background: var(--df-warning);
+        border-color: var(--df-warning);
+    }
+
+    .df-timeline-item--error .df-timeline-dot {
+        background: var(--df-error);
+        border-color: var(--df-error);
+    }
+
+    .df-timeline-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .df-timeline-text {
+        font-size: 0.85rem;
+        color: var(--df-text-primary);
+    }
+
+    .df-timeline-time {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+        flex-shrink: 0;
+    }
+
+    /* === Empty State === */
+    .df-empty-state {
+        text-align: center;
+        padding: 32px 16px;
+    }
+
+    .df-empty-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 12px;
+        border-radius: 50%;
+        background: rgba(16, 185, 129, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--df-success);
+    }
+
+    .df-empty-text {
+        font-size: 0.9rem;
+        color: var(--df-text-secondary);
+    }
+
+    /* === Responsive === */
+    @@media (max-width: 960px) {
+        .df-greeting-text {
+            font-size: 1.5rem;
+        }
+
+        .df-kpi-value {
+            font-size: 1.75rem;
+        }
+
+        .df-activity-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .df-activity-grid {
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .df-activity-value {
+            font-size: 1.5rem;
+        }
+    }
+
+    .df-header-actions-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px;
+        border-radius: 20px;
+        background: white;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+        gap: 8px;
+    }
+
+    .df-header-actions-pill .mud-icon-button {
+        border-radius: 999px;
+        background: ghostwhite;
+        transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .df-header-actions-pill .mud-icon-button:hover {
+        background: white;
+        transform: translateY(-1px);
+    }
+
+    .df-header-actions-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-right: 4px;
+    }
+
+    .df-gauge-chart {
+        max-height: 260px;
+        margin: 0 auto;
+    }
+
+    .df-btn-selected {
+        background-color: var(--mud-palette-primary) !important;
+        color: white !important;
+        border-color: var(--mud-palette-primary) !important;
+    }
+
+</style>
+
+<PageTitle>Dashboard - DropFlow</PageTitle>
+
+<AuthorizeView Roles="@Roles.Manager">
+
+    <Authorized>
+        <!-- Page Header -->
+        <MudGrid Class="df-page-header" AlignItems="Center">
+            <!-- Titre + date -->
+            <MudItem xs="12" md="7">
+                <div class="df-greeting">
+                    <span class="df-greeting-text">Bonjour, @_userName</span>
+                    <span class="df-greeting-emoji">👋</span>
+                </div>
+                <div class="df-subtitle">
+                    <span>Vue d'ensemble de vos opérations</span>
+                    <span class="df-date-badge">
+                        <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small"/>
+                        @DateTime.Now.ToString("dddd d MMMM yyyy", new System.Globalization.CultureInfo("fr-FR"))
+                    </span>
+                </div>
+            </MudItem>
+
+            <!-- Actions rapides icônes -->
+            <MudItem xs="12" md="5" Class="d-flex justify-end">
+                <div class="df-header-actions-pill">
+                    <span class="df-header-actions-label">Actions rapides</span>
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudTooltip Text="Nouvelle livraison">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Color="Color.Success"
+                                           Size="Size.Medium"
+                                           OnClick="CreateDelivery"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Envoyer factures">
+                            <MudIconButton Icon="@Icons.Material.Filled.Send"
+                                           Color="Color.Warning"
+                                           Size="Size.Medium"
+                                           OnClick="SendInvoices"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Générer les tournées du jour">
+                            <MudIconButton Icon="@Icons.Material.Filled.Route"
+                                           Color="Color.Info"
+                                           Size="Size.Medium"
+                                           OnClick="OptimizeRoutes"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="Livraisons en retard">
+                            <MudIconButton Icon="@Icons.Material.Filled.WarningAmber"
+                                           Color="Color.Error"
+                                           Size="Size.Medium"
+                                           OnClick="ImportData"/>
+                        </MudTooltip>
+                    </MudStack>
+                </div>
+            </MudItem>
+
+        </MudGrid>
+
+        <!-- KPI Cards -->
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <div class="df-kpi-card df-kpi-card--primary" @onclick="NavigateToDeliveries">
+                    <div class="df-kpi-header">
+                        <div class="df-kpi-icon df-kpi-icon--primary">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping"/>
+                        </div>
+                        <div class="df-kpi-trend df-kpi-trend--up">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small"/>
+                            @_stats.DeliveredToday/@_stats.TodayDeliveries
+                        </div>
+                    </div>
+                    <div class="df-kpi-value">@_stats.TodayDeliveries</div>
+                    <div class="df-kpi-label">Livraisons du jour</div>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <div class="df-kpi-card df-kpi-card--warning" @onclick="NavigateToUnplanned">
+                    <div class="df-kpi-header">
+                        <div class="df-kpi-icon df-kpi-icon--warning">
+                            <MudIcon Icon="@Icons.Material.Filled.PendingActions"/>
+                        </div>
+                        <div class="df-kpi-trend @(_stats.UnplannedTrend > 0 ? "df-kpi-trend--down" : "df-kpi-trend--up")">
+                            <MudIcon
+                                Icon="@(_stats.UnplannedTrend > 0 ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
+                                Size="Size.Small"/>
+                            @(_stats.UnplannedTrend > 0 ? $"+{_stats.UnplannedTrend}" : _stats.UnplannedTrend.ToString())
+                        </div>
+                    </div>
+                    <div class="df-kpi-value">@_stats.UnplannedDeliveries</div>
+                    <div class="df-kpi-label">Non planifiées</div>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <div class="df-kpi-card df-kpi-card--error" @onclick="NavigateToInvoices">
+                    <div class="df-kpi-header">
+                        <div class="df-kpi-icon df-kpi-icon--error">
+                            <MudIcon Icon="@Icons.Material.Filled.Receipt"/>
+                        </div>
+                        <div class="df-kpi-trend df-kpi-trend--neutral">
+                            <MudIcon Icon="@Icons.Material.Filled.Remove" Size="Size.Small"/>
+                            0
+                        </div>
+                    </div>
+                    <div class="df-kpi-value">@_pendingInvoices</div>
+                    <div class="df-kpi-label">Factures en attente</div>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <div class="df-kpi-card df-kpi-card--success" @onclick="NavigateToReports">
+                    <div class="df-kpi-header">
+                        <div class="df-kpi-icon df-kpi-icon--success">
+                            <MudIcon Icon="@Icons.Material.Filled.Euro"/>
+                        </div>
+                        <div class="df-kpi-trend @(_stats.RevenueTrend >= 0 ? "df-kpi-trend--up" : "df-kpi-trend--down")">
+                            <MudIcon Icon="@(_stats.RevenueTrend >= 0 ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)" Size="Size.Small"/>
+                            @(_stats.RevenueTrend >= 0 ? $"+{_stats.RevenueTrend:F1}%" : $"{_stats.RevenueTrend:F1}%")
+                        </div>
+                    </div>
+                    <div class="df-kpi-value">@_stats.MonthlyRevenue.ToString("N0")€</div>
+                    <div class="df-kpi-label">Revenus mensuels</div>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Quick Actions + Activity -->
+        <MudGrid Spacing="3" Class="mb-4">
+
+            <MudItem xs="12" md="4">
+                <div class="df-section-card">
+                    <div class="df-section-header">
+                        <div class="df-section-title">
+                            <MudIcon Icon="@Icons.Material.Outlined.Speed" Size="Size.Small"/>
+                            Activité en cours
+                        </div>
+                        <span class="df-section-badge">Temps réel</span>
+                    </div>
+                    <div class="df-section-content">
+                        <div class="df-activity-grid">
+                            <div class="df-activity-item">
+                                <div class="df-activity-icon df-activity-icon--routes">
+                                    <MudIcon Icon="@Icons.Material.Filled.Route" Size="Size.Small"/>
+                                </div>
+                                <div class="df-activity-value">@_stats.ActiveRoutes/@_stats.TotalRoutesToday</div>
+                                <div class="df-activity-label">Tournées</div>
+                            </div>
+                            <div class="df-activity-item">
+                                <div class="df-activity-icon df-activity-icon--drivers">
+                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small"/>
+                                </div>
+                                <div class="df-activity-value">@_driversOnRoad</div>
+                                <div class="df-activity-label">Chauffeurs</div>
+                            </div>
+                            <div class="df-activity-item">
+                                <div class="df-activity-icon df-activity-icon--vehicles">
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small"/>
+                                </div>
+                                <div class="df-activity-value">@_idleVehicles</div>
+                                <div class="df-activity-label">Inactifs</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <div class="df-section-card">
+                    <div class="df-section-header">
+                        <div class="df-section-title">
+                            <MudIcon Icon="@Icons.Material.Outlined.Notifications" Size="Size.Small"/>
+                            Notifications
+                            <span class="df-section-badge">@_notifications.Count</span>
+                        </div>
+                    </div>
+                    <div class="df-section-content">
+                        <div class="df-notifications">
+                            @foreach (var notif in _notifications)
+                            {
+                                <div class="df-notification df-notification--@notif.Type.ToString().ToLower()">
+                                    <div class="df-notification-icon">
+                                        <MudIcon Icon="@notif.Icon" Size="Size.Small"/>
+                                    </div>
+                                    <div class="df-notification-content">
+                                        <div class="df-notification-title">@notif.Message</div>
+                                        <div class="df-notification-time">Il y a @notif.TimeAgo</div>
+                                    </div>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                                   Class="df-notification-dismiss"/>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <div class="df-section-card" style="margin-bottom: 24px;">
+                    <div class="df-section-header">
+                        <div class="df-section-title">
+                            <MudIcon Icon="@Icons.Material.Outlined.Warning" Size="Size.Small"/>
+                            Livraisons à risque
+                        </div>
+                        <MudLink Href="/deliveries?filter=risk" Class="df-section-link">
+                            Voir tout
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small"/>
+                        </MudLink>
+                    </div>
+                    <div class="df-section-content">
+                        @if (_riskyDeliveries.Count == 0)
+                        {
+                            <div class="df-empty-state">
+                                <div class="df-empty-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"/>
+                                </div>
+                                <div class="df-empty-text">Aucun risque détecté</div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="df-risk-list">
+                                @foreach (var risk in _riskyDeliveries)
+                                {
+                                    <div class="df-risk-item df-risk-item--@risk.RiskLevel.ToLower()">
+                                        <div class="df-risk-icon">
+                                            <MudIcon Icon="@GetRiskIconFromLevel(risk.RiskLevel)" Size="Size.Small"/>
+                                        </div>
+                                        <div class="df-risk-content">
+                                            <div class="df-risk-title">@risk.Reference</div>
+                                            <div class="df-risk-subtitle">
+                                                <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small"/>
+                                                @risk.DeliveryCity
+                                            </div>
+                                        </div>
+                                        <div class="df-risk-meta">
+                                            <span class="df-risk-chip">@risk.RiskReason</span>
+                                            <div class="df-risk-time">@risk.EstimatedTime.ToString("HH:mm")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Deliveries Table + Notifications -->
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" md="12">
+                <div class="df-section-card">
+                    <div class="df-section-header">
+                        <div class="df-section-title">
+                            <MudIcon Icon="@Icons.Material.Outlined.Today" Size="Size.Small"/>
+                            Livraisons du jour
+                            <span class="df-section-badge">@_stats.TodayDeliveries</span>
+                        </div>
+                        <MudLink Href="/deliveries" Class="df-section-link">
+                            Voir tout
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small"/>
+                        </MudLink>
+                    </div>
+                    <div class="df-table-wrapper">
+                        <table class="df-table">
+                            <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Adresse</th>
+                                <th>Heure</th>
+                                <th>Statut</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var delivery in _todayDeliveries)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="df-client-info">
+                                            <div class="df-client-avatar">@GetClientInitials(delivery.ClientName)</div>
+                                            <div>
+                                                <div class="df-client-name">@delivery.ClientName</div>
+                                                <div class="df-client-ref">@delivery.Reference</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="df-address">
+                                            <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small"
+                                                     Class="df-address-icon"/>
+                                            @delivery.DeliveryCity
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="df-time">
+                                            <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small"
+                                                     Class="df-time-icon"/>
+                                            @(delivery.ScheduledTime?.ToString(@"hh\:mm") ?? "Non défini")
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="df-status-badge df-status-badge--@delivery.Status.ToLower()">
+                                            <span class="df-status-dot"></span>
+                                            @delivery.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="df-table-actions">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility" Size="Size.Small"
+                                                           Title="Voir"/>
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small"
+                                                           Title="Modifier"/>
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Map" Size="Size.Small"
+                                                           Title="Carte"/>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Chart -->
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="12">
+                <div class="df-section-card">
+                    <div class="df-section-content">
+                        <div class="df-chart-header">
+                            <div class="df-section-title" style="margin-bottom: 0;">
+                                <MudIcon Icon="@Icons.Material.Outlined.BarChart" Size="Size.Small"/>
+                                Performance
+                            </div>
+                            <MudButtonGroup Color="Color.Primary"
+                                            Variant="Variant.Outlined"
+                                            OverrideStyles="true"
+                                            Size="Size.Small">
+                                <MudButton Class="@GetButtonClass(ChartPeriod.Week)"
+                                           OnClick="@(() => SetChartPeriod(ChartPeriod.Week))">
+                                    Semaine
+                                </MudButton>
+                                <MudButton Class="@GetButtonClass(ChartPeriod.Month)"
+                                           OnClick="@(() => SetChartPeriod(ChartPeriod.Month))">
+                                    Mois
+                                </MudButton>
+                                <MudButton Class="@GetButtonClass(ChartPeriod.Year)"
+                                           OnClick="@(() => SetChartPeriod(ChartPeriod.Year))">
+                                    Année
+                                </MudButton>
+                            </MudButtonGroup>
+                        </div>
+
+                        <!-- Line + Donut côte à côte -->
+                        <div class="df-chart-container">
+                            <MudGrid GutterSize="3">
+                                <MudItem xs="12" md="6">
+                                    <MudChart ChartType="ChartType.Line"
+                                              ChartSeries="@GetChartData()"
+                                              XAxisLabels="@GetChartLabels()"
+                                              Width="100%" Height="300px"
+                                              ChartOptions="@_chartOptions"/>
+                                </MudItem>
+
+                                <MudItem xs="12" md="6">
+                                    <MudChart ChartType="ChartType.Donut"
+                                              InputLabels="@_statusChartData.Labels.ToArray()"
+                                              InputData="@_statusChartData.Values.ToArray()"
+                                              Width="100%" Height="100%"
+                                              Class="df-gauge-chart"/>
+                                </MudItem>
+                            </MudGrid>
+                        </div>
+
+                        <!-- Résumé -->
+                        <div class="df-chart-summary">
+                            <div class="df-chart-stat">
+                                <span class="df-chart-stat-dot df-chart-stat-dot--deliveries"></span>
+                                <div>
+                                    <div class="df-chart-stat-label">Total livraisons</div>
+                                    @* <div class="df-chart-stat-value">@_totalDeliveries</div> *@
+                                </div>
+                            </div>
+                            <div class="df-chart-stat">
+                                <span class="df-chart-stat-dot df-chart-stat-dot--revenue"></span>
+                                <div>
+                                    <div class="df-chart-stat-label">Revenus total</div>
+                                    @* <div class="df-chart-stat-value">@_totalRevenue.ToString("N0")€</div> *@
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MudItem>
+        </MudGrid>
+        <!-- Revenus par magasin -->
+        <MudGrid Spacing="3" Class="mt-4">
+            <MudItem xs="12" md="12">
+                <div class="df-section-card">
+                    <div class="df-section-content">
+                        <div class="df-chart-header">
+                            <div class="df-section-title" style="margin-bottom: 0;">
+                                <MudIcon Icon="@Icons.Material.Outlined.Leaderboard" Size="Size.Small"/>
+                                Revenus par magasin
+                            </div>
+                            <MudText Typo="Typo.caption" Class="df-chart-stat-label">
+                                Top magasins par revenus pour la période sélectionnée
+                            </MudText>
+                        </div>
+
+                        <div class="df-chart-container">
+                            <MudChart ChartType="ChartType.Bar"
+                                      ChartSeries="@GetStoreRevenueSeries()"
+                                      XAxisLabels="@GetStoreLabels()"
+                                      Width="100%" Height="300px"
+                                      AxisChartOptions="@_axisChartOptions"/>
+                        </div>
+                    </div>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+    </Authorized>
+
+    <NotAuthorized>
+        @{
+            // Redirection automatique
+            NavigationManager.NavigateTo(
+                context.User.Identity?.IsAuthenticated == true
+                    ? "/access-denied"
+                    : "/login",
+                true);
+        }
+    </NotAuthorized>
+    <Authorizing>
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
+    </Authorizing>
+</AuthorizeView>
+
+@code {
+    private string _userName = string.Empty;
+    private string _userEmail = string.Empty;
+    private string _userRole = string.Empty;
+    private int _tenantId = 0;
+    private bool _isAuthorized = false;
+
+    private readonly AxisChartOptions _axisChartOptions = new AxisChartOptions();
+
+    // === Enums ===
+
+    public enum DeliveryStatus
+    {
+        Planned,
+        Confirmed,
+        InProgress,
+        Delivered,
+        Late,
+        Canceled
+    }
+
+    public enum NotificationType
+    {
+        Success,
+        Warning,
+        Error,
+        Info
+    }
+
+    public enum RiskLevel
+    {
+        Warning,
+        Error,
+        Info
+    }
+
+    public enum EventType
+    {
+        Success,
+        Warning,
+        Error,
+        Info
+    }
+
+    // === Data from Dashboard Service ===
+    private DashboardStatsDto _stats = new();
+    private List<TodayDeliveryDto> _todayDeliveries = new();
+    private List<RiskyDeliveryDto> _riskyDeliveries = new();
+    private List<NotificationDto> _notifications = new();
+    private List<EventDto> _events = new();
+
+    // === Activity (TODO: À ajouter dans DashboardStatsDto) ===
+    private int _driversOnRoad = 0; // TODO: Récupérer depuis le backend
+    private int _idleVehicles = 0; // TODO: Récupérer depuis le backend
+    private int _pendingInvoices = 0; // TODO: Récupérer depuis le backend
+
+    // === Chart ===
+    private ChartPeriod _selectedPeriod = ChartPeriod.Month;
+    private RevenueChartDataDto _revenueChartData = new();
+    private StatusChartDataDto _statusChartData = new();
+    private StoreChartDataDto _storeChartData = new();
+
+    private readonly ChartOptions _chartOptions = new()
+    {
+        InterpolationOption = InterpolationOption.NaturalSpline,
+        YAxisTicks = 5,
+        MaxNumYAxisTicks = 10,
+        YAxisLines = true,
+        XAxisLines = false,
+        ChartPalette = ["#0284c7", "#10b981"]
+    };
+
+    private List<ChartSeries> GetStoreRevenueSeries()
+    {
+        if (_storeChartData.Revenues.Count == 0)
+            return new List<ChartSeries>();
+
+        return new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = "Revenus (k€)",
+                Data = _storeChartData.Revenues.ToArray()
+            }
+        };
+    }
+
+    private string[] GetStoreLabels() => _storeChartData.StoreNames.ToArray();
+
+    private async void SetChartPeriod(ChartPeriod period)
+    {
+        _selectedPeriod = period;
+
+        try
+        {
+            // Recharger les données des graphiques avec la nouvelle période
+            var revenueTask = DashboardService.GetRevenueChartDataAsync(period);
+            var statusTask = DashboardService.GetStatusChartDataAsync(period);
+            var storeTask = DashboardService.GetStoreChartDataAsync(period);
+
+            await Task.WhenAll(revenueTask, statusTask, storeTask);
+
+            _revenueChartData = revenueTask.Result;
+            _statusChartData = statusTask.Result;
+            _storeChartData = storeTask.Result;
+
+            // Forcer le rafraîchissement
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Dashboard] Erreur changement période: {ex.Message}");
+        }
+    }
+
+    private string GetButtonClass(ChartPeriod period)
+        => _selectedPeriod == period ? "df-btn-selected" : "";
+
+    private string[] GetChartLabels() => _revenueChartData.Labels.ToArray();
+
+    private List<ChartSeries> GetChartData()
+    {
+        if (_revenueChartData.Labels.Count == 0)
+            return new List<ChartSeries>();
+
+        return new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                ShowDataMarkers = true,
+                Name = "Livraisons",
+                Data = _revenueChartData.DeliveryCount.ToArray()
+            },
+            new ChartSeries
+            {
+                ShowDataMarkers = true,
+                Name = "Revenus (k€)",
+                Data = _revenueChartData.Revenues.ToArray()
+            }
+        };
+    }
+
+    // === Data Lists - Now loaded from DashboardService ===
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Récupérer l'utilisateur authentifié
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // ✅ Vérifier l'authentification ET l'autorisation
+            if (user.Identity?.IsAuthenticated != true)
+            {
+                // Non authentifié → rediriger vers login
+                NavigationManager.NavigateTo("/login", true);
+                return;
+            }
+
+            // Vérifier le rôle
+            _userRole = user.FindFirst(ClaimTypes.Role)?.Value ?? user.FindFirst("role")?.Value ?? "";
+
+            if (_userRole != "Manager" && _userRole != "Admin")
+            {
+                // Rôle non autorisé → rediriger vers access denied
+                NavigationManager.NavigateTo("/access-denied", true);
+                return;
+            }
+
+            // ✅ Utilisateur autorisé
+            _isAuthorized = true;
+
+            // Extraire les informations utilisateur
+            var firstName = user.FindFirst("name")?.Value?.Split(' ').FirstOrDefault();
+            _userName = firstName ?? "Utilisateur";
+
+            _userEmail = user.FindFirst("email")?.Value ?? "";
+
+            var tenantIdClaim = user.FindFirst("TenantId")?.Value;
+            if (int.TryParse(tenantIdClaim, out int tenantId))
+            {
+                _tenantId = tenantId;
+            }
+
+            Console.WriteLine($"Dashboard chargé pour {_userName} (TenantId: {_tenantId}, Role: {_userRole})");
+
+            // ✅ Charger les vraies données depuis l'API
+            await LoadDashboardDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur OnInitializedAsync: {ex.Message}");
+            Snackbar.Add("Erreur lors du chargement du dashboard", Severity.Error);
+            NavigationManager.NavigateTo("/login", true);
+        }
+    }
+
+    /// <summary>
+    /// Charge toutes les données du dashboard depuis le service
+    /// </summary>
+    private async Task LoadDashboardDataAsync()
+    {
+        try
+        {
+            Console.WriteLine("[Dashboard] Chargement des données...");
+
+            // Charger toutes les données en parallèle pour de meilleures performances
+            var statsTask = DashboardService.GetStatsAsync();
+            var deliveriesTask = DashboardService.GetTodayDeliveriesAsync();
+            var riskyTask = DashboardService.GetRiskyDeliveriesAsync();
+            var notificationsTask = DashboardService.GetNotificationsAsync(10);
+            var eventsTask = DashboardService.GetRecentEventsAsync(10);
+            var revenueTask = DashboardService.GetRevenueChartDataAsync(_selectedPeriod);
+            var statusTask = DashboardService.GetStatusChartDataAsync(_selectedPeriod);
+            var storeTask = DashboardService.GetStoreChartDataAsync(_selectedPeriod);
+
+            await Task.WhenAll(statsTask, deliveriesTask, riskyTask, notificationsTask, eventsTask, revenueTask, statusTask, storeTask);
+
+            // Assigner les résultats
+            _stats = statsTask.Result;
+            _todayDeliveries = deliveriesTask.Result;
+            _riskyDeliveries = riskyTask.Result;
+            _notifications = notificationsTask.Result;
+            _events = eventsTask.Result;
+            _revenueChartData = revenueTask.Result;
+            _statusChartData = statusTask.Result;
+            _storeChartData = storeTask.Result;
+
+            Console.WriteLine($"[Dashboard] ✅ Données chargées : {_todayDeliveries.Count} livraisons, {_notifications.Count} notifications");
+
+            // Forcer le rafraîchissement de l'interface
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Dashboard] ❌ Erreur chargement données: {ex.Message}");
+            Snackbar.Add("Erreur lors du chargement des données du dashboard", Severity.Warning);
+        }
+    }
+
+    // === Helpers ===
+    private string GetClientInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[1][0]}" : name[0].ToString();
+    }
+
+    private string GetStatusLabel(DeliveryStatus status) => status switch
+    {
+        DeliveryStatus.Planned => "Planifié",
+        DeliveryStatus.Confirmed => "Confirmé",
+        DeliveryStatus.InProgress => "En cours",
+        DeliveryStatus.Delivered => "Livré",
+        DeliveryStatus.Late => "En retard",
+        DeliveryStatus.Canceled => "Annulé",
+        _ => status.ToString()
+    };
+
+    private string GetRiskIcon(RiskLevel level) => level switch
+    {
+        RiskLevel.Warning => Icons.Material.Filled.Schedule,
+        RiskLevel.Error => Icons.Material.Filled.Replay,
+        RiskLevel.Info => Icons.Material.Filled.Star,
+        _ => Icons.Material.Filled.Info
+    };
+
+    /// <summary>
+    /// Helper pour obtenir l'icône en fonction du niveau de risque (string)
+    /// </summary>
+    private string GetRiskIconFromLevel(string level) => level switch
+    {
+        "Warning" => Icons.Material.Filled.Schedule,
+        "Error" => Icons.Material.Filled.Replay,
+        "Info" => Icons.Material.Filled.Star,
+        _ => Icons.Material.Filled.Info
+    };
+
+    // === Navigation ===
+    private void NavigateToDeliveries() => NavigationManager.NavigateTo("/deliveries");
+    private void NavigateToUnplanned() => NavigationManager.NavigateTo("/deliveries?filter=unplanned");
+    private void NavigateToInvoices() => NavigationManager.NavigateTo("/invoices?filter=pending");
+    private void NavigateToReports() => NavigationManager.NavigateTo("/reports");
+
+    // === Actions ===
+    private void CreateDelivery()
+    {
+        Snackbar.Add("Ouverture du formulaire...", Severity.Info);
+        NavigationManager.NavigateTo("/deliveries/new");
+    }
+
+    private void SendInvoices() => Snackbar.Add("Préparation de l'envoi groupé...", Severity.Info);
+    private void ImportData() => Snackbar.Add("Ouverture de l'import...", Severity.Info);
+
+    private void OptimizeRoutes()
+    {
+        Snackbar.Add("Optimisation en cours...", Severity.Info);
+        NavigationManager.NavigateTo("/routes/optimize");
+    }
+
+    // === Records - Kept for backward compatibility but no longer used ===
+    // Now using DTOs from DashboardService
+
+}

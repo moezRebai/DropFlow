@@ -1,0 +1,34 @@
+﻿@page "/"
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+
+<MudContainer Class="d-flex justify-center align-center" Style="height: 100vh;">
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+</MudContainer>
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+    
+        var tokenInfo = await AuthService.GetTokenInfoAsync();
+        
+        if (tokenInfo == null || tokenInfo.ExpiresAt <= DateTime.UtcNow)
+        {
+            NavigationManager.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (tokenInfo.Roles.Contains(Roles.Livreur))
+        {
+            NavigationManager.NavigateTo("/personal-deliveries", replace: true);
+        }
+        else if (tokenInfo.Roles.Contains(Roles.Manager))
+        {
+            NavigationManager.NavigateTo("/dashboard", forceLoad: false);
+        }
+        else
+            NavigationManager.NavigateTo("/admin/dashboard", replace: true);
+    }
+}

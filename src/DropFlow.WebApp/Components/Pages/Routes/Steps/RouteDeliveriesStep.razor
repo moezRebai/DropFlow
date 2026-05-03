@@ -1,0 +1,517 @@
+@using System.Globalization
+@using DropFlow.Shared.Deliveries
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Routes
+@inject IDeliveryService DeliveryService
+@inject IDeliveryEventBus EventBus
+@inject ISnackbar Snackbar
+@inject ILogger<RouteDeliveriesStep> Logger
+@implements IDisposable
+
+<MudStack Spacing="3">
+
+    <!-- Header with date context -->
+    <MudPaper Elevation="0" Class="pa-3 rounded-lg" Style="background: var(--mud-palette-background-grey);">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Primary" />
+                <MudText Typo="Typo.body2">
+                    Sélectionnez les livraisons à inclure pour le
+                    <strong>@State.Date?.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("fr-FR"))</strong>
+                </MudText>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <MudPaper Elevation="1" Class="pa-6 rounded-lg d-flex flex-column align-center justify-center" Style="min-height: 200px;">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.body2" Class="mt-4" Color="Color.Secondary">
+                Chargement des livraisons disponibles...
+            </MudText>
+        </MudPaper>
+    }
+    else if (!_availableDeliveries.Any())
+    {
+        <MudPaper Elevation="1" Class="pa-6 rounded-lg">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" />
+                    <MudText>Aucune livraison disponible trouvée pour cette date.</MudText>
+                </MudStack>
+            </MudAlert>
+        </MudPaper>
+    }
+    else
+    {
+        <!-- Statistics Cards -->
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6" md="6">
+                <MudPaper Elevation="2" Class="pa-4 rounded-lg">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Disponibles</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Warning">@_availableDeliveries.Count</MudText>
+                        </MudStack>
+                        <MudAvatar Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Large">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Large" Color="Color.Warning"/>
+                        </MudAvatar>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="6">
+                <MudPaper Elevation="2" Class="pa-4 rounded-lg">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Sélectionnées</MudText>
+                            <MudText Typo="Typo.h4" Color="Color.Success">@State.SelectedDeliveries.Count</MudText>
+                        </MudStack>
+                        <MudAvatar Color="Color.Success" Variant="Variant.Outlined" Size="Size.Large">
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Large" Color="Color.Success" />
+                        </MudAvatar>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Table with toolbar -->
+        <MudPaper Elevation="2" Class="rounded-lg">
+            <!-- Toolbar -->
+            <MudToolBar Dense="true" Class="px-3" Style="background: var(--mud-palette-background-grey);">
+                <MudIcon Icon="@Icons.Material.Filled.List" Class="mr-2" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle2">Liste des livraisons</MudText>
+                <MudSpacer />
+                <MudIconButton Size="Size.Medium"
+                               Color="Color.Primary"
+                               Icon="@Icons.Material.Filled.Refresh"
+                               OnClick="RefreshDeliveries"
+                               Disabled="@_loading"/>
+                @if (State.SelectedDeliveries.Any())
+                {
+                    <MudChip 
+                        T="string"
+                        Size="Size.Small"
+                             Color="Color.Primary"
+                             Variant="Variant.Filled"
+                             Icon="@Icons.Material.Filled.CheckCircle">
+                        @State.SelectedDeliveries.Count sélectionnée@(State.SelectedDeliveries.Count > 1 ? "s" : "")
+                    </MudChip>
+                }
+            </MudToolBar>
+
+            <MudTable T="DeliveryDto"
+                      Items="@_availableDeliveries"
+                      Hover="true"
+                      Striped="true"
+                      Bordered="false"
+                      FixedHeader="true"
+                      MultiSelection="true"
+                      min-height="250px"
+                      SelectedItems="_selectedSet"
+                      SelectOnRowClick="true"
+                      SelectedItemsChanged="OnSelectionChanged"
+                      Breakpoint="Breakpoint.Sm">
+
+                <HeaderContent>
+                    <MudTh>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">Référence</MudText>
+                        </MudStack>
+                    </MudTh>
+                    <MudTh>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">Client</MudText>
+                        </MudStack>
+                    </MudTh>
+                    <MudTh>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.EditCalendar" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">Date</MudText>
+                        </MudStack>
+                    </MudTh>
+                    <MudTh>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Place" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">Adresse</MudText>
+                        </MudStack>
+                    </MudTh>
+                    <MudTh Style="text-align: center">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">Notes</MudText>
+                        </MudStack>
+                    </MudTh>
+                    <MudTh Style="text-align: center">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">Durée</MudText>
+                        </MudStack>
+                    </MudTh>
+                    <MudTh Style="text-align: center">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">Statut</MudText>
+                        </MudStack>
+                    </MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Référence">
+                        <MudTooltip Text="Ouvrir l'édition (nouvel onglet)" Placement="Placement.Top">
+                            <MudLink Href="@($"/livraisons/edit/{context.Id}")"
+                                     Target="_blank"
+                                     Typo="Typo.body2"
+                                     Class="font-weight-medium"
+                                     Color="Color.Primary">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    @context.Reference
+                                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" />
+                                </MudStack>
+                            </MudLink>
+                        </MudTooltip>
+                    </MudTd>
+
+                    <MudTd DataLabel="Client">
+                        <MudText Typo="Typo.body2">@context.ClientName</MudText>
+                    </MudTd>
+
+                    <MudTd DataLabel="Date">
+                        <MudText Typo="Typo.body2">@context.ScheduledDate.Value.ToString("dd/MM/yyyy")</MudText>
+                    </MudTd>
+
+                    <MudTd DataLabel="Adresse">
+                        <MudText Typo="Typo.body2">@context.Address, @context.City</MudText>
+                    </MudTd>
+
+                    <MudTd DataLabel="Notes" Style="text-align: center;">
+                        @if (!string.IsNullOrWhiteSpace(context.DeliveryNotes))
+                        {
+                            <MudTooltip Text="@context.DeliveryNotes">
+                                <MudChip Size="Size.Small"
+                                         T="string"
+                                         Variant="Variant.Outlined"
+                                         Color="Color.Default"
+                                         Icon="@Icons.Material.Filled.StickyNote2">
+                                    Notes
+                                </MudChip>
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                        }
+                    </MudTd>
+
+                    <MudTd DataLabel="Durée Prestation" Style="text-align: center;">
+                        <MudChip Size="Size.Small"
+                                 T="string"
+                                 Variant="Variant.Outlined"
+                                 Color="Color.Info"
+                                 Icon="@Icons.Material.Filled.Timer">
+                            @context.EstimatedDurationMinutes min
+                        </MudChip>
+                    </MudTd>
+
+                    <MudTd DataLabel="Statut" Style="text-align: center;">
+                        @if (context.RouteId.HasValue && !string.IsNullOrEmpty(context.RouteReference))
+                        {
+                            <MudTooltip Text="@($"Déjà dans la tournée {context.RouteReference} (Draft)")">
+                                <MudChip Size="Size.Small"
+                                         T="string"
+                                         Variant="Variant.Outlined"
+                                         Color="Color.Warning"
+                                         Icon="@Icons.Material.Filled.Warning">
+                                    @context.RouteReference
+                                </MudChip>
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudChip Size="Size.Small"
+                                     T="string"
+                                     Variant="Variant.Outlined"
+                                     Color="Color.Success"
+                                     Icon="@Icons.Material.Filled.CheckCircle">
+                                Disponible
+                            </MudChip>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+        </MudPaper>
+
+        <!-- Validation Status - Sticky Footer -->
+        @if (IsValid)
+        {
+            <MudAlert Severity="Severity.Success"
+                      Variant="Variant.Outlined">
+                <strong>@State.SelectedDeliveries.Count livraison@(State.SelectedDeliveries.Count > 1 ? "s" : "") sélectionnée@(State.SelectedDeliveries.Count > 1 ? "s" : "")</strong> — Vous pouvez continuer.
+            </MudAlert>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                Veuillez sélectionner au moins une livraison pour continuer.
+            </MudAlert>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter] public RouteWizardState State { get; set; } = null!;
+    [Parameter] public EventCallback<bool> OnValidationChanged { get; set; }
+    [Parameter] public int? CurrentRouteId { get; set; }
+
+    private List<DeliveryDto> _availableDeliveries = [];
+    private HashSet<DeliveryDto> _selectedSet = [];
+    private bool _loading = true;
+
+    private bool IsValid => State.SelectedDeliveries.Any();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // ✅ S'ABONNER À L'EVENT BUS SINGLETON
+        EventBus.OnDeliveryUpdated += HandleDeliveryUpdated;
+        EventBus.OnDeliveryDeleted += HandleDeliveryDeleted;
+        
+        Logger.LogInformation("🔔 Subscribed to Event Bus");
+        
+        await LoadDeliveries();
+    }
+
+    public async Task OnStepEntered()
+    {
+        await LoadDeliveries();
+        StateHasChanged();
+    }
+
+    public Task<bool> ValidateAsync()
+    {
+        var valid = IsValid;
+
+        if (!valid)
+        {
+            Snackbar.Add("Veuillez sélectionner au moins une livraison", Severity.Warning);
+        }
+
+        return Task.FromResult(valid);
+    }
+
+    private async Task RefreshDeliveries()
+    {
+        Snackbar.Add("Rechargement de la liste...", Severity.Info);
+        await LoadDeliveries();
+        Snackbar.Add("Liste rechargée avec succès", Severity.Success);
+        StateHasChanged();
+    }
+
+    private async Task LoadDeliveries()
+    {
+        _loading = true;
+
+        try
+        {
+            var result = await DeliveryService.GetAvailableDeliveriesForRouteAsync(
+                State.Date ?? DateTime.Today,
+                CurrentRouteId);
+
+            if (result.Succeeded && result.Data != null)
+            {
+                _availableDeliveries = result.Data;
+                
+                Logger.LogInformation("✅ Loaded {Count} available deliveries for date {Date}", 
+                    _availableDeliveries.Count, State.Date?.ToString("yyyy-MM-dd"));
+
+                // Restaurer la sélection existante
+                if (State.SelectedDeliveries.Any())
+                {
+                    _selectedSet = State.SelectedDeliveries
+                        .Join(_availableDeliveries, s => s.Id, a => a.Id, (_, a) => a)
+                        .ToHashSet();
+                    
+                    Logger.LogInformation("✅ Restored {Count} selected deliveries", _selectedSet.Count);
+                }
+            }
+            else
+            {
+                var error = result.Errors.FirstOrDefault() ?? "Erreur inconnue";
+                Snackbar.Add($"Erreur: {error}", Severity.Error);
+                _availableDeliveries = [];
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error loading deliveries");
+            Snackbar.Add($"Erreur lors du chargement des livraisons: {ex.Message}", Severity.Error);
+            _availableDeliveries = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // EVENT HANDLERS - Réaction aux changements via Event Bus
+    // ════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Gestionnaire appelé quand une livraison est mise à jour (via Event Bus Singleton)
+    /// Fonctionne même si modification dans un autre onglet/circuit
+    /// </summary>
+    private async void HandleDeliveryUpdated(int deliveryId)
+    {
+        try
+        {
+            var isSelected = _selectedSet.Any(d => d.Id == deliveryId);
+            var isAvailable = _availableDeliveries.Any(d => d.Id == deliveryId);
+            
+            if (!isSelected && !isAvailable)
+            {
+                Logger.LogInformation("📦 Delivery {Id} updated but not in our lists, ignoring", deliveryId);
+                return;
+            }
+            
+            Logger.LogInformation("🔄 Delivery {Id} was updated externally, reloading...", deliveryId);
+            
+            await ReloadDelivery(deliveryId);
+            
+            if (isSelected)
+            {
+                State.MarkAsChanged();
+                Logger.LogInformation("⚠️ Selected delivery {Id} changed - optimization invalidated", deliveryId);
+            }
+            
+            await InvokeAsync(() =>
+            {
+                Snackbar.Add(
+                    $"La livraison {deliveryId} a été modifiée, réoptimisation nécessaire",
+                    Severity.Warning);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error handling delivery update event for delivery {Id}", deliveryId);
+        }
+    }
+    
+    private async void HandleDeliveryDeleted(int deliveryId)
+    {
+        try
+        {
+            var wasSelected = _selectedSet.Any(d => d.Id == deliveryId);
+            var wasAvailable = _availableDeliveries.Any(d => d.Id == deliveryId);
+            
+            if (!wasSelected && !wasAvailable)
+            {
+                return;
+            }
+            
+            Logger.LogWarning("⚠️ Delivery {Id} was deleted externally", deliveryId);
+            
+            if (wasSelected)
+            {
+                var toRemove = _selectedSet.FirstOrDefault(d => d.Id == deliveryId);
+                if (toRemove != null)
+                {
+                    _selectedSet.Remove(toRemove);
+                    State.SelectedDeliveries = _selectedSet.ToList();
+                    State.MarkAsChanged();
+                    
+                    Logger.LogInformation("🗑️ Removed deleted delivery {Id} from selection", deliveryId);
+                }
+            }
+            
+            _availableDeliveries.RemoveAll(d => d.Id == deliveryId);
+            
+            await InvokeAsync(() =>
+            {
+                Snackbar.Add($"La livraison {deliveryId} a été supprimée", Severity.Error);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error handling delivery deletion event for delivery {Id}", deliveryId);
+        }
+    }
+    
+    private async Task ReloadDelivery(int deliveryId)
+    {
+        try
+        {
+            Logger.LogInformation("🔄 Reloading delivery {Id}...", deliveryId);
+
+            var responseResult = await DeliveryService.GetDeliveryByIdAsync(deliveryId);
+            var updated = responseResult.Data;
+            
+            if (updated == null)
+            {
+                Logger.LogWarning("⚠️ Failed to reload delivery {Id} - not found", deliveryId);
+                return;
+            }
+            
+            var availableIndex = _availableDeliveries.FindIndex(d => d.Id == deliveryId);
+            if (availableIndex >= 0)
+            {
+                _availableDeliveries[availableIndex] = updated;
+                Logger.LogInformation("✅ Updated delivery {Id} in available list", deliveryId);
+            }
+            
+            var selectedItem = _selectedSet.FirstOrDefault(d => d.Id == deliveryId);
+            if (selectedItem != null)
+            {
+                _selectedSet.Remove(selectedItem);
+                _selectedSet.Add(updated);
+                
+                State.SelectedDeliveries = _selectedSet.ToList();
+                
+                Logger.LogInformation("✅ Updated delivery {Id} in selected list", deliveryId);
+                Logger.LogInformation("   Address: {Address}", updated.Address);
+                Logger.LogInformation("   Duration: {Duration}min", updated.EstimatedDurationMinutes);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error reloading delivery {Id}", deliveryId);
+        }
+    }
+
+    private void OnSelectionChanged()
+    {
+        State.SelectedDeliveries = _selectedSet.ToList();
+        State.MarkAsChanged();
+        Logger.LogInformation("📊 Selection changed: {Count} deliveries selected", State.SelectedDeliveries.Count);
+        OnValidationChanged.InvokeAsync(IsValid);
+    }
+
+    private void SelectAll()
+    {
+        _selectedSet = _availableDeliveries.ToHashSet();
+        OnSelectionChanged();
+    }
+
+    private void DeselectAll()
+    {
+        _selectedSet.Clear();
+        OnSelectionChanged();
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // DISPOSE - Se désabonner de l'Event Bus
+    // ════════════════════════════════════════════════════════════════
+
+    public void Dispose()
+    {
+        EventBus.OnDeliveryUpdated -= HandleDeliveryUpdated;
+        EventBus.OnDeliveryDeleted -= HandleDeliveryDeleted;
+        
+        Logger.LogInformation("🔕 Unsubscribed from Event Bus");
+    }
+}

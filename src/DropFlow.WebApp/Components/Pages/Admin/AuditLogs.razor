@@ -1,0 +1,325 @@
+@page "/admin/audit"
+@using DropFlow.Shared.Admin
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Audit
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAdminService AdminService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<PageTitle>Logs d'Audit - DropFlow Admin</PageTitle>
+
+<AuthorizeView Roles="@Roles.Admin">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+            <!-- Header -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" />
+                        Logs d'Audit
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Historique complet des actions sur la plateforme DropFlow
+                    </MudText>
+                </div>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="ReloadData">
+                        Actualiser
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+
+            <!-- Stats Cards -->
+            <MudGrid Class="mb-4">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" >
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Logs</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1">@_totalItems</MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.Article" Size="Size.Large" Color="Color.Primary" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" >
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Critiques</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1" Color="Color.Error">
+                                        @(_table?.FilteredItems?.Count(l => l.Severity == "Critical") ?? 0)
+                                    </MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.GppBad" Size="Size.Large" Color="Color.Error" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" >
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Erreurs</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1" Color="Color.Warning">
+                                        @(_table?.FilteredItems?.Count(l => l.Severity == "Error") ?? 0)
+                                    </MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Large" Color="Color.Warning" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" >
+                        <MudCardContent>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <div>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Tenants Concernés</MudText>
+                                    <MudText Typo="Typo.h5" Class="mt-1">
+                                        @(_table?.FilteredItems?.Select(l => l.TenantId).Distinct().Count() ?? 0)
+                                    </MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Color="Color.Info" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Filtres -->
+            <AuditLogFilters Tenants="@_tenants" OnFiltersChanged="OnFiltersChanged" />
+
+            <!-- Table des Logs -->
+            <MudCard Elevation="2" >
+                <MudCardContent Class="pa-0">
+                    <MudTable @ref="_table"
+                              ServerData="ServerReload"
+                              Hover="true"
+                              Striped="true"
+                              Dense="true"
+                              FixedHeader="true"
+                              Height="600px">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Logs d'Audit</MudText>
+                            <MudSpacer />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @_totalItems logs au total
+                            </MudText>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh><MudTableSortLabel SortBy="new Func<AuditLogDto, object>(x => x.Timestamp)">Date/Heure</MudTableSortLabel></MudTh>
+                            <MudTh>Tenant</MudTh>
+                            <MudTh>Utilisateur</MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<AuditLogDto, object>(x => x.Action)">Action</MudTableSortLabel></MudTh>
+                            <MudTh>Entité</MudTh>
+                            <MudTh><MudTableSortLabel SortBy="new Func<AuditLogDto, object>(x => x.Severity)">Sévérité</MudTableSortLabel></MudTh>
+                            <MudTh>Détails</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="audit">
+                            <MudTd DataLabel="Date/Heure">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">@audit.Timestamp.ToString("dd/MM/yyyy")</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@audit.Timestamp.ToString("HH:mm:ss")</MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd DataLabel="Tenant">
+                                @if (!string.IsNullOrEmpty(audit.TenantName))
+                                {
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="Color.Default"
+                                             OnClick="@(() => Navigation.NavigateTo($"/admin/tenants/{audit.TenantId}"))">
+                                        @audit.TenantName
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Utilisateur">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">@audit.UserEmail</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@audit.UserId.Substring(0, 8)...</MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd DataLabel="Action">
+                                <MudChip T="string" Size="Size.Small" Color="@GetActionColor(audit.Action)">
+                                    @FormatAction(audit.Action)
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Entité">
+                                <MudText Typo="Typo.body2">@audit.EntityName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">ID: @audit.EntityId</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Sévérité">
+                                <MudChip T="string" Size="Size.Small"
+                                         Color="@GetSeverityColor(audit.Severity)"
+                                         Icon="@GetSeverityIcon(audit.Severity)">
+                                    @audit.Severity
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Détails">
+                                @if (!string.IsNullOrEmpty(audit.Changes))
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => ShowDetails(audit))" />
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+                                Aucun log trouvé pour les filtres sélectionnés
+                            </MudText>
+                        </NoRecordsContent>
+                        <LoadingContent>
+                            <MudText Typo="Typo.body2" Class="pa-4">Chargement des logs...</MudText>
+                        </LoadingContent>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new[] { 25, 50, 100, 200 }" />
+                        </PagerContent>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private MudTable<AuditLogDto> _table = null!;
+    private List<TenantDto> _tenants = [];
+    private int _totalItems;
+
+    // Filtres actifs
+    private AuditFilters _currentFilters = new()
+    {
+        StartDate = DateTime.Today.AddDays(-7),
+        EndDate = DateTime.Today.AddDays(1).AddSeconds(-1)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTenantsAsync();
+    }
+
+    private async Task LoadTenantsAsync()
+    {
+        try
+        {
+            _tenants = await AdminService.GetTenantsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement des tenants: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<TableData<AuditLogDto>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var logs = await AdminService.GetAuditLogsAsync(
+                tenantId: _currentFilters.TenantId,
+                action: _currentFilters.Action,
+                severity: _currentFilters.Severity,
+                startDate: _currentFilters.StartDate,
+                endDate: _currentFilters.EndDate,
+                pageNumber: state.Page + 1, 
+                pageSize: state.PageSize);
+
+            _totalItems = logs.Count; // Dans un vrai scénario, l'API devrait retourner le total
+
+            return new TableData<AuditLogDto>
+            {
+                TotalItems = _totalItems,
+                Items = logs
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement: {ex.Message}", Severity.Error);
+            return new TableData<AuditLogDto> { TotalItems = 0, Items = new List<AuditLogDto>() };
+        }
+    }
+
+    private async Task OnFiltersChanged(AuditFilters filters)
+    {
+        _currentFilters = filters;
+        await _table.ReloadServerData();
+    }
+
+    private async Task ReloadData()
+    {
+        await _table.ReloadServerData();
+        Snackbar.Add("Logs actualisés", Severity.Success);
+    }
+
+    private Color GetSeverityColor(string severity) => severity switch
+    {
+        "Info" => Color.Info,
+        "Warning" => Color.Warning,
+        "Error" => Color.Error,
+        "Critical" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string GetSeverityIcon(string severity) => severity switch
+    {
+        "Info" => Icons.Material.Filled.Info,
+        "Warning" => Icons.Material.Filled.Warning,
+        "Error" => Icons.Material.Filled.Error,
+        "Critical" => Icons.Material.Filled.GppBad,
+        _ => Icons.Material.Filled.Circle
+    };
+
+    private static Color GetActionColor(string action)
+    {
+        if (action.Contains("Created")) return Color.Success;
+        if (action.Contains("Updated") || action.Contains("Modified")) return Color.Info;
+        if (action.Contains("Deleted")) return Color.Error;
+        if (action.Contains("Activated")) return Color.Success;
+        if (action.Contains("Deactivated")) return Color.Warning;
+        return Color.Default;
+    }
+
+    private static string FormatAction(string action)
+    {
+        // Ajoute des espaces avant les majuscules
+        return System.Text.RegularExpressions.Regex.Replace(action, "([a-z])([A-Z])", "$1 $2");
+    }
+
+    private void ShowDetails(AuditLogDto log)
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var parameters = new DialogParameters
+        {
+            { "Log", log }
+        };
+
+        DialogService.ShowAsync<AuditLogDetailsDialog>("Détails du Log", parameters, options);
+    }
+
+}

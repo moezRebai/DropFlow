@@ -1,0 +1,150 @@
+@using System.ComponentModel.DataAnnotations
+@using DropFlow.Shared.Clients
+
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <MudText Typo="Typo.body1" Class="ml-2">Chargement...</MudText>
+        }
+        else if (_client != null)
+        {
+            <MudForm @ref="_form" @bind-IsValid="@_isValid">
+                <MudStack Spacing="3">
+                    <!-- Informations personnelles -->
+                    <MudText Typo="Typo.h6">Informations personnelles</MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.FirstName"
+                                          Label="Prénom"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          RequiredError="Le prénom est obligatoire" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.LastName"
+                                          Label="Nom"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          RequiredError="Le nom est obligatoire" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.Phone"
+                                          Label="Téléphone"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          RequiredError="Le téléphone est obligatoire"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Phone" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField @bind-Value="_model.Email"
+                                          Label="Email"
+                                          Variant="Variant.Outlined"
+                                          InputType="InputType.Email"
+                                          Validation="@(new EmailAddressAttribute() { ErrorMessage = "Email invalide" })"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Email" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudDivider />
+
+                    <!-- Adresses -->
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.h6">Adresses (@_addresses.Count)</MudText>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   Size="Size.Small"
+                                   OnClick="OpenAddAddressDialog">
+                            Ajouter une adresse
+                        </MudButton>
+                    </MudStack>
+
+                    @if (_addresses.Any())
+                    {
+                        <MudList T="ClientAddressDto" Dense="true">
+                            @foreach (var address in _addresses.OrderByDescending(a => a.IsDefault))
+                            {
+                                <MudListItem T="ClientAddressDto">
+                                    <MudPaper Elevation="1" Class="pa-3">
+                                        <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween">
+                                            <MudStack Spacing="1" Style="flex: 1;">
+                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                    @if (address.IsDefault)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Par défaut</MudChip>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(address.Label))
+                                                    {
+                                                        <MudText Typo="Typo.body1"><strong>@address.Label</strong></MudText>
+                                                    }
+                                                </MudStack>
+                                                <MudText Typo="Typo.body2">@address.FullAddress</MudText>
+                                                @if (!string.IsNullOrEmpty(address.Complement))
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@address.Complement</MudText>
+                                                }
+                                            </MudStack>
+                                            <MudStack Row="true" Spacing="1">
+                                                @if (!address.IsDefault)
+                                                {
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Star"
+                                                                   Color="Color.Warning"
+                                                                   Size="Size.Small"
+                                                                   Title="Définir par défaut"
+                                                                   OnClick="@(() => SetDefaultAddress(address.Id))" />
+                                                }
+                                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                               Color="Color.Primary"
+                                                               Size="Size.Small"
+                                                               Title="Modifier"
+                                                               OnClick="@(() => OpenEditAddressDialog(address))" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                               Color="Color.Error"
+                                                               Size="Size.Small"
+                                                               Title="Supprimer"
+                                                               OnClick="@(() => DeleteAddress(address.Id))" />
+                                            </MudStack>
+                                        </MudStack>
+                                    </MudPaper>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">Aucune adresse enregistrée</MudAlert>
+                    }
+                </MudStack>
+            </MudForm>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Error">Client introuvable</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Save"
+                   Disabled="@(!_isValid || _saving)">
+            @if (_saving)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            }
+            else
+            {
+                <text>Enregistrer</text>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>

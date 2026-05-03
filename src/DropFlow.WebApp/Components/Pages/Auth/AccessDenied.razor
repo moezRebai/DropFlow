@@ -1,0 +1,70 @@
+﻿@page "/access-denied"
+@inject NavigationManager Navigation
+
+<PageTitle>Accès refusé - DropFlow</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center access-denied-container">
+    <div class="access-denied-content">
+        <!-- Icône avec cercle de fond -->
+        <div class="icon-wrapper">
+            <div class="icon-circle"></div>
+            <MudIcon Icon="@Icons.Material.Filled.Lock"
+                     Class="main-icon" />
+        </div>
+
+        <!-- Code d'erreur stylisé -->
+        <div class="error-code">
+            <span class="code-number">403</span>
+            <span class="code-separator"></span>
+            <span class="code-text">ACCÈS REFUSÉ</span>
+        </div>
+
+        <!-- Titre principal -->
+        <MudText Typo="Typo.h4" Class="main-title">
+            Oups ! Vous n'êtes pas autorisé ici
+        </MudText>
+
+        <!-- Message descriptif -->
+        <MudText Typo="Typo.body1" Class="description-text">
+            Cette page nécessite des permissions spéciales auxquelles vous n'avez pas accès.
+            Si vous pensez qu'il s'agit d'une erreur, contactez votre administrateur.
+        </MudText>
+
+        <!-- Boutons d'action -->
+        <div class="action-buttons">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Home"
+                       OnClick="GoToDashboard"
+                       Size="Size.Large"
+                       Class="secondary-button">
+                Retour au Dashboard
+            </MudButton>
+        </div>
+
+        <!-- Liens d'aide -->
+        <div class="help-links">
+            <MudLink Href="/contact" Class="help-link">
+                <MudIcon Icon="@Icons.Material.Filled.ContactSupport" Size="Size.Small" />
+                <span>Contacter le support</span>
+            </MudLink>
+            <span class="separator">•</span>
+            <MudLink Href="/faq" Class="help-link">
+                <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+                <span>Centre d'aide</span>
+            </MudLink>
+        </div>
+    </div>
+</MudContainer>
+
+@code {
+    private void GoToDashboard()
+    {
+        Navigation.NavigateTo("/", true);
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/", true);
+    }
+}

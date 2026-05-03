@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet"/>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCBrkO2wB-NtFBQKghAXpteul5yHOgY-Cg&&libraries=places&loading=async" async defer></script>
+    <link href=@Assets["_content/MudBlazor/MudBlazor.min.css"] rel="stylesheet"/>
+    <link rel="stylesheet" href="@Assets["dropFlow.css"]"/>
+    <script src="~/js/fileDownload.js"></script>
+
+    <ImportMap/>
+    <link rel="icon" type="image/ico" href="dropFlow.ico"/>
+    <link href="DropFlow.WebApp.styles.css" rel="stylesheet"/>
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(false)" />
+    <title>DropFlow</title>
+</head>
+
+<body>
+<Routes @rendermode="new InteractiveServerRenderMode(false)" />
+<script src="_framework/blazor.web.js"></script>
+<script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
+</body>
+
+</html>

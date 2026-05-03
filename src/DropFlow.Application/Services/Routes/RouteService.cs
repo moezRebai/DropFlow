@@ -1,0 +1,1414 @@
+﻿using DropFlow.Application.Dto;
+using DropFlow.Application.Interfaces;
+using DropFlow.Application.Interfaces.Routes;
+using DropFlow.Application.Interfaces.Users;
+using DropFlow.Domain.Entities;
+using DropFlow.Domain.Enums;
+using DropFlow.Shared.Common;
+using DropFlow.Shared.Routes;
+using Humanizer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace DropFlow.Application.Services.Routes;
+
+public class RouteService(
+    IApplicationDbContext context,
+    IDriverAvailabilityService availabilityService,
+    IGeocodingService geocodingService,
+    ITenantService tenantService,
+    IRouteReferenceService routeReferenceService,
+    IRouteSheetPdfGenerator pdfGenerator,
+    ILogger<RouteService> logger)
+    : IRouteService
+{
+    public async Task<PagedResult<RouteViewDto>> GetAllAsync(RouteFilterDto filter)
+    {
+        var query = context.Routes
+            .Include(rs => rs.Vehicle)
+            .Include(rs => rs.Team)
+            .ThenInclude(c => c.Driver)
+            .ThenInclude(d => d.User)
+            .AsQueryable();
+
+        if (filter.Date.HasValue)
+            query = query.Where(rs => rs.Date.Date == filter.Date.Value.Date);
+
+        if (filter.Status.HasValue)
+            query = query.Where(rs => rs.Status == filter.Status.Value);
+
+        if (filter.VehicleId.HasValue)
+            query = query.Where(rs => rs.VehicleId == filter.VehicleId.Value);
+
+        if (filter.DriverId.HasValue)
+            query = query.Where(rs => rs.Team.Any(c => c.DriverId == filter.DriverId.Value));
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(rs => rs.Date)
+            .ThenBy(rs => rs.Reference)
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .Select(rs => new RouteViewDto
+            {
+                Id = rs.Id,
+                Reference = rs.Reference,
+                Date = rs.Date,
+                VehicleName = $"{rs.Vehicle.Brand} {rs.Vehicle.Model}",
+                Status = rs.Status,
+                StatusDisplay = rs.Status.Humanize(),
+                TotalDeliveries = rs.TotalDeliveries,
+                TotalDistance = rs.TotalDistance,
+                TotalDuration = rs.TotalDuration,
+                MainDriverName = rs.Team
+                    .Where(c => c.Role == TeamMemberRole.MainDriver)
+                    .Select(c => c.Driver.User.FullName)
+                    .FirstOrDefault() ?? "Non assigné",
+                TeamCount = rs.Team.Count
+            })
+            .ToListAsync();
+
+        return new PagedResult<RouteViewDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = filter.Page,
+            PageSize = filter.PageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)filter.PageSize)
+        };
+    }
+
+    public async Task<ResponseResult<RouteDto>> GetByIdAsync(int id)
+    {
+        var route = await context.Routes
+            .Include(rs => rs.Vehicle)
+            .Include(rs => rs.Team)
+            .ThenInclude(c => c.Driver)
+            .ThenInclude(d => d.User)
+            .Include(rs => rs.Deliveries)
+            .ThenInclude(d => d.Client)
+            .Include(rs => rs.Deliveries)
+            .ThenInclude(d => d.ClientAddress)
+            .Include(rs => rs.Deliveries)
+            .ThenInclude(d => d.TimeSlot)
+            .FirstOrDefaultAsync(rs => rs.Id == id);
+
+        if (route == null)
+            return ResponseResult<RouteDto>.Failure("Feuille de route introuvable");
+
+        var dto = new RouteDto
+        {
+            Id = route.Id,
+            Reference = route.Reference,
+            Date = route.Date,
+            VehicleId = route.VehicleId,
+            VehicleName = $"{route.Vehicle.Brand} {route.Vehicle.Model}",
+            Status = route.Status,
+            StatusDisplay = route.Status.Humanize(),
+            StartTime = route.StartTime,
+            EstimatedEndTime = route.EstimatedEndTime,
+            TotalDistance = route.TotalDistance,
+            TotalDuration = route.TotalDuration,
+            TotalDeliveries = route.TotalDeliveries,
+            TotalVolume = route.TotalVolume,
+            DepartureAddress = route.DepartureAddress,
+            DepartureLatitude = route.DepartureLatitude,
+            DepartureLongitude = route.DepartureLongitude,
+            WasOptimizedByGoogle = route.WasOptimizedByGoogle,
+            WasManuallyReordered = route.WasManuallyReordered,
+            CreatedDate = route.CreatedDate,
+            CreatedBy = route.CreatedBy,
+            TeamMembers = route.Team.Select(c => new RouteTeamDto
+            {
+                Id = c.Id,
+                DriverId = c.DriverId,
+                DriverName = c.Driver.User.FullName,
+                Role = c.Role,
+                RoleDisplay = c.Role.Humanize()
+            }).ToList(),
+            Deliveries = route.Deliveries
+                .OrderBy(d => d.SequenceOrder)
+                .Select(d => new RouteDeliveryDto
+                {
+                    Id = d.Id,
+                    DeliveryId = d.Id,
+                    Reference = d.Reference,
+                    ClientName = d.Client.DisplayName,
+                    Address = $"{d.ClientAddress.Address}, {d.ClientAddress.City}",
+                    SequenceOrder = d.SequenceOrder,
+                    EstimatedArrivalTime = d.EstimatedArrivalTime,
+                    TimeSlotId = d.TimeSlotId,
+                    TimeSlotName = d.TimeSlot?.Name,
+                    EstimatedDurationMinutes = d.EstimatedDurationMinutes ?? 30,
+                    Longitude = d.ClientAddress.Longitude,
+                    Latitude = d.ClientAddress.Latitude,
+                    DepartureAddress = d.DepartureAddress,
+                    DistanceToNextMeters = d.DistanceToNextMeters,
+                    DepartureTime = d.DepartureTime,
+                    TravelDurationMinutes = d.TravelDurationMinutes,
+                }).ToList()
+        };
+
+        return ResponseResult<RouteDto>.Success(dto);
+    }
+
+    public async Task<ResponseResult<int>> CreateAsync(CreateRouteDto dto)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        try
+        {
+            // Get tenant & user
+            var tenantId = tenantService.GetTenantId();
+            var currentUser = tenantService.GetCurrentUser();
+            if (currentUser == null)
+                return ResponseResult<int>.Failure("User not found");
+
+            // ✅ 1. Validate vehicle
+            var vehicle = await context.Vehicles.FindAsync(dto.VehicleId);
+            if (vehicle == null)
+                return ResponseResult<int>.Failure("Véhicule introuvable");
+            if (!vehicle.IsActive)
+                return ResponseResult<int>.Failure("Véhicule inactif");
+
+            var isAvailable = await context.Routes
+                .AllAsync(rs => rs.VehicleId != dto.VehicleId ||
+                                rs.Date.Date != dto.Date.Date ||
+                                rs.Status == RouteStatus.Cancelled);
+
+            if (!isAvailable)
+                return ResponseResult<int>.Failure("Ce véhicule a déjà une tournée prévue ce jour-là");
+
+            // ✅ 2. Generate reference
+            var date = dto.Date.Date;
+            var reference = await routeReferenceService.GenerateReferenceAsync(tenantId, date);
+
+            // ✅ 3. Create RouteSheet
+            var route = Route.Create(
+                reference: reference,
+                date: dto.Date,
+                vehicleId: dto.VehicleId,
+                startTime: dto.StartTime,
+                departureAddress: dto.DepartureAddress,
+                departureLatitude: dto.DepartureLatitude,
+                departureLongitude: dto.DepartureLongitude);
+
+            // Set totals & status
+            route.TotalDistance = dto.TotalDistance;
+            route.TotalDuration = dto.TotalDuration;
+            route.EstimatedEndTime = dto.StartTime.Add(TimeSpan.FromMinutes(dto.TotalDuration));
+            route.Status = RouteStatus.Draft;
+
+            // Si le wizard a optimisé avec Google
+            if (route.WasOptimizedByGoogle)
+            {
+                route.MarkAsOptimizedByGoogle();
+            }
+    
+            // Si l'ordre a été modifié manuellement après
+            if (route.WasManuallyReordered)
+            {
+                route.MarkAsManuallyReordered();
+            }
+            
+            context.Routes.Add(route);
+            await context.SaveChangesAsync(); // Get route.Id
+
+            // ✅ 4. Create team
+            foreach (var team in dto.Team.Select(teamDto => RouteTeam.Create(route.Id, teamDto.DriverId, teamDto.Role)))
+            {
+                context.RouteTeams.Add(team);
+            }
+
+            // ✅ 5. Update Deliveries
+            foreach (var deliveryDto in dto.Deliveries)
+            {
+                var delivery = await context.Deliveries.FindAsync(deliveryDto.DeliveryId);
+                if (delivery == null)
+                    throw new Exception($"Livraison {deliveryDto.DeliveryId} introuvable");
+
+                if (delivery.RouteId.HasValue)
+                    throw new Exception($"Livraison {delivery.Reference} déjà assignée");
+
+                // Find or create TimeSlot
+                var timeSlot = await FindOrCreateTimeSlotAsync(
+                    deliveryDto.TimeSlotStart,
+                    deliveryDto.TimeSlotEnd
+                );
+
+                // ✅ ROUTE ASSIGNMENT
+                delivery.RouteId = route.Id;
+                delivery.SequenceOrder = deliveryDto.SequenceOrder;
+                delivery.EstimatedArrivalTime = deliveryDto.EstimatedArrivalTime;
+                delivery.TimeSlotId = timeSlot.Id;
+
+                // ✅ ⭐ NOUVEAUX CHAMPS - OPTIMISATION
+                delivery.DepartureAddress = deliveryDto.DepartureAddress;
+                delivery.DepartureTime = deliveryDto.DepartureTime;
+                delivery.TravelDurationMinutes = deliveryDto.TravelDurationMinutes;
+                delivery.DistanceToNextMeters = deliveryDto.DistanceToNextMeters;
+            }
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            logger.LogInformation("RouteSheet {Reference} created with {DeliveryCount} deliveries and {teamCount} team",
+                route.Reference, dto.Deliveries.Count, dto.Team.Count);
+
+            return ResponseResult<int>.Success(route.Id);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            logger.LogError(ex, "Error creating route sheet");
+            return ResponseResult<int>.Failure($"Erreur: {ex.Message}");
+        }
+    }
+
+    public async Task<ResponseResult> UpdateAsync(int id, UpdateRouteDto dto)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var route = await context.Routes
+                .Include(rs => rs.Team)
+                .Include(rs => rs.Deliveries)
+                .FirstOrDefaultAsync(rs => rs.Id == id);
+
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            // ✅ Vérifier que la feuille n'est pas terminée ou annulée
+            if (route.Status is RouteStatus.Completed or RouteStatus.Cancelled)
+            {
+                return ResponseResult.Failure("Impossible de modifier une feuille de route terminée ou annulée");
+            }
+
+            // ✅ Seules les tournées Draft et Scheduled peuvent être modifiées
+            if (route.Status != RouteStatus.Draft && route.Status != RouteStatus.Confirmed)
+            {
+                return ResponseResult.Failure("Cette tournée ne peut plus être modifiée");
+            }
+
+            logger.LogInformation("Updating route {RouteId} - Current status: {Status}", id, route.Status);
+
+            // ✅ 1. Valider le véhicule (si changé)
+            if (route.VehicleId != dto.VehicleId)
+            {
+                var vehicle = await context.Vehicles.FindAsync(dto.VehicleId);
+                if (vehicle == null || !vehicle.IsActive)
+                    return ResponseResult.Failure("Véhicule introuvable ou inactif");
+
+                // Vérifier disponibilité du nouveau véhicule
+                var isAvailable = await context.Routes
+                    .AllAsync(rs => rs.Id == id || // Exclure la route actuelle
+                                    rs.VehicleId != dto.VehicleId ||
+                                    rs.Date.Date != dto.Date.Date ||
+                                    rs.Status == RouteStatus.Cancelled);
+
+                if (!isAvailable)
+                    return ResponseResult.Failure("Ce véhicule a déjà une tournée prévue ce jour-là");
+
+                route.VehicleId = dto.VehicleId;
+            }
+
+            // ✅ 2. Mettre à jour les informations de base
+            route.Date = dto.Date;
+            route.StartTime = dto.StartTime;
+            route.DepartureAddress = dto.DepartureAddress;
+            route.DepartureLatitude = dto.DepartureLatitude;
+            route.DepartureLongitude = dto.DepartureLongitude;
+            route.WasOptimizedByGoogle = dto.WasOptimizedByGoogle;
+            route.WasManuallyReordered = dto.WasManuallyReordered;
+            
+            // ✅ 3. Mettre à jour les métriques
+            route.TotalDistance = dto.TotalDistance;
+            route.TotalDuration = dto.TotalDuration;
+            route.EstimatedEndTime = dto.StartTime.Add(TimeSpan.FromMinutes(dto.TotalDuration));
+
+            // ✅ 4. Mettre à jour l'équipe
+            // Supprimer les anciens membres
+            context.RouteTeams.RemoveRange(route.Team);
+
+            // Ajouter les nouveaux membres
+            foreach (var teamDto in dto.Team)
+            {
+                var driver = await context.Drivers.FindAsync(teamDto.DriverId);
+                if (driver is not { IsActive: true })
+                {
+                    await transaction.RollbackAsync();
+                    return ResponseResult.Failure($"Livreur {teamDto.DriverId} introuvable ou inactif");
+                }
+
+                var team = RouteTeam.Create(route.Id, teamDto.DriverId, teamDto.Role);
+                context.RouteTeams.Add(team);
+            }
+
+            // ✅ 5. Mettre à jour les livraisons
+            // Détacher les anciennes livraisons
+            foreach (var oldDelivery in route.Deliveries)
+            {
+                oldDelivery.RouteId = null;
+                oldDelivery.SequenceOrder = null;
+                oldDelivery.EstimatedArrivalTime = null;
+                oldDelivery.TimeSlotId = null;
+
+                oldDelivery.DepartureAddress = null;
+                oldDelivery.DepartureTime = null;
+                oldDelivery.TravelDurationMinutes = null;
+                oldDelivery.DistanceToNextMeters = null;
+            }
+
+            // Attacher les nouvelles livraisons
+            foreach (var deliveryDto in dto.Deliveries)
+            {
+                var delivery = await context.Deliveries.FindAsync(deliveryDto.DeliveryId);
+                if (delivery == null)
+                {
+                    await transaction.RollbackAsync();
+                    return ResponseResult.Failure($"Livraison {deliveryDto.DeliveryId} introuvable");
+                }
+
+                // Vérifier qu'elle n'est pas déjà dans une autre route
+                if (delivery.RouteId.HasValue && delivery.RouteId != route.Id)
+                {
+                    await transaction.RollbackAsync();
+                    return ResponseResult.Failure($"Livraison {delivery.Reference} déjà assignée à une autre tournée");
+                }
+
+                // Find or create TimeSlot
+                TimeSlot? timeSlot = null;
+                if (deliveryDto is { TimeSlotStart: not null, TimeSlotEnd: not null })
+                {
+                    timeSlot = await FindOrCreateTimeSlotAsync(
+                        deliveryDto.TimeSlotStart.Value,
+                        deliveryDto.TimeSlotEnd.Value
+                    );
+                }
+
+                delivery.RouteId = route.Id;
+                delivery.SequenceOrder = deliveryDto.SequenceOrder;
+                delivery.EstimatedArrivalTime = deliveryDto.EstimatedArrivalTime;
+                delivery.TimeSlotId = timeSlot?.Id;
+
+                // ✅ ⭐ NOUVEAUX CHAMPS - OPTIMISATION
+                delivery.DepartureAddress = deliveryDto.DepartureAddress;
+                delivery.DepartureTime = deliveryDto.DepartureTime;
+                delivery.TravelDurationMinutes = deliveryDto.TravelDurationMinutes;
+                delivery.DistanceToNextMeters = deliveryDto.DistanceToNextMeters;
+            }
+
+            // ✅ 6. Mettre à jour le compteur de livraisons
+            route.TotalDeliveries = dto.Deliveries.Count;
+            
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            logger.LogInformation(
+                "Route {RouteId} updated successfully - Vehicle: {VehicleId}, Team: {TeamCount}, Deliveries: {DeliveryCount}",
+                route.Id, route.VehicleId, dto.Team.Count, dto.Deliveries.Count);
+
+            return ResponseResult.Success("Tournée mise à jour avec succès");
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            logger.LogError(ex, "Error updating route {RouteId}", id);
+            return ResponseResult.Failure($"Erreur lors de la modification: {ex.Message}");
+        }
+    }
+
+    public async Task<ResponseResult> DeleteAsync(int id)
+    {
+        try
+        {
+            var route = await context.Routes
+                .Include(rs => rs.Deliveries)
+                .Include(rs => rs.Team) // ✅ AJOUT: Charger l'équipe
+                .FirstOrDefaultAsync(rs => rs.Id == id);
+
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            // ✅ CORRECTION: Seules les tournées Draft peuvent être supprimées
+            if (route.Status != RouteStatus.Draft)
+                return ResponseResult.Failure("Seules les tournées en brouillon peuvent être supprimées");
+
+            // ✅ CORRECTION: Libérer les livraisons
+            foreach (var delivery in route.Deliveries)
+            {
+                delivery.RouteId = null;
+                delivery.SequenceOrder = null;
+                delivery.EstimatedArrivalTime = null;
+                delivery.TimeSlotId = null; // ✅ AJOUT: Retirer le créneau
+
+                logger.LogInformation("Delivery {Reference} freed from route {RouteId}",
+                    delivery.Reference, id);
+            }
+
+            // ✅ CORRECTION: Supprimer les membres d'équipe (libère les chauffeurs)
+            context.RouteTeams.RemoveRange(route.Team);
+
+            logger.LogInformation("Team members removed from route {RouteId}", id);
+
+            // ✅ CORRECTION: Supprimer complètement la tournée (pas juste Cancel)
+            context.Routes.Remove(route);
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("RouteSheet {Reference} deleted and resources freed", route.Reference);
+
+            return ResponseResult.Success("Tournée supprimée avec succès");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting route sheet {Id}", id);
+            return ResponseResult.Failure("Erreur lors de la suppression");
+        }
+    }
+
+    public async Task<ResponseResult> AddTeamMemberAsync(int routeId, TeamMemberDto dto)
+    {
+        try
+        {
+            var route = await context.Routes
+                .Include(rs => rs.Team)
+                .FirstOrDefaultAsync(rs => rs.Id == routeId);
+
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            if (route.Status != RouteStatus.Draft)
+                return ResponseResult.Failure("Impossible de modifier l'équipage d'une tournée confirmée");
+
+            // Check driver exists
+            var driver = await context.Drivers.FindAsync(dto.DriverId);
+            if (driver == null || !driver.IsActive)
+                return ResponseResult.Failure("Livreur introuvable ou inactif");
+
+            // Check already in team
+            if (route.Team.Any(c => c.DriverId == dto.DriverId))
+                return ResponseResult.Failure("Ce livreur est déjà dans l'équipage");
+
+            // Validate team size
+            if (route.Team.Count >= 3)
+                return ResponseResult.Failure("L'équipage ne peut pas dépasser 3 personnes");
+
+            // Validate main driver uniqueness
+            if (dto.Role == TeamMemberRole.MainDriver && route.Team.Any(c => c.Role == TeamMemberRole.MainDriver))
+                return ResponseResult.Failure("Il ne peut y avoir qu'un seul chauffeur principal");
+
+            // Check availability
+            var availability = await availabilityService.CheckAvailabilityAsync(dto.DriverId, route.Date);
+            if (!availability.IsAvailable)
+                return ResponseResult.Failure($"Livreur non disponible : {availability.ConflictReason}");
+
+            var team = RouteTeam.Create(routeId, dto.DriverId, dto.Role);
+            context.RouteTeams.Add(team);
+            await context.SaveChangesAsync();
+
+            return ResponseResult.Success("Livreur ajouté à l'équipage");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error adding team member");
+            return ResponseResult.Failure("Erreur lors de l'ajout du livreur");
+        }
+    }
+
+    public async Task<ResponseResult> RemoveTeamMemberAsync(int routeId, int driverId)
+    {
+        try
+        {
+            var team = await context.RouteTeams
+                .FirstOrDefaultAsync(c => c.RouteId == routeId && c.DriverId == driverId);
+
+            if (team == null)
+                return ResponseResult.Failure("Membre d'équipage introuvable");
+
+            var route = await context.Routes.FindAsync(routeId);
+            if (route?.Status != RouteStatus.Draft)
+                return ResponseResult.Failure("Impossible de modifier l'équipage d'une tournée confirmée");
+
+            context.RouteTeams.Remove(team);
+            await context.SaveChangesAsync();
+
+            return ResponseResult.Success("Livreur retiré de l'équipage");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error removing team member");
+            return ResponseResult.Failure("Erreur lors du retrait du livreur");
+        }
+    }
+
+    public async Task<ResponseResult> AddDeliveryAsync(int routeId, int deliveryId)
+    {
+        try
+        {
+            var route = await context.Routes
+                .Include(rs => rs.Vehicle)
+                .Include(rs => rs.Deliveries)
+                .FirstOrDefaultAsync(rs => rs.Id == routeId);
+
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            if (route.Status != RouteStatus.Draft)
+                return ResponseResult.Failure("Impossible d'ajouter des livraisons à une tournée confirmée");
+
+            var delivery = await context.Deliveries.FindAsync(deliveryId);
+            if (delivery == null)
+                return ResponseResult.Failure("Livraison introuvable");
+
+            if (delivery.Type == DeliveryType.Urgent)
+                return ResponseResult.Failure("Les livraisons urgentes ne peuvent pas être ajoutées à une tournée");
+
+            if (delivery.RouteId.HasValue)
+                return ResponseResult.Failure("Cette livraison est déjà dans une tournée");
+
+            // Check vehicle capacity
+            if (route.Deliveries.Count >= route.Vehicle.MaxDeliveries)
+                return ResponseResult.Failure(
+                    $"Capacité maximale du véhicule atteinte ({route.Vehicle.MaxDeliveries} livraisons)");
+
+            delivery.RouteId = routeId;
+            delivery.SequenceOrder = route.Deliveries.Count + 1;
+
+            await context.SaveChangesAsync();
+            await RecalculateMetricsInternalAsync(routeId);
+
+            return ResponseResult.Success("Livraison ajoutée à la tournée");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error adding delivery to route sheet");
+            return ResponseResult.Failure("Erreur lors de l'ajout de la livraison");
+        }
+    }
+
+    public async Task<ResponseResult> RemoveDeliveryAsync(int routeId, int deliveryId)
+    {
+        try
+        {
+            var delivery = await context.Deliveries
+                .FirstOrDefaultAsync(d => d.Id == deliveryId && d.RouteId == routeId);
+
+            if (delivery == null)
+                return ResponseResult.Failure("Livraison introuvable dans cette tournée");
+
+            var route = await context.Routes.FindAsync(routeId);
+            if (route?.Status != RouteStatus.Draft)
+                return ResponseResult.Failure("Impossible de retirer des livraisons d'une tournée confirmée");
+
+            delivery.RouteId = null;
+            delivery.SequenceOrder = null;
+            delivery.EstimatedArrivalTime = null;
+
+            await context.SaveChangesAsync();
+            await RecalculateMetricsInternalAsync(routeId);
+
+            return ResponseResult.Success("Livraison retirée de la tournée");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error removing delivery from route sheet");
+            return ResponseResult.Failure("Erreur lors du retrait de la livraison");
+        }
+    }
+
+    public async Task<ResponseResult> UpdateSequenceAsync(int routeId, List<UpdateDeliverySequenceDto> sequences)
+    {
+        try
+        {
+            var route = await context.Routes
+                .Include(rs => rs.Deliveries)
+                .FirstOrDefaultAsync(rs => rs.Id == routeId);
+
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            if (route.Status != RouteStatus.Draft)
+                return ResponseResult.Failure("Impossible de réordonner une tournée confirmée");
+
+            foreach (var seq in sequences)
+            {
+                var delivery = route.Deliveries.FirstOrDefault(d => d.Id == seq.DeliveryId);
+                if (delivery != null)
+                    delivery.SequenceOrder = seq.SequenceOrder;
+            }
+
+            await context.SaveChangesAsync();
+
+            return ResponseResult.Success("Ordre des livraisons mis à jour");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating sequence");
+            return ResponseResult.Failure("Erreur lors de la mise à jour de l'ordre");
+        }
+    }
+
+    public async Task<ResponseResult> ConfirmAsync(int id)
+    {
+        try
+        {
+            var route = await context.Routes
+                .Include(rs => rs.Team)
+                .Include(rs => rs.Deliveries)
+                .FirstOrDefaultAsync(rs => rs.Id == id);
+
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            // ✅ CORRECTION: Vérifier le statut actuel
+            if (route.Status != RouteStatus.Draft)
+                return ResponseResult.Failure("Seules les tournées en brouillon peuvent être confirmées");
+
+            // Validations
+            if (route.Team.All(c => c.Role != TeamMemberRole.MainDriver))
+                return ResponseResult.Failure("Un chauffeur principal est requis");
+
+            if (route.Team.Count < 2)
+                return ResponseResult.Failure("Au moins 2 membres d'équipage sont requis");
+
+            if (!route.Deliveries.Any())
+                return ResponseResult.Failure("Au moins une livraison est requise");
+
+            // ✅ CORRECTION: Utiliser Scheduled au lieu de Confirmed
+            route.Confirm(); // Appelle la méthode du domain
+
+            // Si la méthode domain met à Confirmed, forcer à Scheduled
+            if (route.Status == RouteStatus.Confirmed)
+            {
+                route.Status = RouteStatus.Confirmed;
+            }
+
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Route {Reference} confirmed and set to Scheduled status", route.Reference);
+
+            return ResponseResult.Success("Tournée confirmée");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error confirming route sheet");
+            return ResponseResult.Failure("Erreur lors de la confirmation");
+        }
+    }
+
+    public async Task<ResponseResult> StartAsync(int id)
+    {
+        try
+        {
+            var route = await context.Routes.FindAsync(id);
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            // ✅ CORRECTION: Vérifier le statut actuel
+            if (route.Status != RouteStatus.Confirmed)
+                return ResponseResult.Failure("Seules les tournées planifiées peuvent être démarrées");
+
+            route.Start();
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Route {Id} started", id);
+
+            return ResponseResult.Success("Tournée démarrée");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ResponseResult.Failure(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error starting route {Id}", id);
+            return ResponseResult.Failure("Erreur lors du démarrage");
+        }
+    }
+
+    public async Task<ResponseResult> CompleteAsync(int id)
+    {
+        try
+        {
+            var route = await context.Routes.FindAsync(id);
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            // ✅ CORRECTION: Vérifier le statut actuel
+            if (route.Status != RouteStatus.InProgress)
+                return ResponseResult.Failure("Seules les tournées en cours peuvent être terminées");
+
+            route.Complete();
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Route {Id} completed", id);
+
+            return ResponseResult.Success("Tournée terminée");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ResponseResult.Failure(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error completing route {Id}", id);
+            return ResponseResult.Failure("Erreur lors de la finalisation");
+        }
+    }
+
+    public async Task<ResponseResult> CancelAsync(int id)
+    {
+        try
+        {
+            var route = await context.Routes
+                .Include(rs => rs.Deliveries) // ✅ AJOUT: Charger les livraisons
+                .Include(rs => rs.Team) // ✅ AJOUT: Charger l'équipe
+                .FirstOrDefaultAsync(rs => rs.Id == id);
+
+            if (route == null)
+                return ResponseResult.Failure("Feuille de route introuvable");
+
+            // ✅ CORRECTION: Interdire annulation si terminée
+            if (route.Status == RouteStatus.Completed)
+                return ResponseResult.Failure("Impossible d'annuler une tournée terminée");
+
+            // ✅ AJOUT: Sauvegarder le statut précédent pour les logs
+            var previousStatus = route.Status;
+
+            // ✅ CORRECTION: Libérer TOUTES les ressources
+
+            // 1. Libérer les livraisons
+            foreach (var delivery in route.Deliveries)
+            {
+                delivery.RouteId = null;
+                delivery.SequenceOrder = null;
+                delivery.EstimatedArrivalTime = null;
+                delivery.TimeSlotId = null; // ✅ Important: retirer le créneau
+
+                logger.LogInformation("Delivery {Reference} freed from cancelled route {RouteId}",
+                    delivery.Reference, id);
+            }
+
+            // 2. Supprimer les membres d'équipe (libère les chauffeurs)
+            if (route.Team.Any())
+            {
+                context.RouteTeams.RemoveRange(route.Team);
+                logger.LogInformation("{Count} team members freed from cancelled route {RouteId}",
+                    route.Team.Count, id);
+            }
+
+            // 3. Marquer la tournée comme annulée
+            route.Cancel();
+
+            await context.SaveChangesAsync();
+
+            logger.LogInformation(
+                "Route {Reference} cancelled. Previous status: {PreviousStatus}. {DeliveryCount} deliveries freed, {TeamCount} team members freed",
+                route.Reference,
+                previousStatus,
+                route.Deliveries.Count,
+                route.Team.Count);
+
+            return ResponseResult.Success("Tournée annulée et ressources libérées");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ResponseResult.Failure(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error cancelling route {Id}", id);
+            return ResponseResult.Failure("Erreur lors de l'annulation");
+        }
+    }
+
+    public async Task<ResponseResult<OptimizePathResponseDto>> OptimizeRouteAsync(OptimizePathRequestDto request)
+    {
+        try
+        {
+            // ✅ 1. Validation des paramètres
+            if (string.IsNullOrWhiteSpace(request.DepartureAddress))
+                return ResponseResult<OptimizePathResponseDto>.Failure("L'adresse de départ est obligatoire");
+
+            if (request.DeliveryIds.Count == 0)
+                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison à optimiser");
+
+            // ✅ 2. Charger les livraisons avec leurs adresses
+            var deliveries = await context.Deliveries
+                .Include(d => d.ClientAddress)
+                .Where(d => request.DeliveryIds.Contains(d.Id))
+                .ToListAsync();
+
+            if (deliveries.Count == 0)
+                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison trouvée");
+
+            // ✅ 3. Vérifier que toutes les livraisons ont des coordonnées GPS
+            var deliveriesWithoutCoords = deliveries
+                .Where(d => !d.ClientAddress.Latitude.HasValue || !d.ClientAddress.Longitude.HasValue)
+                .ToList();
+
+            if (deliveriesWithoutCoords.Any())
+            {
+                var references = string.Join(", ", deliveriesWithoutCoords.Select(d => d.Reference));
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    $"Certaines livraisons n'ont pas de coordonnées GPS: {references}");
+            }
+
+            // ✅ 4. CAS SPÉCIAL : Une seule livraison
+            if (deliveries.Count == 1)
+            {
+                var singleDelivery = deliveries[0];
+
+                // Construire l'adresse de destination (coordonnées GPS)
+                var destination =
+                    $"{singleDelivery.ClientAddress.Latitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
+                    $"{singleDelivery.ClientAddress.Longitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+
+                logger.LogInformation("Calculating route for single delivery from {Origin} to {Destination}",
+                    request.DepartureAddress, destination);
+
+                // Appeler l'API Google Directions (simple route, pas d'optimisation)
+                var (singleRouteResponse, singleRouteError) =
+                    await geocodingService.GetDirectionsAsync(request.DepartureAddress, destination);
+
+                if (!string.IsNullOrEmpty(singleRouteError))
+                {
+                    logger.LogWarning("Error calculating route for single delivery: {Error}", singleRouteError);
+                    return ResponseResult<OptimizePathResponseDto>.Failure(singleRouteError);
+                }
+
+                // Vérifier la réponse
+                if (singleRouteResponse?.Routes == null || singleRouteResponse.Routes.Count == 0)
+                {
+                    logger.LogWarning("No routes found for single delivery");
+                    return ResponseResult<OptimizePathResponseDto>.Failure(
+                        "Aucun itinéraire trouvé. Vérifiez les adresses.");
+                }
+
+                var route = singleRouteResponse.Routes[0];
+
+                if (route.Legs == null || !route.Legs.Any())
+                {
+                    logger.LogWarning("No legs found in route for single delivery");
+                    return ResponseResult<OptimizePathResponseDto>.Failure(
+                        "Impossible de calculer la distance. Vérifiez les adresses.");
+                }
+
+                // Récupérer les données du leg (segment de route)
+                var leg = route.Legs[0];
+                var distanceMeters = leg.Distance?.Value ?? 0;
+                var durationSeconds = leg.Duration?.Value ?? 0;
+                var durationMinutes = durationSeconds / 60;
+
+                // ✅ Calculer durée totale = trajet + prestation
+                // La durée de prestation est stockée dans EstimatedDurationMinutes de la livraison
+                var serviceDurationMinutes = singleDelivery.EstimatedDurationMinutes ?? 15; // Défaut 15 min
+                var totalDurationMinutes = durationMinutes + serviceDurationMinutes;
+
+                logger.LogInformation(
+                    "Single delivery route: {Distance}m, {Duration}min travel + {Service}min service = {Total}min total",
+                    distanceMeters, durationMinutes, serviceDurationMinutes, totalDurationMinutes);
+
+                // Construire la réponse
+                var singleResponse = new OptimizePathResponseDto
+                {
+                    Deliveries =
+                    [
+                        new OptimizedDeliveryDto
+                        {
+                            DeliveryId = singleDelivery.Id,
+                            SequenceOrder = 1,
+                            Address = singleDelivery.ClientAddress.FullAddress,
+                            Latitude = singleDelivery.ClientAddress.Latitude.Value,
+                            Longitude = singleDelivery.ClientAddress.Longitude.Value,
+                            DistanceToNextMeters = distanceMeters,
+                            DurationToNextMinutes = durationMinutes
+                        }
+                    ],
+                    TotalDistanceKm = distanceMeters / 1000m,
+                    TotalDurationMinutes = totalDurationMinutes // ✅ Trajet + prestation
+                };
+
+                return ResponseResult<OptimizePathResponseDto>.Success(singleResponse);
+            }
+
+            // ✅ 5. CAS MULTIPLE : Plusieurs livraisons - Optimisation via Google
+
+            // Construire la chaîne de waypoints (coordonnées GPS séparées par |)
+            var waypoints = string.Join("|", deliveries.Select(d =>
+                $"{d.ClientAddress.Latitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
+                $"{d.ClientAddress.Longitude!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}"));
+
+            logger.LogInformation("Optimizing route with {Count} deliveries", deliveries.Count);
+
+            // Appeler l'API Google Directions avec optimisation
+            var (googleDirectionsResponse, errorMessage) =
+                await geocodingService.GetOptimizedRouteAsync(request.DepartureAddress, waypoints, optimize: true);
+
+            if (!string.IsNullOrEmpty(errorMessage))
+            {
+                logger.LogError("Google Directions API error: {Error}", errorMessage);
+                return ResponseResult<OptimizePathResponseDto>.Failure(errorMessage);
+            }
+
+            // ✅ 6. Validation de la réponse Google
+            if (googleDirectionsResponse.Routes == null || !googleDirectionsResponse.Routes.Any())
+            {
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    "Aucun itinéraire trouvé. Vérifiez les adresses.");
+            }
+
+            var optimizedRoute = googleDirectionsResponse.Routes[0];
+
+            if (optimizedRoute.WaypointOrder == null)
+            {
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    "Erreur dans l'ordre des points. Réessayez.");
+            }
+
+            if (optimizedRoute.Legs == null || !optimizedRoute.Legs.Any())
+            {
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    "Erreur dans les segments de route. Réessayez.");
+            }
+
+            if (optimizedRoute.WaypointOrder.Length != deliveries.Count)
+            {
+                logger.LogError("Waypoint order length mismatch: {Expected} expected, {Actual} received",
+                    deliveries.Count, optimizedRoute.WaypointOrder.Length);
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    "Erreur dans l'ordre optimisé. Réessayez.");
+            }
+
+            // ✅ 7. Construire la liste des livraisons optimisées
+            var optimizedDeliveries = new List<OptimizedDeliveryDto>();
+
+            for (var i = 0; i < optimizedRoute.WaypointOrder.Length; i++)
+            {
+                var originalIndex = optimizedRoute.WaypointOrder[i];
+
+                // Vérifier que l'index est valide
+                if (originalIndex < 0 || originalIndex >= deliveries.Count)
+                {
+                    logger.LogError("Invalid waypoint order index: {Index}", originalIndex);
+                    return ResponseResult<OptimizePathResponseDto>.Failure(
+                        "Erreur dans l'ordre des points. Réessayez.");
+                }
+
+                var delivery = deliveries[originalIndex];
+
+                // Vérifier que le leg correspondant existe
+                if (i >= optimizedRoute.Legs.Count)
+                {
+                    logger.LogError("Leg index out of bounds: {Index}", i);
+                    return ResponseResult<OptimizePathResponseDto>.Failure(
+                        "Erreur dans les segments de route. Réessayez.");
+                }
+
+                var leg = optimizedRoute.Legs[i];
+
+                optimizedDeliveries.Add(new OptimizedDeliveryDto
+                {
+                    DeliveryId = delivery.Id,
+                    SequenceOrder = i + 1,
+                    Address = delivery.ClientAddress.FullAddress,
+                    Latitude = delivery.ClientAddress.Latitude.Value,
+                    Longitude = delivery.ClientAddress.Longitude.Value,
+                    DistanceToNextMeters = leg.Distance?.Value ?? 0,
+                    DurationToNextMinutes = (leg.Duration?.Value ?? 0) / 60
+                });
+            }
+
+            // ✅ 8. Calculer les totaux
+            var totalDistanceKm = optimizedRoute.Legs.Sum(l => l.Distance?.Value ?? 0) / 1000m;
+            var totalTravelMinutes = optimizedRoute.Legs.Sum(l => l.Duration?.Value ?? 0) / 60;
+
+            // ✅ Ajouter les durées de prestation de chaque livraison
+            var totalServiceMinutes = deliveries.Sum(d => d.EstimatedDurationMinutes ?? 15);
+            var totalMinutes = totalTravelMinutes + totalServiceMinutes;
+
+            logger.LogInformation(
+                "Route optimized: {Distance}km, {Travel}min travel + {Service}min service = {Total}min total",
+                totalDistanceKm, totalTravelMinutes, totalServiceMinutes, totalMinutes);
+
+            // ✅ 9. Construire la réponse
+            var response = new OptimizePathResponseDto
+            {
+                Deliveries = optimizedDeliveries,
+                TotalDistanceKm = totalDistanceKm,
+                TotalDurationMinutes = totalMinutes // ✅ Trajet + prestations
+            };
+
+            return ResponseResult<OptimizePathResponseDto>.Success(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error optimizing route");
+            return ResponseResult<OptimizePathResponseDto>.Failure(
+                "Erreur inattendue lors de l'optimisation. Réessayez.");
+        }
+    }
+
+    /// <summary>
+    /// Recalcule les distances/durées en GARDANT l'ordre actuel des livraisons
+    /// Utilisé quand le manager a réorganisé manuellement
+    /// </summary>
+    public async Task<ResponseResult<OptimizePathResponseDto>> RecalculateRouteMetricsAsync(
+        OptimizePathRequestDto request)
+    {
+        try
+        {
+            logger.LogInformation("🔄 Recalcul des métriques (sans optimisation) pour {Count} livraisons",
+                request.DeliveryIds.Count);
+
+            // ═══ 1. VALIDATION ═══
+            if (request.DeliveryIds == null || !request.DeliveryIds.Any())
+            {
+                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison sélectionnée");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DepartureAddress))
+            {
+                return ResponseResult<OptimizePathResponseDto>.Failure("Adresse de départ requise");
+            }
+
+            // ═══ 2. RÉCUPÉRER LES LIVRAISONS DANS L'ORDRE DONNÉ ═══
+            // ═══ 2. RÉCUPÉRER LES LIVRAISONS (1 seule requête SQL) ═══
+            var deliveries = await context.Deliveries
+                .Include(d => d.ClientAddress)
+                .Where(d => request.DeliveryIds.Contains(d.Id))
+                .ToListAsync();
+
+            // Vérification complétude
+            if (deliveries.Count != request.DeliveryIds.Count)
+            {
+                var found = deliveries.Select(d => d.Id).ToList();
+                var missing = request.DeliveryIds.Except(found).ToList();
+            
+                logger.LogWarning("Livraisons introuvables: {Missing}", string.Join(", ", missing));
+            
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    $"Livraisons introuvables: {string.Join(", ", missing)}");
+            }
+
+            // ⚠️ CRUCIAL: Réordonner selon l'ordre manuel de request.DeliveryIds
+            var orderedDeliveries = request.DeliveryIds
+                .Select(id => deliveries.First(d => d.Id == id))
+                .ToList();
+
+            logger.LogInformation("Ordre manuel préservé: {Order}", 
+                string.Join(" → ", orderedDeliveries.Select(d => d.Reference)));
+
+            // ═══ 3. VÉRIFIER LES COORDONNÉES GPS ═══
+            var missingCoordinates = deliveries
+                .Where(d => !d.ClientAddress.Latitude.HasValue || !d.ClientAddress.Longitude.HasValue)
+                .Select(d => d.Reference)
+                .ToList();
+
+            if (missingCoordinates.Any())
+            {
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    $"Coordonnées GPS manquantes pour: {string.Join(", ", missingCoordinates)}");
+            }
+
+            // ═══ 4. CONSTRUIRE LES WAYPOINTS (dans l'ordre donné) ═══
+            var wayPoints = string.Join("|", deliveries.Select(d =>
+                $"{d.ClientAddress.Latitude!.Value},{d.ClientAddress.Longitude!.Value}"));
+
+            logger.LogInformation("Waypoints (ordre manuel): {WayPoints}", wayPoints);
+
+            // ═══ 5. APPEL GOOGLE API AVEC optimize:false ═══
+            var (googleResponse, error) = await geocodingService.GetOptimizedRouteAsync(
+                request.DepartureAddress,
+                wayPoints,
+                optimize: false); // ← NE PAS optimiser, garder l'ordre
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                logger.LogError("Erreur Google Directions API: {Error}", error);
+                return ResponseResult<OptimizePathResponseDto>.Failure(error);
+            }
+
+            if (googleResponse.Status != "OK" ||
+                googleResponse.Routes == null ||
+                !googleResponse.Routes.Any())
+            {
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    $"Erreur Google Maps: {googleResponse.Status}");
+            }
+
+            var route = googleResponse.Routes[0];
+            var legs = route.Legs;
+            var waypointOrder = route.WaypointOrder;
+
+            if (waypointOrder == null || waypointOrder.Length != deliveries.Count)
+            {
+                logger.LogError(
+                    "Nombre de legs ({LegsCount}) ne correspond pas au nombre de livraisons ({DeliveriesCount})",
+                    legs?.Count ?? 0, deliveries.Count);
+                return ResponseResult<OptimizePathResponseDto>.Failure(
+                    "Erreur de calcul d'itinéraire");
+            }
+
+            // ═══ 6. CONSTRUIRE LE RÉSULTAT (DANS L'ORDRE DONNÉ) ═══
+            // ⚠️ PAS de réordonnancement selon waypoint_order
+            var optimizedDeliveries = new List<OptimizedDeliveryDto>();
+
+            for (int i = 0; i < deliveries.Count; i++)
+            {
+                var delivery = deliveries[i];
+                var leg = legs[i]; // Leg correspondant dans l'ordre
+
+                optimizedDeliveries.Add(new OptimizedDeliveryDto
+                {
+                    DeliveryId = delivery.Id,
+                    SequenceOrder = i + 1, // Ordre séquentiel
+                    Address = delivery.ClientAddress.FullAddress,
+                    Latitude = delivery.ClientAddress.Latitude.Value,
+                    Longitude = delivery.ClientAddress.Longitude.Value,
+                    DistanceToNextMeters = leg.Distance?.Value ?? 0,
+                    DurationToNextMinutes = (leg.Duration?.Value ?? 0) / 60
+                });
+            }
+
+            // ═══ 7. CALCULER LES TOTAUX ═══
+            var totalDistanceMeters = legs.Sum(leg => leg.Distance?.Value ?? 0);
+            var totalDurationSeconds = legs.Sum(leg => leg.Duration?.Value ?? 0);
+
+            var response = new OptimizePathResponseDto
+            {
+                Deliveries = optimizedDeliveries,
+                TotalDistanceKm = totalDistanceMeters / 1000m,
+                TotalDurationMinutes = totalDurationSeconds / 60
+            };
+
+            logger.LogInformation(
+                "✅ Recalcul terminé: {Distance} km, {Duration} min, {Count} livraisons",
+                response.TotalDistanceKm, response.TotalDurationMinutes, response.Deliveries.Count);
+
+            return ResponseResult<OptimizePathResponseDto>.Success(response);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Erreur lors du recalcul des métriques");
+            return ResponseResult<OptimizePathResponseDto>.Failure(
+                $"Erreur lors du recalcul: {ex.Message}");
+        }
+    }
+
+    public async Task<ResponseResult<byte[]>> GenerateRouteSheetPdfAsync(int routeId)
+    {
+        try
+        {
+            // 1. Récupérer la route avec toutes les données nécessaires
+            var route = await context.Routes
+                .Include(r => r.Vehicle)
+                .Include(r => r.Deliveries.OrderBy(d => d.SequenceOrder))
+                .ThenInclude(d => d.Client)
+                .Include(r => r.Deliveries)
+                .ThenInclude(d => d.ClientAddress)
+                .Include(r => r.Deliveries)
+                .ThenInclude(d => d.Store)
+                .Include(r => r.Deliveries)
+                .ThenInclude(d => d.TimeSlot)
+                .Include(r => r.Team)
+                .ThenInclude(rt => rt.Driver)
+                .ThenInclude(d => d.User)
+                .FirstOrDefaultAsync(r => r.Id == routeId);
+
+            if (route == null)
+                return ResponseResult<byte[]>.Failure("Route non trouvée");
+
+            // 2. Récupérer les informations de l'entreprise (tenant)
+            var tenant = await context.Tenants
+                .FirstOrDefaultAsync(t => t.Id == tenantService.GetTenantId());
+
+            if (tenant == null)
+                return ResponseResult<byte[]>.Failure("Informations entreprise non trouvées");
+
+            // 3. Créer l'acronyme de l'entreprise pour le PDF
+            var companyAcronym = GetCompanyAcronym(tenant.CompanyName ?? tenant.Name);
+
+            // 4. Mapper vers le DTO
+            var routeSheetDto = new RouteSheetDto
+            {
+                // Informations entreprise
+                CompanyName = tenant.CompanyName ?? tenant.Name,
+                CompanyAddress = tenant.Address ?? "",
+                CompanyCity = $"{tenant.ZipCode} {tenant.City}",
+                CompanyPhone = tenant.Phone ?? "",
+                CompanySiret = tenant.Siret ?? "",
+                CompanyLogoUrl = tenant.LogoUrl,
+
+                // Informations route
+                RouteReference = route.Reference,
+                VehicleName = route.Vehicle?.PlateNumber ?? route.Vehicle?.Model ?? "N/A",
+                RouteDate = route.Date,
+                DepartureAddress = route.DepartureAddress ?? "",
+                DepartureTime = route.StartTime,
+
+                // Équipe
+                TeamMembers = string.Join(", ", route.Team.Select(tm =>
+                {
+                    var driver = tm.Driver;
+                    var role = tm.Role == TeamMemberRole.MainDriver ? "Chauffeur" : "Monteur";
+                    return $"{driver.User.FirstName} {driver.User.LastName} ({role})";
+                })),
+
+                // Acronyme de l'entreprise pour les colonnes
+                CompanyAcronym = companyAcronym,
+
+                // Livraisons
+                Deliveries = route.Deliveries
+                    .Where(d => d.SequenceOrder.HasValue)
+                    .OrderBy(d => d.SequenceOrder)
+                    .Select(d => new RouteSheetDeliveryDto
+                    {
+                        SequenceOrder = d.SequenceOrder ?? 0,
+                        DeliveryReference = d.Reference, // N° Dossier
+                        ClientName = d.Client.DisplayName,
+                        ClientPhone = d.Client.Phone ?? "",
+                        City = d.ClientAddress.City,
+                        FullAddress = $"{d.ClientAddress.FullAddress}",
+                        EstimatedArrivalTime = d.EstimatedArrivalTime,
+
+                        // Type de prestation (M = Montage, N = Normal)
+                        ServiceType = d.WithAssembly ? "M" : "N",
+
+                        // Enseigne (magasin)
+                        StoreName = d.Store?.Name ?? "",
+
+                        // Montants
+                        StorePaymentAmount = d.StorePaymentAmount ?? 0m, // CRT MAG
+                        ClientPaymentAmount = d.ClientPaymentAmount ?? 0m, // CRT {CompanyAcronym}
+
+                        // Instructions
+                        Instructions = d.DeliveryNotes ?? "",
+
+                        // Créneaux horaires (si TimeSlot existe)
+                        TimeSlotStart = d.TimeSlot?.StartTime,
+                        TimeSlotEnd = d.TimeSlot?.EndTime
+                    }).ToList(),
+
+                // Totaux
+                TotalStorePayment = route.Deliveries
+                    .Where(d => d.SequenceOrder.HasValue)
+                    .Sum(d => d.StorePaymentAmount ?? 0m),
+
+                TotalClientPayment = route.Deliveries
+                    .Where(d => d.SequenceOrder.HasValue)
+                    .Sum(d => d.ClientPaymentAmount ?? 0m),
+
+                // QR Code - Lien vers site web de l'entreprise
+                QrCodeData = tenant.Website ?? $"https://{tenant.SubDomain}.dropflow.com",
+
+                // Notes
+                Notes = "La pause d'une heure est obligatoire dans la journée. Effectuer plusieurs tours si nécessaire"
+            };
+
+            // 5. Générer le PDF
+            var pdfBytes = await pdfGenerator.GenerateAsync(routeSheetDto);
+
+            logger.LogInformation(
+                "Feuille de route PDF générée pour la route {RouteId} - {RouteReference}",
+                routeId,
+                route.Reference);
+
+            return ResponseResult<byte[]>.Success(pdfBytes);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Erreur lors de la génération de la feuille de route PDF pour la route {RouteId}",
+                routeId);
+
+            return ResponseResult<byte[]>.Failure($"Erreur lors de la génération du PDF: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Crée un acronyme à partir du nom de l'entreprise
+    /// Ex: "SRS Services" => "SRS", "Société de Transport" => "SDT"
+    /// </summary>
+    private string GetCompanyAcronym(string companyName)
+    {
+        if (string.IsNullOrWhiteSpace(companyName))
+            return "SRS"; // Valeur par défaut
+
+        // Prendre les initiales des mots (max 3-4 lettres)
+        var words = companyName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length > 2) // Ignorer les mots courts comme "de", "la", etc.
+            .Take(3) // Max 3 mots
+            .Select(w => w[0].ToString().ToUpper())
+            .ToArray();
+
+        if (words.Length == 0)
+        {
+            // Si aucun mot valide, prendre les 3 premières lettres du nom
+            return companyName.Substring(0, Math.Min(3, companyName.Length)).ToUpper();
+        }
+
+        return string.Join("", words);
+    }
+
+    private string GetServiceTypeLabel(string? notes)
+    {
+        if (string.IsNullOrEmpty(notes))
+            return "N";
+
+        notes = notes.ToLower();
+
+        if (notes.Contains("montage"))
+            return "M";
+        if (notes.Contains("dépose"))
+            return "D";
+        return notes.Contains("reprise") ? "R" : "N"; // Normal/Livraison simple
+    }
+
+    private async Task RecalculateMetricsInternalAsync(int routeId)
+    {
+        var route = await context.Routes
+            .Include(rs => rs.Deliveries)
+            .FirstOrDefaultAsync(rs => rs.Id == routeId);
+
+        if (route == null) return;
+
+        var totalDeliveries = route.Deliveries.Count;
+        var totalDuration = route.Deliveries.Sum(d => d.EstimatedDurationMinutes ?? 30);
+
+        route.UpdateMetrics(
+            totalDistance: 0, // À calculer avec Google Maps
+            totalDuration: totalDuration,
+            totalDeliveries: totalDeliveries,
+            totalVolume: 0,
+            estimatedEndTime: route.StartTime.Add(TimeSpan.FromMinutes(totalDuration))
+        );
+
+        await context.SaveChangesAsync();
+    }
+
+    private async Task<TimeSlot> FindOrCreateTimeSlotAsync(TimeSpan start, TimeSpan end)
+    {
+        var existing = await context.TimeSlots
+            .FirstOrDefaultAsync(ts => ts.StartTime == start && ts.EndTime == end);
+
+        if (existing != null)
+            return existing;
+
+        var timeSlot = new TimeSlot
+        {
+            StartTime = start,
+            EndTime = end,
+            Name = $@"{start:hh\:mm} - {end:hh\:mm}"
+        };
+
+        context.TimeSlots.Add(timeSlot);
+        await context.SaveChangesAsync();
+
+        return timeSlot;
+    }
+}

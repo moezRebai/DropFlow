@@ -1,0 +1,1223 @@
+@using DropFlow.Shared.Deliveries
+@using DropFlow.WebApp.Models.Routes
+@using DropFlow.Shared.Routes
+@using DropFlow.WebApp.Interfaces
+@inject IRouteService RouteService
+@inject ISnackbar Snackbar
+@inject ILogger<RouteOptimizeStep> Logger
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- ⚠️ ALERTE SI CHANGEMENTS (MODE ÉDITION UNIQUEMENT) -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+
+@if (IsEditMode && _dataChangedAfterLoad && State.HasChanged)
+{
+    <MudAlert Severity="Severity.Warning"
+              Variant="Variant.Filled"
+              Elevation="3"
+              Icon="@Icons.Material.Filled.Warning"
+              Class="rounded-lg mb-4">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">
+                <strong>⚠️ Modifications détectées</strong>
+            </MudText>
+            <MudText Typo="Typo.body2">
+                Les livraisons sélectionnées ont été modifiées depuis la dernière optimisation.
+                <strong>L'itinéraire actuel n'est plus valide.</strong>
+            </MudText>
+            <MudButton
+                Variant="Variant.Filled"
+                Color="Color.Warning"
+                StartIcon="@Icons.Material.Filled.Refresh"
+                OnClick="HandleReoptimize"
+                Disabled="@_optimizing"
+                Size="Size.Small"
+                Style="width: fit-content; background: white; color: var(--mud-palette-warning-darken);">
+                Réoptimiser Maintenant
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
+<MudCard Elevation="0" Class="mt-4">
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- HEADER AVEC STATUS -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.Route" Size="Size.Large" Color="Color.Primary" />
+                <div>
+                    <MudText Typo="Typo.h5">Optimisation de l'itinéraire</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @State.SelectedDeliveries.Count livraison(s) à organiser
+                    </MudText>
+                </div>
+
+                <MudSpacer />
+
+                <!-- Status Badges -->
+                @if (State.OptimizedDeliveries.Any() && _metricsValid && State.WasOptimizedByGoogle && !State.IsManuallyReordered)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.AutoMode"
+                             Color="Color.Success"
+                             Size="Size.Medium">
+                        Optimisé par Google
+                    </MudChip>
+                }
+                else if (State.OptimizedDeliveries.Any() && _metricsValid && State.IsManuallyReordered)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Edit"
+                             Color="Color.Info"
+                             Size="Size.Medium">
+                        Ordre manuel
+                    </MudChip>
+                }
+                else if (!_metricsValid)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Warning"
+                             Color="Color.Warning"
+                             Size="Size.Medium">
+                        Recalcul requis
+                    </MudChip>
+                }
+                else if (State.HasChanged)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Warning"
+                             Color="Color.Warning"
+                             Size="Size.Medium">
+                        Réoptimisation requise
+                    </MudChip>
+                }
+            </MudStack>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudDivider />
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ÉTAT INITIAL - PAS ENCORE OPTIMISÉ -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    @if (!State.OptimizedDeliveries.Any() || (State.HasChanged && !_isManualModeEnabled))
+    {
+        <MudCardContent>
+            <!-- Message d'information -->
+            <MudAlert Severity="@(State.HasChanged ? Severity.Warning : Severity.Info)"
+                      Variant="Variant.Outlined"
+                      Class="mb-4">
+                <MudStack Spacing="2">
+                    @if (State.HasChanged && State.OptimizedDeliveries.Any())
+                    {
+                        <MudText Typo="Typo.body1">
+                            <strong>⚠️ L'itinéraire doit être réoptimisé</strong>
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            Une ou plusieurs livraisons ont été modifiées depuis la dernière optimisation.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1">
+                            <strong>Cliquez ci-dessous pour optimiser automatiquement votre itinéraire</strong>
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            🤖 Google Maps calculera le chemin le plus court en tenant compte du trafic
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            💡 Après l'optimisation, vous pourrez activer le mode manuel pour réorganiser les livraisons
+                        </MudText>
+                    }
+                </MudStack>
+            </MudAlert>
+
+            <!-- Liste des livraisons sans métriques -->
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    📋 Livraisons sélectionnées
+                </MudText>
+
+                <MudList T="DeliveryDto" Dense="true">
+                    @foreach (var delivery in State.SelectedDeliveries.Select((d, i) => new { Delivery = d, Index = i }))
+                    {
+                        <MudListItem T="DeliveryDto">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="int" Size="Size.Small" Color="Color.Default">
+                                    @(delivery.Index + 1)
+                                </MudChip>
+                                <MudIcon Icon="@Icons.Material.Filled.LocationOn"
+                                         Size="Size.Small"
+                                         Color="Color.Secondary" />
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.body1">@delivery.Delivery.ClientName</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @delivery.Delivery.Address
+                                    </MudText>
+                                </div>
+                            </MudStack>
+                        </MudListItem>
+                        @if (delivery.Index < State.SelectedDeliveries.Count - 1)
+                        {
+                            <MudDivider />
+                        }
+                    }
+                </MudList>
+            </MudPaper>
+
+            <!-- Bouton Optimiser -->
+            <MudStack Row="true" Justify="Justify.Center" Class="mt-6">
+                <MudButton Variant="Variant.Filled"
+                           Color="@(State.HasChanged ? Color.Warning : Color.Success)"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.AutoMode"
+                           OnClick="OptimizeRoute"
+                           Disabled="@_optimizing"
+                           Style="min-width: 300px; height: 56px;">
+                    @if (_optimizing)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <MudText>Optimisation en cours...</MudText>
+                    }
+                    else if (State.HasChanged && State.OptimizedDeliveries.Any())
+                    {
+                        <MudText Typo="Typo.h6">🔄 Réoptimiser l'itinéraire</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h6">🗺️ Optimiser avec Google Maps</MudText>
+                    }
+                </MudButton>
+            </MudStack>
+
+            @if (_optimizing)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-3" />
+            }
+        </MudCardContent>
+    }
+    else
+    {
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- APRÈS OPTIMISATION - AVEC MÉTRIQUES -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <MudCardContent>
+            <!-- ═══ TOOLBAR ACTIONS ═══ -->
+            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <!-- Mode Manuel Switch -->
+                    <MudSwitch T="bool"
+                               Value="_isManualModeEnabled"        ← ✅ CORRECT
+                               ValueChanged="OnManualModeChanged"
+                               Color="Color.Warning"
+                               Label="Mode manuel"
+                               ThumbIcon="@(_isManualModeEnabled ? Icons.Material.Filled.Edit : Icons.Material.Filled.Lock)"
+                               Style="color: white;" />
+
+                    <MudTooltip Text="@(_isManualModeEnabled ? "Vous pouvez réorganiser les livraisons par glisser-déposer" : "Activez pour modifier l'ordre manuellement")">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Style="color: rgba(255,255,255,0.7);" />
+                    </MudTooltip>
+
+                    <MudDivider Vertical="true" FlexItem="true" Style="background-color: rgba(255,255,255,0.3);" />
+
+                    <!-- Bouton Recalculer (si métriques invalides) -->
+                    @if (!_metricsValid && !_recalculating)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.Calculate"
+                                   OnClick="RecalculatePathMetrics"
+                                   Size="Size.Medium"
+                                   Style="animation: pulse 2s ease-in-out infinite;">
+                            Recalculer les distances
+                        </MudButton>
+                    }
+                    else if (_recalculating)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Warning"
+                                   Disabled="true"
+                                   Size="Size.Medium">
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            <span>Recalcul en cours...</span>
+                        </MudButton>
+                    }
+
+                    <!-- Revenir à l'optimal (si ordre manuel et on a un optimal sauvegardé) -->
+                    @if (State.IsManuallyReordered && State.WasOptimizedByGoogle && _optimalOrder.Any())
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Surface"
+                                   StartIcon="@Icons.Material.Filled.Restore"
+                                   OnClick="RevertToOptimalOrder"
+                                   Size="Size.Medium"
+                                   Style="color: white; border-color: white;">
+                            Revenir à l'ordre optimal
+                        </MudButton>
+                    }
+
+                    <MudSpacer />
+
+                    <!-- Bouton pour réoptimiser complètement -->
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Surface"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="OptimizeRoute"
+                               Disabled="@_optimizing"
+                               Size="Size.Medium"
+                               Style="color: white; border-color: white;">
+                        Réoptimiser
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            <!-- ✅ ALERTE SI MÉTRIQUES INVALIDES -->
+            @if (!_metricsValid)
+            {
+                <MudAlert Severity="Severity.Warning"
+                          Variant="Variant.Outlined"
+                          Class="mb-4"
+                          Icon="@Icons.Material.Filled.Warning">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body1">
+                            <strong>⚠️ Métriques invalides</strong>
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            L'ordre des livraisons a été modifié. Les distances et temps affichés ne sont plus exacts.
+                            <strong>Cliquez sur "Recalculer les distances" pour mettre à jour.</strong>
+                        </MudText>
+                    </MudStack>
+                </MudAlert>
+            }
+
+            <!-- ═══ RÉSUMÉ EN PLEINE LARGEUR (HORIZONTAL) ═══ -->
+            <MudPaper Elevation="3" Class="pa-4 mb-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+                <MudGrid>
+                    <MudItem xs="12" sm="3">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Route" Size="Size.Large" Style="color: white;" />
+                            <MudText Typo="Typo.h4" Style="color: white; font-weight: bold;">
+                                @if (_metricsValid)
+                                {
+                                    @State.TotalDistanceKm.ToString("F1") <text>km</text>
+                                }
+                                else
+                                {
+                                    <text>?</text>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                Distance totale
+                            </MudText>
+                        </MudStack>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Style="color: white;" />
+                            <MudText Typo="Typo.h4" Style="color: white; font-weight: bold;">
+                                @if (_metricsValid)
+                                {
+                                    @FormatDuration(State.TotalDurationMinutes)
+                                }
+                                else
+                                {
+                                    <text>?</text>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                Temps de trajet
+                            </MudText>
+                        </MudStack>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Large" Style="color: white;" />
+                            <MudText Typo="Typo.h4" Style="color: white; font-weight: bold;">
+                                @FormatDuration(State.TotalServiceDuration)
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                Temps de service
+                            </MudText>
+                        </MudStack>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Large" Style="color: white;" />
+                            <MudText Typo="Typo.h4" Style="color: white; font-weight: bold;">
+                                @if (_metricsValid)
+                                {
+                                    @State.EndTime.ToString(@"h\:mm")
+                                }
+                                else
+                                {
+                                    <text>?</text>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                                Arrivée estimée
+                            </MudText>
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudGrid>
+                <!-- ═══ COLONNE GAUCHE - LISTE DES LIVRAISONS ═══ -->
+                <MudItem xs="12" md="7">
+                    <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px;">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            🗺️ Itinéraire (@State.OptimizedDeliveries.Count arrêts)
+                        </MudText>
+
+                        <!-- Point de Départ -->
+                        <MudPaper Elevation="0" Class="pa-3 mb-3" Style="background: #E3F2FD; border-left: 4px solid #2196F3; border-radius: 8px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Home" Color="Color.Primary" />
+                                <div>
+                                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                                        <strong>Point de départ</strong>
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">@State.DepartureAddress</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        🕐 Départ : @State.StartTime.ToString(@"h\:mm")
+                                    </MudText>
+                                </div>
+                            </MudStack>
+                        </MudPaper>
+
+                        <!-- Drop Zone pour les livraisons -->
+                        <MudDropContainer T="OptimizedDeliveryState"
+                                          Items="@State.OptimizedDeliveries"
+                                          ItemsSelector="@((item, dropzone) => true)"
+                                          ItemDropped="OnDeliveryReordered"
+                                          CanDrop="@((item, zone) => _isManualModeEnabled)"
+                                          Class="d-flex flex-column">
+                            <ChildContent>
+                                <MudDropZone T="OptimizedDeliveryState"
+                                             Identifier="deliveries-zone"
+                                             Class="flex-grow-1"
+                                             AllowReorder="true">
+                                </MudDropZone>
+                            </ChildContent>
+                            <ItemRenderer>
+                                @{
+                                    var index = State.OptimizedDeliveries.IndexOf(context);
+                                }
+                                <MudPaper Elevation="1"
+                                          Class="pa-3 mb-2"
+                                          Style="@GetDeliveryPaperStyle(_isManualModeEnabled)">
+                                    <MudStack Spacing="2">
+                                        <!-- Header avec numéro et client -->
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            @if (_isManualModeEnabled)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Color="Color.Secondary" />
+                                            }
+                                            <MudChip T="int" Size="Size.Small" Color="Color.Success">
+                                                @(index + 1)
+                                            </MudChip>
+                                            <div class="flex-grow-1">
+                                                <MudText Typo="Typo.subtitle2">
+                                                    <strong>@context.ClientName</strong>
+                                                </MudText>
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                    @context.Address
+                                                </MudText>
+                                            </div>
+                                        </MudStack>
+
+                                        <!-- Métriques détaillées -->
+                                        <MudDivider Class="my-1" />
+                                        <MudGrid Spacing="1">
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    🕐 Arrivée estimée
+                                                </MudText>
+                                                <MudText Typo="Typo.body2">
+                                                    @if (_metricsValid)
+                                                    {
+                                                        <strong>@context.EstimatedArrivalTime.ToString(@"h\:mm")</strong>
+                                                    }
+                                                    else
+                                                    {
+                                                        <strong style="color: #FF9800;">?</strong>
+                                                    }
+                                                </MudText>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    ⏱️ Durée de service
+                                                </MudText>
+                                                <MudText Typo="Typo.body2">
+                                                    <strong>@context.ServiceDurationMinutes min</strong>
+                                                </MudText>
+                                            </MudItem>
+
+                                            @if (index < State.OptimizedDeliveries.Count - 1)
+                                            {
+                                                <MudItem xs="6">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        📏 Distance jusqu'au prochain
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2">
+                                                        @if (_metricsValid)
+                                                        {
+                                                            <strong>@FormatDistance(context.DistanceToNextMeters)</strong>
+                                                        }
+                                                        else
+                                                        {
+                                                            <strong style="color: #FF9800;">?</strong>
+                                                        }
+                                                    </MudText>
+                                                </MudItem>
+                                                <MudItem xs="6">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        🚗 Temps de trajet
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2">
+                                                        @if (_metricsValid)
+                                                        {
+                                                            <strong>@context.DurationMinutes min</strong>
+                                                        }
+                                                        else
+                                                        {
+                                                            <strong style="color: #FF9800;">?</strong>
+                                                        }
+                                                    </MudText>
+                                                </MudItem>
+                                            }
+
+                                            <MudItem xs="12">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    🏁 Fin de service
+                                                </MudText>
+                                                <MudText Typo="Typo.body2">
+                                                    @if (_metricsValid)
+                                                    {
+                                                        <strong>@GetServiceEndTime(context).ToString(@"h\:mm")</strong>
+                                                    }
+                                                    else
+                                                    {
+                                                        <strong style="color: #FF9800;">?</strong>
+                                                    }
+                                                </MudText>
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudStack>
+                                </MudPaper>
+                            </ItemRenderer>
+                        </MudDropContainer>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- ═══ COLONNE DROITE - CARTE GOOGLE MAPS ═══ -->
+                <MudItem xs="12" md="5">
+                    <MudPaper Elevation="2" Class="pa-4" Style="border-radius: 12px; height: 100%; min-height: 600px;">
+                        @if (State.OptimizedDeliveries.Any())
+                        {
+                            <MudText Typo="Typo.h6" Class="mb-3">
+                                🗺️ Carte de l'itinéraire
+                            </MudText>
+
+                            @if (!_metricsValid)
+                            {
+                                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                                    Carte non mise à jour - Recalculez pour voir le nouvel itinéraire
+                                </MudAlert>
+                            }
+
+                            <!-- Carte Google Maps -->
+                            <div style="width: 100%; height: 500px; border-radius: 8px; overflow: hidden;">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    style="border:0"
+                                    loading="lazy"
+                                    allowfullscreen
+                                    referrerpolicy="no-referrer-when-downgrade"
+                                    src="@GetGoogleMapsEmbedUrl()">
+                                </iframe>
+                            </div>
+
+                            <MudDivider Class="my-3" />
+
+                            <!-- Légende -->
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" Color="Color.Primary" />
+                                    Point de départ
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Error" />
+                                    Livraisons (@State.OptimizedDeliveries.Count arrêts)
+                                </MudText>
+                            </MudStack>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    }
+</MudCard>
+
+<style>
+    @@keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+</style>
+
+@code {
+    [Parameter] public RouteWizardState State { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; }
+    [Parameter] public EventCallback<bool> OnValidationChanged { get; set; }
+
+    private const int DefaultServiceDuration = 15;
+
+    // ════════════════════════════════════════════════════════════════
+    // STATE FLAGS
+    // ════════════════════════════════════════════════════════════════
+
+    private bool _optimizing = false;
+    private bool _recalculating = false;
+    private bool _isManualModeEnabled = false;
+    private bool _dataChangedAfterLoad = false;
+    private bool _metricsValid = true; // ✅ NOUVEAU : Indique si les métriques sont valides
+
+    // Sauvegarde de l'ordre optimal (si optimisé par Google)
+    private List<OptimizedDeliveryState> _optimalOrder = new();
+    private decimal _optimalDistanceKm = 0;
+    private int _optimalDurationMinutes = 0;
+
+    // ════════════════════════════════════════════════════════════════
+    // VALIDATION
+    // VALIDATION
+    // ════════════════════════════════════════════════════════════════
+
+    public bool IsValid => State.OptimizedDeliveries.Any() && !State.HasChanged && _metricsValid;
+
+    public Task<bool> ValidateAsync()
+    {
+        var valid = IsValid;
+
+        if (!valid)
+        {
+            if (!_metricsValid)
+            {
+                Snackbar.Add("⚠️ Veuillez recalculer les distances avant de continuer", Severity.Warning);
+            }
+            else if (State.HasChanged && IsEditMode)
+            {
+                Snackbar.Add("⚠️ L'itinéraire doit être réoptimisé après les modifications", Severity.Warning);
+            }
+            else if (!State.OptimizedDeliveries.Any())
+            {
+                Snackbar.Add("⚠️ Veuillez optimiser l'itinéraire avant de continuer", Severity.Warning);
+            }
+        }
+
+        return Task.FromResult(valid);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // LIFECYCLE
+    // ════════════════════════════════════════════════════════════════
+
+    protected override void OnParametersSet()
+    {
+        Logger.LogInformation("📥 OnParametersSet CALLED");
+        Logger.LogInformation("   State.OptimizedDeliveries.Any() = {V}", State.OptimizedDeliveries.Any());
+        Logger.LogInformation("   State.TotalDistanceKm = {V}", State.TotalDistanceKm);
+    
+        // Si on charge une route existante avec des métriques
+        if (State.OptimizedDeliveries.Any() && State.TotalDistanceKm > 0)
+        {
+            Logger.LogInformation("   Loading existing route, setting _metricsValid = true");
+        
+            // Sauvegarder comme optimal si c'était optimisé par Google
+            if (State.WasOptimizedByGoogle && !State.IsManuallyReordered)
+            {
+                SaveOptimalOrder();
+            }
+
+            // ✅ Au chargement initial, métriques valides
+            _metricsValid = true;
+
+            // Au chargement initial, marquer comme "optimisé" pour éviter l'alerte
+            if (!_dataChangedAfterLoad)
+            {
+                State.MarkAsOptimized();
+            }
+        }
+    
+        Logger.LogInformation("   AFTER OnParametersSet:");
+        Logger.LogInformation("     _metricsValid = {V}", _metricsValid);
+        Logger.LogInformation("     _isManualModeEnabled = {V}", _isManualModeEnabled);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ HANDLER CHANGEMENT MODE MANUEL
+    // ════════════════════════════════════════════════════════════════
+
+    private void OnManualModeChanged(bool newValue)
+    {
+        Logger.LogInformation("════════════════════════════════════════");
+        Logger.LogInformation("🔧 OnManualModeChanged CALLED with: {Value}", newValue);
+    
+        // Log AVANT
+        Logger.LogInformation("   BEFORE:");
+        Logger.LogInformation("     _isManualModeEnabled = {V}", _isManualModeEnabled);
+        Logger.LogInformation("     _metricsValid = {V}", _metricsValid);
+        Logger.LogInformation("     _recalculating = {V}", _recalculating);
+    
+        _isManualModeEnabled = newValue;
+    
+        if (newValue)
+        {
+            Logger.LogInformation("   Calling InvalidateMetrics()...");
+            InvalidateMetrics();
+        }
+    
+        // Log APRÈS
+        Logger.LogInformation("   AFTER:");
+        Logger.LogInformation("     _isManualModeEnabled = {V}", _isManualModeEnabled);
+        Logger.LogInformation("     _metricsValid = {V}", _metricsValid);
+    
+        // CONDITIONS D'AFFICHAGE
+        Logger.LogInformation("   BUTTON CONDITION:");
+        Logger.LogInformation("     (!_metricsValid && !_recalculating) = {V}", 
+            !_metricsValid && !_recalculating);
+    
+        StateHasChanged();
+        Logger.LogInformation("✅ COMPLETED");
+        Logger.LogInformation("════════════════════════════════════════");
+    }
+
+    // ✅ NOUVELLE MÉTHODE : Invalider les métriques
+    private void InvalidateMetrics()
+    {
+        _metricsValid = false;
+        OnValidationChanged.InvokeAsync(false);
+        StateHasChanged();
+        Logger.LogWarning("❌ Metrics invalidated - recalculation required");
+    }
+
+    // ✅ NOUVELLE MÉTHODE : Valider les métriques
+    private void ValidateMetrics()
+    {
+        _metricsValid = true;
+        _metricsValid = true;
+        OnValidationChanged.InvokeAsync(true);
+        Logger.LogInformation("✅ Metrics validated");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // OPTIMISATION
+    // ════════════════════════════════════════════════════════════════
+
+    private async Task OptimizeRoute()
+    {
+        if (!State.SelectedDeliveries.Any())
+        {
+            Snackbar.Add("Aucune livraison sélectionnée", Severity.Warning);
+            return;
+        }
+
+        _optimizing = true;
+
+        try
+        {
+            Logger.LogInformation("🚀 Starting route optimization for {Count} deliveries",
+                State.SelectedDeliveries.Count);
+
+            var request = new OptimizePathRequestDto
+            {
+                DepartureAddress = State.DepartureAddress,
+                DeliveryIds = State.SelectedDeliveries.Select(d => d.Id).ToList()
+            };
+
+            var result = await RouteService.OptimizeRouteAsync(request);
+
+            if (result.Succeeded && result.Data != null)
+            {
+                Logger.LogInformation("═══════════════════════════════════════════════════════");
+                Logger.LogInformation("🕐 Heure de départ: {StartTime}", State.StartTime);
+                Logger.LogInformation("📊 API - Distance: {Distance} km, Durée trajet: {Duration} min",
+                    result.Data.TotalDistanceKm.ToString("F1"), result.Data.TotalDurationMinutes);
+                Logger.LogInformation("═══════════════════════════════════════════════════════");
+
+                State.OptimizedDeliveries.Clear();
+                State.TotalDistanceKm = result.Data.TotalDistanceKm;
+                State.TotalDurationMinutes = result.Data.TotalDurationMinutes;
+
+                var currentTime = State.StartTime;
+                var previousAddress = State.DepartureAddress;
+                var totalServiceMinutes = 0;
+
+                foreach (var optimized in result.Data.Deliveries.OrderBy(d => d.SequenceOrder))
+                {
+                    var originalDelivery = State.SelectedDeliveries.First(d => d.Id == optimized.DeliveryId);
+                    var departureTime = currentTime;
+
+                    Logger.LogInformation("📦 Livraison #{Order}", optimized.SequenceOrder);
+                    Logger.LogInformation("   Départ de: {Address}", previousAddress);
+                    Logger.LogInformation("   Heure départ: {Time}", departureTime);
+                    Logger.LogInformation("   Trajet: {Duration} min / {Distance} km",
+                        optimized.DurationToNextMinutes, (optimized.DistanceToNextMeters / 1000m).ToString("F1"));
+
+                    currentTime = currentTime.Add(TimeSpan.FromMinutes(optimized.DurationToNextMinutes));
+                    var arrivalTime = currentTime;
+
+                    Logger.LogInformation("   Arrivée: {Time}", arrivalTime);
+
+                    var serviceDuration = originalDelivery.EstimatedDurationMinutes ?? DefaultServiceDuration;
+                    totalServiceMinutes += serviceDuration;
+
+                    Logger.LogInformation("   Prestation: {Duration} min", serviceDuration);
+
+                    var timeSlotStart = arrivalTime;
+                    var timeSlotEnd = arrivalTime.Add(TimeSpan.FromMinutes(30));
+
+                    State.OptimizedDeliveries.Add(new OptimizedDeliveryState
+                    {
+                        DeliveryId = optimized.DeliveryId,
+                        Reference = originalDelivery.Reference,
+                        ClientName = originalDelivery.ClientName,
+                        Address = optimized.Address,
+                        Latitude = optimized.Latitude,
+                        Longitude = optimized.Longitude,
+                        SequenceOrder = optimized.SequenceOrder,
+                        DepartureAddress = previousAddress,
+                        DepartureTime = departureTime,
+                        EstimatedArrivalTime = arrivalTime,
+                        ServiceDurationMinutes = serviceDuration,
+                        DurationMinutes = optimized.DurationToNextMinutes,
+                        DistanceToNextMeters = optimized.DistanceToNextMeters,
+                        TimeSlotStart = timeSlotStart,
+                        TimeSlotEnd = timeSlotEnd
+                    });
+
+                    currentTime = currentTime.Add(TimeSpan.FromMinutes(serviceDuration));
+
+                    Logger.LogInformation("   Départ après prestation: {Time}", currentTime);
+                    Logger.LogInformation("───────────────────────────────────────────────────────");
+
+                    previousAddress = optimized.Address;
+                }
+
+                State.TotalServiceDuration = totalServiceMinutes;
+                State.TotalDurationWithService = State.TotalDurationMinutes + totalServiceMinutes;
+                State.EndTime = currentTime;
+
+                // ✅ MARQUER COMME OPTIMISÉ
+                State.WasOptimizedByGoogle = true;
+                State.IsManuallyReordered = false;
+                State.MarkAsOptimized();
+
+                // ✅ Valider les métriques
+                ValidateMetrics();
+
+                // Désactiver le mode manuel après réoptimisation
+                _isManualModeEnabled = false;
+
+                // Sauvegarder comme ordre optimal
+                SaveOptimalOrder();
+
+                Logger.LogInformation("✅ Route optimized successfully");
+                Logger.LogInformation("   Distance: {Distance} km", State.TotalDistanceKm);
+                Logger.LogInformation("   Duration: {Duration} min", State.TotalDurationMinutes);
+                Logger.LogInformation("   Duration with service: {Duration} min", State.TotalDurationWithService);
+                Logger.LogInformation("   End time: {EndTime}", State.EndTime);
+
+                StateHasChanged();
+
+                Snackbar.Add(
+                    $"✅ Itinéraire optimisé : {State.TotalDistanceKm:F1} km, {FormatDuration(State.TotalDurationWithService)}",
+                    Severity.Success);
+
+                await OnValidationChanged.InvokeAsync(true);
+            }
+            else
+            {
+                var errorMessage = result.Errors?.FirstOrDefault() ?? "Erreur lors de l'optimisation";
+                Logger.LogError("❌ Route optimization failed: {Error}", errorMessage);
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Exception during route optimization");
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _optimizing = false;
+        }
+    }
+
+    private async Task HandleReoptimize()
+    {
+        Logger.LogInformation("🔄 Re-optimizing route after changes detected");
+        await OptimizeRoute();
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ RECALCUL DES MÉTRIQUES SANS RÉOPTIMISER L'ORDRE
+    // ════════════════════════════════════════════════════════════════
+
+    private async Task RecalculatePathMetrics()
+    {
+        if (!State.OptimizedDeliveries.Any())
+        {
+            Snackbar.Add("Aucune livraison à recalculer", Severity.Warning);
+            return;
+        }
+
+        _recalculating = true;
+
+        try
+        {
+            Logger.LogInformation("🔄 Recalculating path metrics for manually reordered deliveries");
+
+            // ✅ Créer la requête avec l'ORDRE ACTUEL (manuel)
+            var request = new OptimizePathRequestDto
+            {
+                DepartureAddress = State.DepartureAddress,
+                DeliveryIds = State.OptimizedDeliveries
+                    .OrderBy(d => d.SequenceOrder)
+                    .Select(d => d.DeliveryId)
+                    .ToList()
+            };
+
+            // ✅ Appeler RecalculatePathMetricsAsync (qui ne réoptimise PAS l'ordre)
+            var result = await RouteService.RecalculatePathMetricsAsync(request);
+
+            if (result.Succeeded && result.Data != null)
+            {
+                Logger.LogInformation("✅ Path metrics recalculated successfully");
+                Logger.LogInformation("   Distance: {Distance} km, Duration: {Duration} min",
+                    result.Data.TotalDistanceKm.ToString("F1"), result.Data.TotalDurationMinutes);
+
+                // ✅ Mettre à jour les métriques SANS changer l'ordre
+                UpdateMetricsOnly(result.Data);
+
+                State.TotalDistanceKm = result.Data.TotalDistanceKm;
+                State.TotalDurationMinutes = result.Data.TotalDurationMinutes;
+
+                // Ne plus marquer comme "HasChanged" car on a recalculé
+                State.MarkAsOptimized();
+
+                // Garder le flag IsManuallyReordered = true
+                State.IsManuallyReordered = true;
+                State.WasOptimizedByGoogle = false; // Ce n'est plus l'ordre Google
+
+                // ✅ VALIDER LES MÉTRIQUES
+                ValidateMetrics();
+
+                Logger.LogInformation("✅ Metrics validated after recalculation");
+
+                StateHasChanged();
+
+                Snackbar.Add("✅ Distances recalculées avec succès", Severity.Success);
+            }
+            else
+            {
+                var errorMessage = result.Errors?.FirstOrDefault() ?? "Erreur lors du recalcul";
+                Logger.LogError("❌ Path metrics recalculation failed: {Error}", errorMessage);
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Exception during path metrics recalculation");
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _recalculating = false;
+        }
+    }
+
+    // ✅ Méthode helper pour mettre à jour SEULEMENT les métriques
+    private void UpdateMetricsOnly(OptimizePathResponseDto data)
+    {
+        var currentTime = State.StartTime;
+        var previousAddress = State.DepartureAddress;
+        var totalServiceMinutes = 0;
+
+        Logger.LogInformation("🔄 Updating metrics for {Count} deliveries", State.OptimizedDeliveries.Count);
+
+        for (int i = 0; i < State.OptimizedDeliveries.Count; i++)
+        {
+            var delivery = State.OptimizedDeliveries[i];
+
+            // ✅ CORRECTION : Chercher par SequenceOrder dans l'ordre retourné par l'API
+            var apiDelivery = data.Deliveries
+                .OrderBy(d => d.SequenceOrder)
+                .ElementAtOrDefault(i);
+
+            if (apiDelivery == null)
+            {
+                Logger.LogWarning("⚠️ API delivery not found for position {Position}", i);
+                continue;
+            }
+
+            var departureTime = currentTime;
+
+            // Mettre à jour les données de trajet
+            delivery.DepartureAddress = previousAddress;
+            delivery.DepartureTime = departureTime;
+            delivery.DurationMinutes = apiDelivery.DurationToNextMinutes;
+            delivery.DistanceToNextMeters = apiDelivery.DistanceToNextMeters;
+
+            // Calculer l'arrivée
+            currentTime = currentTime.Add(TimeSpan.FromMinutes(apiDelivery.DurationToNextMinutes));
+            delivery.EstimatedArrivalTime = currentTime;
+
+            // TimeSlots
+            delivery.TimeSlotStart = currentTime;
+            delivery.TimeSlotEnd = currentTime.Add(TimeSpan.FromMinutes(30));
+
+            totalServiceMinutes += delivery.ServiceDurationMinutes;
+
+            // Avancer après le service
+            currentTime = currentTime.Add(TimeSpan.FromMinutes(delivery.ServiceDurationMinutes));
+
+            previousAddress = delivery.Address;
+
+            Logger.LogInformation("📦 Updated #{Order} {Client}: {Distance}m, {Duration}min",
+                delivery.SequenceOrder, delivery.ClientName, delivery.DistanceToNextMeters, delivery.DurationMinutes);
+        }
+
+        State.TotalServiceDuration = totalServiceMinutes;
+        State.TotalDurationWithService = State.TotalDurationMinutes + totalServiceMinutes;
+        State.EndTime = currentTime;
+
+        Logger.LogInformation("✅ Metrics updated - Total: {Distance}km, {Duration}min, End: {EndTime}",
+            State.TotalDistanceKm, State.TotalDurationMinutes, State.EndTime);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // REVENIR À L'ORDRE OPTIMAL
+    // ════════════════════════════════════════════════════════════════
+
+    private void RevertToOptimalOrder()
+    {
+        if (_optimalOrder.Count == 0)
+        {
+            Snackbar.Add("Aucun ordre optimal sauvegardé", Severity.Warning);
+            return;
+        }
+
+        Logger.LogInformation("🔄 Reverting to optimal order");
+
+        // Restaurer l'ordre optimal
+        State.OptimizedDeliveries = _optimalOrder
+            .Select(d => new OptimizedDeliveryState
+            {
+                DeliveryId = d.DeliveryId,
+                Reference = d.Reference,
+                ClientName = d.ClientName,
+                Address = d.Address,
+                Latitude = d.Latitude,
+                Longitude = d.Longitude,
+                SequenceOrder = d.SequenceOrder,
+                DepartureAddress = d.DepartureAddress,
+                DepartureTime = d.DepartureTime,
+                EstimatedArrivalTime = d.EstimatedArrivalTime,
+                DurationMinutes = d.DurationMinutes,
+                DistanceToNextMeters = d.DistanceToNextMeters,
+                ServiceDurationMinutes = d.ServiceDurationMinutes,
+                TimeSlotStart = d.TimeSlotStart,
+                TimeSlotEnd = d.TimeSlotEnd
+            })
+            .ToList();
+
+        State.TotalDistanceKm = _optimalDistanceKm;
+        State.TotalDurationMinutes = _optimalDurationMinutes;
+
+        State.IsManuallyReordered = false;
+        State.WasOptimizedByGoogle = true;
+
+        // ✅ Valider les métriques
+        ValidateMetrics();
+
+        // Désactiver le mode manuel
+        _isManualModeEnabled = false;
+
+        Snackbar.Add("✅ Ordre optimal restauré", Severity.Success);
+        StateHasChanged();
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // DRAG & DROP
+    // ════════════════════════════════════════════════════════════════
+
+    private void OnDeliveryReordered(MudItemDropInfo<OptimizedDeliveryState> dropInfo)
+    {
+        if (dropInfo.Item == null || !_isManualModeEnabled) return;
+
+        Logger.LogWarning("⚠️ Manual reordering detected");
+
+        State.OptimizedDeliveries.Remove(dropInfo.Item);
+        State.OptimizedDeliveries.Insert(dropInfo.IndexInZone, dropInfo.Item);
+
+        RecalculateSequence();
+
+        // ✅ Marquer comme réorganisé manuellement
+        State.IsManuallyReordered = true;
+        State.WasOptimizedByGoogle = false;
+
+        // ✅ INVALIDER LES MÉTRIQUES
+        InvalidateMetrics();
+
+        // Activer flag pour alerte si mode édition
+        _dataChangedAfterLoad = true;
+
+        Logger.LogInformation("✅ Manual reorder completed - metrics invalidated, please recalculate");
+
+        Snackbar.Add(
+            "⚠️ Ordre modifié - Cliquez sur 'Recalculer les distances' pour mettre à jour les métriques",
+            Severity.Warning,
+            config => config.VisibleStateDuration = 8000);
+
+        StateHasChanged();
+    }
+
+    private void RecalculateSequence()
+    {
+        for (int i = 0; i < State.OptimizedDeliveries.Count; i++)
+        {
+            State.OptimizedDeliveries[i].SequenceOrder = i + 1;
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ════════════════════════════════════════════════════════════════
+
+    private void SaveOptimalOrder()
+    {
+        _optimalOrder = State.OptimizedDeliveries
+            .Select(d => new OptimizedDeliveryState
+            {
+                DeliveryId = d.DeliveryId,
+                Reference = d.Reference,
+                ClientName = d.ClientName,
+                Address = d.Address,
+                Latitude = d.Latitude,
+                Longitude = d.Longitude,
+                SequenceOrder = d.SequenceOrder,
+                DepartureAddress = d.DepartureAddress,
+                DepartureTime = d.DepartureTime,
+                EstimatedArrivalTime = d.EstimatedArrivalTime,
+                DurationMinutes = d.DurationMinutes,
+                DistanceToNextMeters = d.DistanceToNextMeters,
+                ServiceDurationMinutes = d.ServiceDurationMinutes,
+                TimeSlotStart = d.TimeSlotStart,
+                TimeSlotEnd = d.TimeSlotEnd
+            })
+            .ToList();
+
+        _optimalDistanceKm = State.TotalDistanceKm;
+        _optimalDurationMinutes = State.TotalDurationMinutes;
+
+        Logger.LogInformation("💾 Optimal order saved ({Count} deliveries)", _optimalOrder.Count);
+    }
+
+    public async Task OnStepEntered()
+    {
+        Logger.LogInformation("🎯 RouteOptimizeStep: OnStepEntered (EditMode: {IsEditMode})", IsEditMode);
+        Logger.LogInformation("   HasChanged: {HasChanged}", State.HasChanged);
+        Logger.LogInformation("   MetricsValid: {MetricsValid}", _metricsValid);
+        Logger.LogInformation("   OptimizedDeliveries count: {Count}", State.OptimizedDeliveries.Count);
+
+        // ✅ Ne pas afficher d'alerte au premier chargement, seulement si données changées APRÈS
+        if (IsEditMode && _dataChangedAfterLoad && State.HasChanged && State.OptimizedDeliveries.Any())
+        {
+            Snackbar.Add(
+                "⚠️ Les livraisons ont été modifiées - réoptimisation nécessaire",
+                Severity.Warning,
+                config => config.VisibleStateDuration = 5000);
+        }
+
+        await OnValidationChanged.InvokeAsync(IsValid);
+        StateHasChanged();
+    }
+
+    private string FormatDistance(int meters)
+    {
+        if (meters < 1000)
+            return $"{meters}m";
+
+        return $"{(meters / 1000.0):F1}km";
+    }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes}min";
+
+        var hours = minutes / 60;
+        var mins = minutes % 60;
+        return mins > 0 ? $"{hours}h{mins:00}" : $"{hours}h";
+    }
+
+    private TimeSpan GetServiceEndTime(OptimizedDeliveryState delivery)
+    {
+        return delivery.EstimatedArrivalTime.Add(TimeSpan.FromMinutes(delivery.ServiceDurationMinutes));
+    }
+
+    private string GetGoogleMapsEmbedUrl()
+    {
+        if (!State.OptimizedDeliveries.Any())
+            return "";
+
+        try
+        {
+            var deliveries = State.OptimizedDeliveries.OrderBy(d => d.SequenceOrder).ToList();
+
+            // Origin : Point de départ
+            var origin = State.DepartureLatitude.HasValue && State.DepartureLongitude.HasValue
+                ? $"{State.DepartureLatitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)},{State.DepartureLongitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+                : Uri.EscapeDataString(State.DepartureAddress);
+
+            // Destination : Dernière livraison
+            var lastDelivery = deliveries.Last();
+            var destination = $"{lastDelivery.Latitude?.ToString(System.Globalization.CultureInfo.InvariantCulture)},{lastDelivery.Longitude?.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+
+            // ✅ Waypoints : Toutes les livraisons SAUF la dernière (qui est destination)
+            var waypoints = "";
+            if (deliveries.Count > 1)
+            {
+                waypoints = string.Join("|", deliveries
+                    .Take(deliveries.Count - 1)
+                    .Where(d => d.Latitude.HasValue && d.Longitude.HasValue)
+                    .Select(d => $"{d.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)},{d.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}"));
+            }
+
+            // ✅ URL avec tous les waypoints pour afficher TOUTES les étapes
+            var url = $"https://www.google.com/maps/embed/v1/directions?key=AIzaSyCBrkO2wB-NtFBQKghAXpteul5yHOgY-Cg&origin={origin}&destination={destination}&waypoints={waypoints}&mode=driving";
+
+            Logger.LogInformation("🗺️ Google Maps URL: {Count} waypoints", deliveries.Count - 1);
+
+            return url;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error generating Google Maps URL");
+            return "";
+        }
+    }
+
+    private string GetDeliveryPaperStyle(bool manualMode)
+    {
+        var style = "border-left: 4px solid #4CAF50; border-radius: 8px;";
+
+        if (manualMode)
+            style += " cursor: grab;";
+
+        return style;
+    }
+}

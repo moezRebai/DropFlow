@@ -1,0 +1,179 @@
+@page "/settings/company"
+@using DropFlow.Shared.Tenants
+@using DropFlow.Shared.Tenants.Depots
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ITenantManagementService TenantService
+@inject ISnackbar Snackbar
+
+<PageTitle>Paramètres Entreprise - DropFlow</PageTitle>
+
+<AuthorizeView Roles="@Roles.ManagerOrAdmin" Context="auth">
+    <Authorized>
+    <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+
+        <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border-left: 4px solid #2196F3; background: white;">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudStack Spacing="1">
+                    <MudBreadcrumbs Items="_breadcrumbs">
+                        <ItemTemplate Context="item">
+                            <MudLink Href="@item.Href" Style="color: #6B7280;">
+                                @item.Text
+                            </MudLink>
+                        </ItemTemplate>
+                    </MudBreadcrumbs>
+                    <MudText Typo="Typo.h5" Style="font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-2" Style="color: var(--mud-palette-secondary);"/>
+                        Entreprise
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="color: #64748b;">
+                        Gérez les informations de votre entreprise et vos dépôts
+                    </MudText>
+                </MudStack>
+
+                <MudFab StartIcon="@Icons.Material.Filled.Refresh" OnClick="RefreshData"
+                        Size="Size.Large"
+                        Disabled="@_loading"
+                        Color="Color.Info"/>
+            </MudStack>
+        </MudPaper>
+
+        @* Loading State *@
+        @if (_loading)
+        {
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudCard>
+                        <MudCardContent>
+                            <div class="d-flex justify-center align-center pa-8">
+                                <MudProgressCircular Indeterminate="true" Size="Size.Large" />
+                            </div>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        }
+        else if (_tenant == null)
+        {
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                        <MudText>Impossible de charger les informations de l'entreprise.</MudText>
+                    </MudAlert>
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            @* Tabs *@
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTabs Elevation="2" 
+                             Rounded="true" 
+                             ApplyEffectsToContainer="true"
+                             PanelClass="pa-6"
+                             @bind-ActivePanelIndex="_activeTabIndex">
+                    
+                        @* Tab 1: Informations Générales *@
+                        <MudTabPanel Text="Informations Générales" 
+                                     Icon="@Icons.Material.Filled.Info">
+                            <CompanyInfoTab Tenant="@_tenant" 
+                                            OnUpdated="HandleTenantUpdated" />
+                        </MudTabPanel>
+                    
+                        @* Tab 2: Informations Légales *@
+                        <MudTabPanel Text="Informations Légales" 
+                                     Icon="@Icons.Material.Filled.Gavel">
+                            <LegalInfoTab Tenant="@_tenant" 
+                                          OnUpdated="HandleTenantUpdated" />
+                        </MudTabPanel>
+                    
+                        @* Tab 3: Dépôts *@
+                        <MudTabPanel Text="Dépôts" 
+                                     Icon="@Icons.Material.Filled.Warehouse"
+                                     BadgeData="@_depots.Count"
+                                     BadgeColor="Color.Primary">
+                            <DepotsTab Depots="@_depots" 
+                                       OnDepotsChanged="HandleDepotsChanged" />
+                        </MudTabPanel>
+                    
+                    </MudTabs>
+                </MudItem>
+            </MudGrid>
+        }
+
+    </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool _loading = true;
+    private int _activeTabIndex = 0;
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    private TenantDto? _tenant;
+    private List<TenantDepotDto> _depots = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        InitializeBreadcrumbs();
+        await LoadData();
+    }
+
+    private void InitializeBreadcrumbs()
+    {
+        _breadcrumbs =
+        [
+            new BreadcrumbItem("Paramètres", href: "/settings"),
+            new BreadcrumbItem("Véhicules", href: "/settings/company", disabled: true)
+        ];
+    }
+    
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Charger les infos tenant
+            _tenant = await TenantService.GetCurrentTenantAsync();
+            
+            // Charger les dépôts
+            _depots = await TenantService.GetAllDepotsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du chargement : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+        Snackbar.Add("Données actualisées", Severity.Success);
+    }
+
+    private async Task HandleTenantUpdated()
+    {
+        // Recharger le tenant après modification
+        _tenant = await TenantService.GetCurrentTenantAsync(forceRefresh: true);
+        StateHasChanged();
+    }
+
+    private async Task HandleDepotsChanged()
+    {
+        // Recharger les dépôts après modification
+        _depots = await TenantService.RefreshDepotsAsync();
+        StateHasChanged();
+    }
+}
