@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -15,10 +16,10 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "AspNetRoles",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -29,29 +30,29 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "AspNetUsers",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastLoginDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    LockoutEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    AccessFailedCount = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    LastLoginDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    DeletedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "boolean", nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "text", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "text", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "boolean", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    LockoutEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    AccessFailedCount = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -63,16 +64,16 @@ namespace DropFlow.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Action = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    EntityName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    EntityId = table.Column<int>(type: "int", nullable: true),
-                    Changes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IpAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: true),
+                    Action = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    EntityName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    EntityId = table.Column<int>(type: "integer", nullable: true),
+                    Changes = table.Column<string>(type: "text", nullable: true),
+                    IpAddress = table.Column<string>(type: "text", nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    Severity = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -83,18 +84,18 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "Clients",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -105,24 +106,24 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "Stores",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ZipCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Latitude = table.Column<decimal>(type: "decimal(10,7)", nullable: true),
-                    Longitude = table.Column<decimal>(type: "decimal(10,7)", nullable: true),
-                    ContactName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ZipCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Latitude = table.Column<double>(type: "numeric(10,7)", nullable: true),
+                    Longitude = table.Column<double>(type: "numeric(10,7)", nullable: true),
+                    ContactName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                    ModifiedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -133,30 +134,30 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "Tenants",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    SubDomain = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    PlanType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    MaxUsers = table.Column<int>(type: "int", nullable: false),
-                    MaxDeliveries = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ExpiryDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CompanyName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    LogoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ZipCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Website = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Siret = table.Column<string>(type: "nvarchar(14)", maxLength: 14, nullable: true),
-                    VatNumber = table.Column<string>(type: "nvarchar(13)", maxLength: 13, nullable: true),
-                    LegalForm = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    LegalMentions = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    BankDetails = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    SubDomain = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    PlanType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    MaxUsers = table.Column<int>(type: "integer", nullable: false),
+                    MaxDeliveries = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    ExpiryDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    CompanyName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    LogoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ZipCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Website = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Siret = table.Column<string>(type: "character varying(14)", maxLength: 14, nullable: true),
+                    VatNumber = table.Column<string>(type: "character varying(13)", maxLength: 13, nullable: true),
+                    LegalForm = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    LegalMentions = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    BankDetails = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ModifiedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -167,13 +168,13 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "TimeSlots",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    DisplayOrder = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -184,16 +185,16 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "Vehicles",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    Brand = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Model = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    PlateNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    MaxDeliveries = table.Column<int>(type: "int", nullable: false),
-                    MaxVolume = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    Brand = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Model = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PlateNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    MaxDeliveries = table.Column<int>(type: "integer", nullable: false),
+                    MaxVolume = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -204,11 +205,11 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleId = table.Column<string>(type: "text", nullable: false),
+                    ClaimType = table.Column<string>(type: "text", nullable: true),
+                    ClaimValue = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -225,11 +226,11 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "AspNetUserClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    ClaimType = table.Column<string>(type: "text", nullable: true),
+                    ClaimValue = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -246,10 +247,10 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    LoginProvider = table.Column<string>(type: "text", nullable: false),
+                    ProviderKey = table.Column<string>(type: "text", nullable: false),
+                    ProviderDisplayName = table.Column<string>(type: "text", nullable: true),
+                    UserId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -266,8 +267,8 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "AspNetUserRoles",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    RoleId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -290,10 +291,10 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "AspNetUserTokens",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    LoginProvider = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -310,14 +311,14 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "Drivers",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-                    LicenseNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    LicenseExpiryDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    LicenseNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    LicenseExpiryDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -334,20 +335,20 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "UserPreferences",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-                    EmailNotificationsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    SmsNotificationsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    PushNotificationsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    DeliveryStatusNotifications = table.Column<bool>(type: "bit", nullable: false),
-                    InvitationNotifications = table.Column<bool>(type: "bit", nullable: false),
-                    SystemNotifications = table.Column<bool>(type: "bit", nullable: false),
-                    Theme = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Language = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    TimeZone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    EmailNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    SmsNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    PushNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    DeliveryStatusNotifications = table.Column<bool>(type: "boolean", nullable: false),
+                    InvitationNotifications = table.Column<bool>(type: "boolean", nullable: false),
+                    SystemNotifications = table.Column<bool>(type: "boolean", nullable: false),
+                    Theme = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Language = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    TimeZone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -364,17 +365,17 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "ClientAddresses",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ClientId = table.Column<int>(type: "int", nullable: false),
-                    Label = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    ZipCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Complement = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Latitude = table.Column<double>(type: "float(10)", precision: 10, scale: 8, nullable: true),
-                    Longitude = table.Column<double>(type: "float(11)", precision: 11, scale: 8, nullable: true),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ClientId = table.Column<int>(type: "integer", nullable: false),
+                    Label = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ZipCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Complement = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Latitude = table.Column<double>(type: "double precision", precision: 10, scale: 8, nullable: true),
+                    Longitude = table.Column<double>(type: "double precision", precision: 11, scale: 8, nullable: true),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -391,19 +392,19 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "TenantDepots",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    FullAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ZipCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    Latitude = table.Column<double>(type: "float(10)", precision: 10, scale: 8, nullable: true),
-                    Longitude = table.Column<double>(type: "float(11)", precision: 11, scale: 8, nullable: true),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    FullAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ZipCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    Latitude = table.Column<double>(type: "double precision", precision: 10, scale: 8, nullable: true),
+                    Longitude = table.Column<double>(type: "double precision", precision: 11, scale: 8, nullable: true),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
+                    ModifiedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -420,16 +421,16 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "UserInvitations",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Role = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Token = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsUsed = table.Column<bool>(type: "bit", nullable: false),
-                    InvitedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Role = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Token = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    IsUsed = table.Column<bool>(type: "boolean", nullable: false),
+                    InvitedBy = table.Column<string>(type: "text", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -446,29 +447,29 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "Routes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    Reference = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    VehicleId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    EstimatedEndTime = table.Column<TimeSpan>(type: "time", nullable: true),
-                    TotalDistance = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: false),
-                    TotalDuration = table.Column<int>(type: "int", nullable: false),
-                    TotalDeliveries = table.Column<int>(type: "int", nullable: false),
-                    TotalVolume = table.Column<int>(type: "int", precision: 10, scale: 2, nullable: true),
-                    OptimizedRouteJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DepartureAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    DepartureLatitude = table.Column<double>(type: "float(10)", precision: 10, scale: 8, nullable: true),
-                    DepartureLongitude = table.Column<double>(type: "float(11)", precision: 11, scale: 8, nullable: true),
-                    WasOptimizedByGoogle = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    WasManuallyReordered = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    Reference = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    VehicleId = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    EstimatedEndTime = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    TotalDistance = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    TotalDuration = table.Column<int>(type: "integer", nullable: false),
+                    TotalDeliveries = table.Column<int>(type: "integer", nullable: false),
+                    TotalVolume = table.Column<int>(type: "integer", precision: 10, scale: 2, nullable: true),
+                    OptimizedRouteJson = table.Column<string>(type: "text", nullable: true),
+                    DepartureAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    DepartureLatitude = table.Column<double>(type: "double precision", precision: 10, scale: 8, nullable: true),
+                    DepartureLongitude = table.Column<double>(type: "double precision", precision: 11, scale: 8, nullable: true),
+                    WasOptimizedByGoogle = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    WasManuallyReordered = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -485,45 +486,45 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "Deliveries",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    SequentialNumber = table.Column<int>(type: "int", nullable: false),
-                    Reference = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    ClientId = table.Column<int>(type: "int", nullable: false),
-                    ClientAddressId = table.Column<int>(type: "int", nullable: false),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    FileNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    ScheduledDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    ClientPaymentAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
-                    StorePaymentAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
-                    Type = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    RouteId = table.Column<int>(type: "int", nullable: true),
-                    SequenceOrder = table.Column<int>(type: "int", nullable: true),
-                    DepartureAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    DepartureTime = table.Column<TimeSpan>(type: "time", nullable: true),
-                    TravelDurationMinutes = table.Column<int>(type: "int", nullable: true),
-                    DistanceToNextMeters = table.Column<int>(type: "int", nullable: true),
-                    UrgentDriverId = table.Column<int>(type: "int", nullable: true),
-                    WithAssembly = table.Column<bool>(type: "bit", nullable: false),
-                    DeliveryNotes = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    InternalNotes = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    EstimatedDurationMinutes = table.Column<int>(type: "int", nullable: true),
-                    TimeSlotId = table.Column<int>(type: "int", nullable: true),
-                    EstimatedArrivalTime = table.Column<TimeSpan>(type: "time", nullable: true),
-                    ActualArrivalTime = table.Column<TimeSpan>(type: "time", nullable: true),
-                    SignatureUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    PhotoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    DeliveredDateTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ValidationComment = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    ValidatedByDriverId = table.Column<int>(type: "int", nullable: true),
-                    IsClientAbsent = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    SequentialNumber = table.Column<int>(type: "integer", nullable: false),
+                    Reference = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ClientId = table.Column<int>(type: "integer", nullable: false),
+                    ClientAddressId = table.Column<int>(type: "integer", nullable: false),
+                    StoreId = table.Column<int>(type: "integer", nullable: false),
+                    FileNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ScheduledDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    ClientPaymentAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    StorePaymentAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    RouteId = table.Column<int>(type: "integer", nullable: true),
+                    SequenceOrder = table.Column<int>(type: "integer", nullable: true),
+                    DepartureAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    DepartureTime = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    TravelDurationMinutes = table.Column<int>(type: "integer", nullable: true),
+                    DistanceToNextMeters = table.Column<int>(type: "integer", nullable: true),
+                    UrgentDriverId = table.Column<int>(type: "integer", nullable: true),
+                    WithAssembly = table.Column<bool>(type: "boolean", nullable: false),
+                    DeliveryNotes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    InternalNotes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    EstimatedDurationMinutes = table.Column<int>(type: "integer", nullable: true),
+                    TimeSlotId = table.Column<int>(type: "integer", nullable: true),
+                    EstimatedArrivalTime = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    ActualArrivalTime = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    SignatureUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    PhotoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    DeliveredDateTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ValidationComment = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ValidatedByDriverId = table.Column<int>(type: "integer", nullable: true),
+                    IsClientAbsent = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    ModifiedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -550,8 +551,7 @@ namespace DropFlow.Infrastructure.Migrations
                         name: "FK_Deliveries_Drivers_ValidatedByDriverId",
                         column: x => x.ValidatedByDriverId,
                         principalTable: "Drivers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Deliveries_Routes_RouteId",
                         column: x => x.RouteId,
@@ -576,13 +576,13 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "RouteTeam",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    RouteId = table.Column<int>(type: "int", nullable: false),
-                    DriverId = table.Column<int>(type: "int", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false),
-                    AssignedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TenantId = table.Column<int>(type: "integer", nullable: false),
+                    RouteId = table.Column<int>(type: "integer", nullable: false),
+                    DriverId = table.Column<int>(type: "integer", nullable: false),
+                    Role = table.Column<int>(type: "integer", nullable: false),
+                    AssignedDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -605,13 +605,13 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "DeliveryItems",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    DeliveryId = table.Column<int>(type: "int", nullable: false),
-                    Reference = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Designation = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Quantity = table.Column<int>(type: "int", precision: 18, scale: 3, nullable: false),
-                    Information = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DeliveryId = table.Column<int>(type: "integer", nullable: false),
+                    Reference = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Designation = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Quantity = table.Column<int>(type: "integer", precision: 18, scale: 3, nullable: false),
+                    Information = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -633,8 +633,7 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "RoleNameIndex",
                 table: "AspNetRoles",
                 column: "NormalizedName",
-                unique: true,
-                filter: "[NormalizedName] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
@@ -680,8 +679,7 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "UserNameIndex",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
-                unique: true,
-                filter: "[NormalizedUserName] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_Severity",
@@ -905,7 +903,7 @@ namespace DropFlow.Infrastructure.Migrations
                 name: "IX_TenantDepots_IsDefault",
                 table: "TenantDepots",
                 columns: new[] { "TenantId", "IsDefault" },
-                filter: "[IsDefault] = 1");
+                filter: "\"IsDefault\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TenantDepots_TenantId",
@@ -932,7 +930,7 @@ namespace DropFlow.Infrastructure.Migrations
                 table: "Tenants",
                 column: "SubDomain",
                 unique: true,
-                filter: "[SubDomain] IS NOT NULL");
+                filter: "\"SubDomain\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TimeSlots_TenantId_Id",

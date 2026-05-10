@@ -1,4 +1,4 @@
-﻿using DropFlow.Application.Dto;
+using DropFlow.Application.Dto;
 using DropFlow.Application.Interfaces;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -6,17 +6,26 @@ using QuestPDF.Infrastructure;
 
 namespace DropFlow.Infrastructure.Services.Pdf;
 
-/// <summary>
-/// Générateur de feuilles de route PDF - VERSION FINALE CORRIGÉE
-/// </summary>
 public class RouteSheetPdfGenerator : IRouteSheetPdfGenerator
 {
+    // ── Neutral palette ──────────────────────────────────────────
+    private const string BgLight   = "#F9FAFB";
+    private const string BgRow     = "#F9FAFB";
+    private const string Border    = "#E5E7EB";
+    private const string BorderMid = "#D1D5DB";
+    private const string TextDark  = "#111827";
+    private const string TextMid   = "#374151";
+    private const string TextMuted = "#6B7280";
+    private const string TextLight = "#9CA3AF";
+    private const string Green     = "#059669";
+    private const string Orange    = "#D97706";
+    private const string OrangeBg  = "#FEF3C7";
+
     private readonly HttpClient _httpClient;
 
     public RouteSheetPdfGenerator()
     {
-        _httpClient = new HttpClient();
-        _httpClient.Timeout = TimeSpan.FromSeconds(10);
+        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
     }
 
     public byte[] Generate(RouteSheetDto data)
@@ -26,9 +35,9 @@ public class RouteSheetPdfGenerator : IRouteSheetPdfGenerator
             container.Page(page =>
             {
                 page.Size(PageSizes.A4.Landscape());
-                page.Margin(20);
+                page.Margin(18);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Arial"));
+                page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Arial").FontColor(TextDark));
 
                 page.Header().Element(c => ComposeHeader(c, data));
                 page.Content().Element(c => ComposeContent(c, data));
@@ -37,341 +46,367 @@ public class RouteSheetPdfGenerator : IRouteSheetPdfGenerator
         }).GeneratePdf();
     }
 
-    public Task<byte[]> GenerateAsync(RouteSheetDto data)
-    {
-        return Task.FromResult(Generate(data));
-    }
+    public Task<byte[]> GenerateAsync(RouteSheetDto data) => Task.FromResult(Generate(data));
 
-    /// <summary>
-    /// Télécharge l'image depuis une URL HTTP
-    /// </summary>
+    // ── Helpers ──────────────────────────────────────────────────
+
     private byte[]? DownloadImageFromUrl(string url)
     {
         try
         {
-            var response = _httpClient.GetAsync(url).Result;
-            if (response.IsSuccessStatusCode)
-            {
-                return response.Content.ReadAsByteArrayAsync().Result;
-            }
+            var r = _httpClient.GetAsync(url).Result;
+            return r.IsSuccessStatusCode ? r.Content.ReadAsByteArrayAsync().Result : null;
         }
-        catch
-        {
-            // Erreur de téléchargement, retourner null
-        }
-        return null;
+        catch { return null; }
     }
+
+    private static string FormatTimeSlot(RouteSheetDeliveryDto d)
+    {
+        if (d.TimeSlotStart.HasValue && d.TimeSlotEnd.HasValue)
+            return $"{d.TimeSlotStart.Value.Hours}–{d.TimeSlotEnd.Value.Hours}";
+
+        if (d.EstimatedArrivalTime.HasValue)
+            return d.EstimatedArrivalTime.Value.Hours.ToString();
+
+        return "—";
+    }
+
+    // ── HEADER ───────────────────────────────────────────────────
 
     private void ComposeHeader(IContainer container, RouteSheetDto data)
     {
-        container.Column(column =>
+        container.Column(col =>
         {
-            // Ligne principale : Logo + Titre (MÊME HAUTEUR)
-            column.Item().Row(row =>
+            // Top row: Logo | Title | Route details
+            col.Item().Row(row =>
             {
-                // ✅ LOGO - Tout en haut à gauche
-                row.ConstantItem(180).Column(logoColumn =>
+                // Left — Logo + company
+                row.ConstantItem(170).Column(left =>
                 {
-                    // Télécharger et afficher le logo
+                    byte[]? logoBytes = null;
                     if (!string.IsNullOrEmpty(data.CompanyLogoUrl))
+                        logoBytes = DownloadImageFromUrl(data.CompanyLogoUrl);
+
+                    if (logoBytes != null)
+                        left.Item().Height(60).Width(170).Image(logoBytes);
+
+                    left.Item().PaddingTop(8).Column(info =>
                     {
-                        var imageBytes = DownloadImageFromUrl(data.CompanyLogoUrl);
-                        
-                        if (imageBytes != null)
-                        {
-                            logoColumn.Item().Height(60).Width(180)
-                                .Image(imageBytes);
-                        }
-                        else
-                        {
-                            // Fallback si échec téléchargement
-                            logoColumn.Item().Height(60).Width(180)
-                                .Border(1).BorderColor(Colors.Grey.Lighten2)
-                                .AlignCenter().AlignMiddle()
-                                .Text("[LOGO]").FontSize(10).FontColor(Colors.Grey.Medium);
-                        }
-                    }
-                    else
-                    {
-                        // Placeholder si pas de logo
-                        logoColumn.Item().Height(60).Width(180)
-                            .Border(1).BorderColor(Colors.Grey.Lighten2)
-                            .AlignCenter().AlignMiddle()
-                            .Text("[LOGO]").FontSize(10).FontColor(Colors.Grey.Medium);
-                    }
+                        info.Item().Text(data.CompanyName)
+                            .FontSize(9).Bold().FontColor(TextDark);
+                        info.Item().Text(data.CompanyAddress)
+                            .FontSize(7).FontColor(TextMuted);
+                        info.Item().Text(data.CompanyCity)
+                            .FontSize(7).FontColor(TextMuted);
+                        if (!string.IsNullOrEmpty(data.CompanyPhone))
+                            info.Item().Text($"Tél : {data.CompanyPhone}")
+                                .FontSize(7).FontColor(TextMuted);
+                        if (!string.IsNullOrEmpty(data.CompanySiret))
+                            info.Item().Text($"SIRET : {data.CompanySiret}")
+                                .FontSize(7).FontColor(TextMuted);
+                    });
                 });
 
-                row.ConstantItem(10); // Espace
+                row.ConstantItem(14);
 
-                // ✅ TITRE - Grand rectangle avec cadre SANS fond bleu
-                row.RelativeItem().Column(titleColumn =>
-                {
-                    titleColumn.Item()
-                        .Border(2).BorderColor(Colors.Blue.Darken2) // Cadre bleu épais
-                        .Padding(12)
-                        .Column(innerColumn =>
+                // Center — Title block (light gray bg, dark text)
+                row.RelativeItem()
+                    .Background(BgLight)
+                    .Border(1).BorderColor(Border)
+                    .Padding(14)
+                    .Column(center =>
+                    {
+                        center.Item().AlignCenter()
+                            .Text("FEUILLE DE ROUTE")
+                            .FontSize(20).Bold().FontColor(TextDark);
+
+                        center.Item().PaddingTop(4).AlignCenter()
+                            .Text($"N° {data.RouteReference}")
+                            .FontSize(12).Bold().FontColor(TextMid);
+
+                        center.Item().PaddingTop(6)
+                            .LineHorizontal(1).LineColor(Border);
+
+                        center.Item().PaddingTop(6).AlignCenter()
+                            .Text(data.RouteDate.ToString("dddd d MMMM yyyy").ToUpper())
+                            .FontSize(9).FontColor(TextMuted);
+                    });
+
+                row.ConstantItem(14);
+
+                // Right — Operational info
+                row.ConstantItem(170)
+                    .Border(1).BorderColor(Border)
+                    .Background(BgLight)
+                    .Padding(10)
+                    .Column(right =>
+                    {
+                        void InfoRow(string label, string value)
                         {
-                            // Titre
-                            innerColumn.Item().AlignCenter()
-                                .Text("LETTRE DE VOITURE")
-                                .FontSize(18).Bold().FontColor(Colors.Blue.Darken2);
-                            
-                            // Numéro de référence
-                            innerColumn.Item().AlignCenter()
-                                .Text($"N° {data.RouteReference}")
-                                .FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
-                            
-                            // Date de tournée (en bas du rectangle)
-                            innerColumn.Item().PaddingTop(8).AlignCenter()
-                                .Text(data.RouteDate.ToString("dd/MM/yyyy"))
-                                .FontSize(12).FontColor(Colors.Grey.Darken2);
+                            right.Item().PaddingBottom(7).Row(r =>
+                            {
+                                r.ConstantItem(50)
+                                    .Text(label)
+                                    .FontSize(7).Bold().FontColor(TextMuted);
+                                r.RelativeItem()
+                                    .Text(value)
+                                    .FontSize(8).FontColor(TextDark);
+                            });
+                        }
+
+                        InfoRow("Véhicule :", data.VehicleName);
+                        InfoRow("Équipe :", data.TeamMembers);
+                        InfoRow("Départ :", $"{data.DepartureTime:hh\\:mm}");
+                        if (!string.IsNullOrEmpty(data.DepartureAddress))
+                            InfoRow("Dépôt :", data.DepartureAddress);
+                    });
+            });
+
+            // Stats strip
+            col.Item().PaddingTop(10)
+                .Border(1).BorderColor(Border)
+                .Background(BgLight)
+                .Row(bar =>
+                {
+                    void Stat(string value, string label, bool last = false)
+                    {
+                        var cell = bar.RelativeItem();
+                        if (!last) cell = cell.BorderRight(1).BorderColor(Border);
+                        cell.Padding(7).Column(c =>
+                        {
+                            c.Item().AlignCenter()
+                                .Text(value).FontSize(13).Bold().FontColor(TextDark);
+                            c.Item().PaddingTop(2).AlignCenter()
+                                .Text(label).FontSize(6).FontColor(TextMuted);
                         });
-                });
-            });
+                    }
 
-            // Informations entreprise (sous le logo)
-            column.Item().PaddingTop(5).PaddingLeft(0).Text(text =>
-            {
-                text.Span(data.CompanyName).FontSize(10).Bold().FontColor(Colors.Blue.Darken2);
-                text.Line("");
-                text.Span(data.CompanyAddress).FontSize(8).FontColor(Colors.Black);
-                text.Line("");
-                text.Span(data.CompanyCity).FontSize(8).FontColor(Colors.Black);
-                text.Line("");
-                text.Span($"Tél: {data.CompanyPhone}").FontSize(8).FontColor(Colors.Black);
-                text.Line("");
-                text.Span($"Siret: {data.CompanySiret}").FontSize(8).FontColor(Colors.Black);
-            });
-
-            // Ligne de séparation
-            column.Item().PaddingVertical(8).LineHorizontal(2).LineColor(Colors.Blue.Lighten3);
-
-            // Informations ÉQUIPE et VÉHICULE
-            column.Item().Background(Colors.Grey.Lighten4).Padding(8).Row(row =>
-            {
-                row.RelativeItem().Text(text =>
-                {
-                    text.Span("ÉQUIPE : ").Bold().FontSize(9).FontColor(Colors.Blue.Darken2);
-                    text.Span(data.TeamMembers).FontSize(9).FontColor(Colors.Black);
+                    Stat(data.Deliveries.Count.ToString(), "ARRÊTS");
+                    Stat($"{data.TotalClientPayment:N0} €", "TOTAL CLIENT");
+                    Stat($"{data.TotalStorePayment:N0} €", "TOTAL ENSEIGNE");
+                    Stat($"{data.DepartureTime:hh\\:mm}", "HEURE DÉPART", last: true);
                 });
 
-                row.RelativeItem().AlignRight().Text(text =>
-                {
-                    text.Span("VÉHICULE : ").Bold().FontSize(9).FontColor(Colors.Blue.Darken2);
-                    text.Span(data.VehicleName).FontSize(9).FontColor(Colors.Black);
-                });
-            });
-
-            column.Item().PaddingVertical(4).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+            col.Item().PaddingTop(8).LineHorizontal(1).LineColor(Border);
         });
     }
+
+    // ── CONTENT ──────────────────────────────────────────────────
 
     private void ComposeContent(IContainer container, RouteSheetDto data)
     {
-        container.PaddingVertical(8).Column(column =>
+        container.PaddingTop(8).Table(table =>
         {
-            // Tableau des livraisons
-            column.Item().Table(table =>
+            table.ColumnsDefinition(cols =>
             {
-                // Définir les colonnes
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.ConstantColumn(20);      // #
-                    columns.ConstantColumn(65);      // N° Dossier
-                    columns.RelativeColumn(1.2f);    // Client
-                    columns.ConstantColumn(70);      // Téléphone
-                    columns.RelativeColumn(1f);      // Ville
-                    columns.ConstantColumn(30);      // H
-                    columns.ConstantColumn(50);      // Mtg
-                    columns.RelativeColumn(1f);      // Enseigne
-                    columns.ConstantColumn(70);      // CRT MAG(€)
-                    columns.ConstantColumn(50);      // CRT {CompanyAcronym}(€)
-                    columns.RelativeColumn(1.5f);    // Instructions
-                });
-
-                // En-tête du tableau
-                table.Header(header =>
-                {
-                    header.Cell().Element(HeaderCellStyle).AlignCenter().Text("#").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).Text("N° Dossier").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).Text("Client").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).Text("Téléphone").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).Text("Ville").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).AlignCenter().Text("H").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).AlignCenter().Text("Service").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).Text("Enseigne").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("DÛ MAG(\u20ac)").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).AlignRight().Text($"DÛ {data.CompanyAcronym}(€)").Bold().FontSize(8);
-                    header.Cell().Element(HeaderCellStyle).Text("Instructions").Bold().FontSize(8);
-
-                    static IContainer HeaderCellStyle(IContainer c) => c
-                        .Background(Colors.Blue.Darken2)
-                        .BorderBottom(2).BorderColor(Colors.Blue.Darken3)
-                        .Padding(4)
-                        .DefaultTextStyle(x => x.FontColor(Colors.White));
-                });
-
-                // Lignes du tableau (alternées)
-                var isEven = false;
-                foreach (var delivery in data.Deliveries)
-                {
-                    isEven = !isEven;
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven)).AlignCenter()
-                        .Text(delivery.SequenceOrder.ToString()).FontSize(8).Bold();
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven))
-                        .Text(delivery.DeliveryReference).FontSize(7);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven))
-                        .Text(delivery.ClientName).FontSize(7);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven))
-                        .Text(delivery.ClientPhone).FontSize(6);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven))
-                        .Text(delivery.City.ToUpper()).FontSize(7);
-                    
-                    // TimeSlot format HH (sans minutes)
-                    table.Cell().Element(c => RowCellStyle(c, isEven)).AlignCenter()
-                        .Text(GetTimeSlotDisplay(delivery))
-                        .FontSize(8).Bold().FontColor(Colors.Blue.Darken1);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven)).AlignCenter()
-                        .Text(delivery.ServiceType)
-                        .FontSize(8).Bold().FontColor(delivery.ServiceType == "M" ? Colors.Orange.Darken1 : Colors.Grey.Darken1);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven))
-                        .Text(delivery.StoreName ?? "").FontSize(6);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven)).AlignRight()
-                        .Text(delivery.StorePaymentAmount > 0 
-                            ? delivery.StorePaymentAmount.ToString("F1") 
-                            : "0.0")
-                        .FontSize(7);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven)).AlignRight()
-                        .Text(delivery.ClientPaymentAmount > 0 
-                            ? delivery.ClientPaymentAmount.ToString("F1") 
-                            : "0.0")
-                        .FontSize(7);
-                    
-                    table.Cell().Element(c => RowCellStyle(c, isEven))
-                        .Text(delivery.Instructions ?? "").FontSize(6);
-
-                    static IContainer RowCellStyle(IContainer c, bool isEven) => c
-                        .Background(isEven ? Colors.Grey.Lighten4 : Colors.White)
-                        .BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
-                        .Padding(4);
-                }
-
-                // Ligne Total
-                table.Cell().ColumnSpan(8).Element(TotalCellStyle).AlignRight()
-                    .Text("TOTAL :").Bold().FontSize(9).FontColor(Colors.Blue.Darken2);
-                
-                table.Cell().Element(TotalCellStyle).AlignRight()
-                    .Text(data.TotalStorePayment.ToString("F1"))
-                    .Bold().FontSize(9).FontColor(Colors.Blue.Darken2);
-                
-                table.Cell().Element(TotalCellStyle).AlignRight()
-                    .Text(data.TotalClientPayment.ToString("F1"))
-                    .Bold().FontSize(9).FontColor(Colors.Blue.Darken2);
-                
-                table.Cell().Element(TotalCellStyle);
-
-                static IContainer TotalCellStyle(IContainer c) => c
-                    .Background(Colors.Blue.Lighten4)
-                    .BorderTop(2).BorderColor(Colors.Blue.Darken2)
-                    .Padding(5);
+                cols.ConstantColumn(22);    // #
+                cols.ConstantColumn(55);    // N° Dossier
+                cols.RelativeColumn(1.5f);  // Client / Tél
+                cols.ConstantColumn(72);    // Ville
+                cols.ConstantColumn(36);    // Créneau  ("8–10")
+                cols.ConstantColumn(22);    // Svc      ("M"/"N")
+                cols.RelativeColumn(0.9f);  // Enseigne
+                cols.ConstantColumn(65);    // Client (€)
+                cols.ConstantColumn(65);    // Enseigne (€)
+                cols.RelativeColumn(1.2f);  // Instructions
             });
+
+            // Header row — light gray, dark text
+            table.Header(header =>
+            {
+                static IContainer H(IContainer c) => c
+                    .Background(BgLight)
+                    .BorderBottom(2).BorderColor(BorderMid)
+                    .PaddingVertical(6).PaddingHorizontal(5)
+                    .DefaultTextStyle(x => x.FontColor(TextMid).FontSize(7).Bold());
+
+                header.Cell().Element(H).AlignCenter().Text("#");
+                header.Cell().Element(H).Text("N° Dossier");
+                header.Cell().Element(H).Text("Client / Téléphone");
+                header.Cell().Element(H).Text("Ville");
+                header.Cell().Element(H).AlignCenter().Text("Créneau");
+                header.Cell().Element(H).AlignCenter().Text("Svc");
+                header.Cell().Element(H).Text("Enseigne");
+                header.Cell().Element(H).AlignRight().Text("Client (€)");
+                header.Cell().Element(H).AlignRight().Text($"{data.CompanyAcronym} (€)");
+                header.Cell().Element(H).Text("Instructions");
+            });
+
+            // Data rows
+            for (int i = 0; i < data.Deliveries.Count; i++)
+            {
+                var d = data.Deliveries[i];
+                var bg = i % 2 == 0 ? "#FFFFFF" : BgRow;
+
+                IContainer Row(IContainer c) => c
+                    .Background(bg)
+                    .BorderBottom(1).BorderColor(Border)
+                    .PaddingHorizontal(5).PaddingVertical(5);
+
+                // Stop # — bold number, subtle left border accent
+                table.Cell()
+                    .Background(bg)
+                    .BorderLeft(3).BorderColor(BorderMid)
+                    .BorderBottom(1).BorderColor(Border)
+                    .PaddingHorizontal(4).PaddingVertical(5)
+                    .AlignCenter().AlignMiddle()
+                    .Text(d.SequenceOrder.ToString())
+                    .FontSize(11).Bold().FontColor(TextDark);
+
+                // N° Dossier
+                table.Cell().Element(Row)
+                    .Text(d.DeliveryReference).FontSize(7).FontColor(TextMuted);
+
+                // Client + Phone
+                table.Cell().Element(Row).Column(c =>
+                {
+                    c.Item().Text(d.ClientName).FontSize(8).Bold().FontColor(TextDark);
+                    if (!string.IsNullOrEmpty(d.ClientPhone))
+                        c.Item().PaddingTop(2).Text(d.ClientPhone).FontSize(7).FontColor(TextMuted);
+                });
+
+                // City only
+                table.Cell().Element(Row)
+                    .Text(d.City.ToUpper()).FontSize(8).Bold().FontColor(TextMid);
+
+                // Time slot
+                table.Cell().Element(Row).AlignCenter()
+                    .Text(FormatTimeSlot(d)).FontSize(8).Bold().FontColor(TextDark);
+
+                // Service badge
+                var isAssembly = d.ServiceType == "M";
+                table.Cell()
+                    .Background(isAssembly ? OrangeBg : bg)
+                    .BorderBottom(1).BorderColor(Border)
+                    .PaddingHorizontal(5).PaddingVertical(5)
+                    .AlignCenter().AlignMiddle()
+                    .Text(d.ServiceType).FontSize(8).Bold()
+                    .FontColor(isAssembly ? Orange : TextMuted);
+
+                // Enseigne
+                table.Cell().Element(Row)
+                    .Text(d.StoreName ?? "—").FontSize(7).FontColor(TextMuted);
+
+                // Rgl. Client
+                var hasClientAmt = d.ClientPaymentAmount > 0;
+                var clientTxt = table.Cell().Element(Row).AlignRight()
+                    .Text(hasClientAmt ? $"{d.ClientPaymentAmount:N0} €" : "—")
+                    .FontSize(8).FontColor(hasClientAmt ? Green : TextLight);
+                if (hasClientAmt) clientTxt.Bold();
+
+                // Rgl. Enseigne
+                var hasStoreAmt = d.StorePaymentAmount > 0;
+                var storeTxt = table.Cell().Element(Row).AlignRight()
+                    .Text(hasStoreAmt ? $"{d.StorePaymentAmount:N0} €" : "—")
+                    .FontSize(8).FontColor(hasStoreAmt ? TextDark : TextLight);
+                if (hasStoreAmt) storeTxt.Bold();
+
+                // Instructions
+                table.Cell().Element(Row)
+                    .Text(d.Instructions ?? "").FontSize(7).Italic().FontColor(TextMuted);
+            }
+
+            // Total row
+            table.Cell().ColumnSpan(7)
+                .Background(BgLight).BorderTop(2).BorderColor(BorderMid)
+                .PaddingVertical(6).PaddingHorizontal(8).AlignRight()
+                .Text("TOTAL").FontSize(8).Bold().FontColor(TextMid);
+
+            table.Cell()
+                .Background(BgLight).BorderTop(2).BorderColor(BorderMid)
+                .PaddingVertical(6).PaddingHorizontal(8).AlignRight()
+                .Text($"{data.TotalClientPayment:N0} €").FontSize(9).Bold().FontColor(Green);
+
+            table.Cell()
+                .Background(BgLight).BorderTop(2).BorderColor(BorderMid)
+                .PaddingVertical(6).PaddingHorizontal(8).AlignRight()
+                .Text($"{data.TotalStorePayment:N0} €").FontSize(9).Bold().FontColor(TextDark);
+
+            table.Cell()
+                .Background(BgLight).BorderTop(2).BorderColor(BorderMid)
+                .Padding(6);
         });
     }
 
-    /// <summary>
-    /// Formate le TimeSlot en HH (sans minutes)
-    /// </summary>
-    private string GetTimeSlotDisplay(RouteSheetDeliveryDto delivery)
-    {
-        if (delivery.TimeSlotStart.HasValue && delivery.TimeSlotEnd.HasValue)
-        {
-            var start = delivery.TimeSlotStart.Value.Hours;
-            var end = delivery.TimeSlotEnd.Value.Hours;
-            return $"{start:D2}-{end:D2}";
-        }
-        
-        if (delivery.EstimatedArrivalTime.HasValue)
-        {
-            return delivery.EstimatedArrivalTime.Value.ToString(@"hh");
-        }
-        
-        return "";
-    }
+    // ── FOOTER ───────────────────────────────────────────────────
 
     private void ComposeFooter(IContainer container, RouteSheetDto data)
     {
-        container.Column(column =>
+        container.Column(col =>
         {
-            // Cases de signature
-            column.Item().PaddingTop(15).Row(row =>
+            // Notes banner (only when filled)
+            if (!string.IsNullOrWhiteSpace(data.Notes))
             {
-                row.RelativeItem().Border(1).BorderColor(Colors.Blue.Lighten2)
-                    .Background(Colors.Grey.Lighten5)
-                    .Padding(8).Column(col =>
-                    {
-                        col.Item().Text("Espèces remis (€)")
-                            .FontSize(8).Bold().FontColor(Colors.Blue.Darken2);
-                        col.Item().PaddingTop(20).Text("").FontSize(8);
-                    });
-
-                row.RelativeItem().Border(1).BorderColor(Colors.Blue.Lighten2)
-                    .Background(Colors.Grey.Lighten5)
-                    .Padding(8).Column(col =>
-                    {
-                        col.Item().Text("Nbre Chèques")
-                            .FontSize(8).Bold().FontColor(Colors.Blue.Darken2);
-                        col.Item().PaddingTop(20).Text("").FontSize(8);
-                    });
-
-                row.RelativeItem().Border(1).BorderColor(Colors.Blue.Lighten2)
-                    .Background(Colors.Grey.Lighten5)
-                    .Padding(8).Column(col =>
-                    {
-                        col.Item().Text("Signature livreur")
-                            .FontSize(8).Bold().FontColor(Colors.Blue.Darken2);
-                        col.Item().PaddingTop(20).Text("").FontSize(8);
-                    });
-            });
-
-            // Ligne retour et contrôle
-            column.Item().PaddingTop(8).Row(row =>
-            {
-                row.RelativeItem().Text(text =>
-                {
-                    text.Span("Retour le : ").FontSize(8).Bold();
-                    text.Span("..........................................").FontSize(8);
-                });
-
-                row.RelativeItem().AlignRight().Text(text =>
-                {
-                    text.Span("Contrôlé par : ").FontSize(8).Bold();
-                    text.Span("..........................................").FontSize(8);
-                });
-            });
-
-            // Note importante
-            if (!string.IsNullOrEmpty(data.Notes))
-            {
-                column.Item().PaddingTop(12)
-                    .Background(Colors.Blue.Lighten4)
-                    .Padding(8)
-                    .Text(data.Notes)
-                    .FontSize(7).Italic().FontColor(Colors.Blue.Darken2);
+                col.Item().PaddingBottom(6)
+                    .Border(1).BorderColor(Border)
+                    .Background(BgLight)
+                    .Padding(7)
+                    .Text($"Note : {data.Notes}")
+                    .FontSize(7).Italic().FontColor(TextMuted);
             }
 
-            // Pied de page
-            column.Item().PaddingTop(12).AlignCenter()
-                .Text($"{data.CompanyName} - {data.CompanyAddress}, {data.CompanyCity}")
-                .FontSize(6).FontColor(Colors.Grey.Darken1);
+            // Signature boxes
+            col.Item().PaddingTop(4).Row(row =>
+            {
+                row.RelativeItem()
+                    .Border(1).BorderColor(Border)
+                    .Background(BgLight).Padding(8).Height(55)
+                    .Column(c =>
+                    {
+                        c.Item().Text("Espèces remis (€)")
+                            .FontSize(7).Bold().FontColor(TextMid);
+                        c.Item().PaddingTop(5).LineHorizontal(1).LineColor(Border);
+                    });
+
+                row.ConstantItem(6);
+
+                row.RelativeItem()
+                    .Border(1).BorderColor(Border)
+                    .Background(BgLight).Padding(8).Height(55)
+                    .Column(c =>
+                    {
+                        c.Item().Text("Nombre de chèques")
+                            .FontSize(7).Bold().FontColor(TextMid);
+                        c.Item().PaddingTop(5).LineHorizontal(1).LineColor(Border);
+                    });
+
+                row.ConstantItem(6);
+
+                row.RelativeItem()
+                    .Border(1).BorderColor(Border)
+                    .Background(BgLight).Padding(8).Height(55)
+                    .Column(c =>
+                    {
+                        c.Item().Text("Signature du livreur")
+                            .FontSize(7).Bold().FontColor(TextMid);
+                    });
+
+                row.ConstantItem(6);
+
+                row.RelativeItem()
+                    .Border(1).BorderColor(Border)
+                    .Background(BgLight).Padding(8).Height(55)
+                    .Column(c =>
+                    {
+                        c.Item().Text("Contrôlé par")
+                            .FontSize(7).Bold().FontColor(TextMid);
+                    });
+            });
+
+            // Bottom row
+            col.Item().PaddingTop(6).Row(row =>
+            {
+                row.RelativeItem().Text(t =>
+                {
+                    t.Span("Retour le : ").FontSize(8).Bold().FontColor(TextMid);
+                    t.Span("  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·")
+                        .FontSize(8).FontColor(Border);
+                });
+                row.ConstantItem(30);
+                row.RelativeItem().AlignRight()
+                    .Text($"{data.CompanyName}  —  {data.CompanyAddress}, {data.CompanyCity}")
+                    .FontSize(6).FontColor(TextLight);
+            });
         });
     }
 }

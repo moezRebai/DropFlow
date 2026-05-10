@@ -6,16 +6,16 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 <style>
-    /* === CARDS === */
     .delivery-card {
-        transition: all 0.2s ease;
+        transition: box-shadow 0.15s ease, transform 0.15s ease;
         height: 100%;
         display: flex;
         flex-direction: column;
+        cursor: pointer;
     }
     .delivery-card:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
+        transform: translateY(-1px);
     }
     .delivery-card.selected {
         background: #EFF6FF !important;
@@ -28,94 +28,28 @@
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 16px;
     }
-    @@media (max-width: 768px) {
-        .delivery-grid { grid-template-columns: 1fr; }
-        .delivery-card { padding: 12px !important; }
-    }
-    @@media (min-width: 769px) and (max-width: 1200px) {
-        .delivery-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @@media (min-width: 1201px) and (max-width: 1600px) {
-        .delivery-grid { grid-template-columns: repeat(3, 1fr); }
-    }
-    @@media (min-width: 1601px) {
-        .delivery-grid { grid-template-columns: repeat(4, 1fr); }
-    }
+    @@media (max-width: 768px)       { .delivery-grid { grid-template-columns: 1fr; } }
+    @@media (min-width: 769px)  and (max-width: 1200px) { .delivery-grid { grid-template-columns: repeat(2, 1fr); } }
+    @@media (min-width: 1201px) and (max-width: 1600px) { .delivery-grid { grid-template-columns: repeat(3, 1fr); } }
+    @@media (min-width: 1601px)      { .delivery-grid { grid-template-columns: repeat(4, 1fr); } }
 
-    /* === TABLE === */
-    .df-ref {
-        display: block;
-        font-weight: 600;
-        color: #0284c7;
-        font-size: 0.75rem;
-        white-space: nowrap;
-        letter-spacing: 0.01em;
-    }
-    .df-client-name {
-        display: block;
-        font-weight: 500;
-        color: #1f2937;
-        font-size: 0.875rem;
-        line-height: 1.4;
-    }
-    .df-city {
-        color: #6b7280;
-        font-size: 0.82rem;
-    }
-    .df-date-row {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        line-height: 1.7;
-    }
-    .df-date-label {
-        color: #94a3b8;
-        font-size: 0.67rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        min-width: 16px;
-    }
-    .df-date-value {
-        color: #374151;
-        font-size: 0.8rem;
-    }
-    .df-date-empty {
-        color: #d1d5db;
-        font-size: 0.8rem;
-    }
-    .df-packages {
-        color: #374151;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    .price-cell {
-        display: block;
-        color: #059669;
-        font-weight: 600;
-        font-size: 0.875rem;
-        text-align: right;
-    }
-    .df-status-chip {
-        min-width: 110px;
-        justify-content: center !important;
-        font-size: 0.72rem !important;
-    }
+    .df-ref          { display:block; font-weight:600; color:#0284c7; font-size:0.75rem; white-space:nowrap; }
+    .df-client-name  { display:block; font-weight:500; color:#1f2937; font-size:0.875rem; line-height:1.4; }
+    .df-city         { color:#6b7280; font-size:0.82rem; }
+    .df-date-row     { display:flex; align-items:center; gap:5px; line-height:1.7; }
+    .df-date-label   { color:#94a3b8; font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; min-width:16px; }
+    .df-date-value   { color:#374151; font-size:0.8rem; }
+    .df-date-empty   { color:#d1d5db; font-size:0.8rem; }
+    .df-packages     { color:#374151; font-size:0.875rem; font-weight:500; }
+    .price-cell      { display:block; color:#059669; font-weight:600; font-size:0.875rem; text-align:center; }
+    .df-status-chip  { min-width:110px; justify-content:center !important; font-size:0.72rem !important; }
 
-    /* === FILTER POPOVER === */
-    .filter-popover {
-        transform: translateX(-50%) !important;
-        left: 50% !important;
-        min-width: 250px;
-    }
-    .filter-popover .mud-list-item {
-        padding: 12px 16px !important;
-        transition: background-color 0.2s ease;
-    }
-    .filter-popover .mud-list-item:hover { background-color: #F3F4F6 !important; }
-    .filter-popover .mud-list-item-selected {
-        background-color: #EFF6FF !important;
-        border-left: 3px solid #2196F3;
+    .selection-banner {
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        border-radius: 8px;
+        padding: 10px 16px;
+        margin-bottom: 12px;
     }
 </style>
 
@@ -125,149 +59,122 @@
     <Authorized>
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4 mb-8">
 
-            <!-- Header -->
-            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border-left: 4px solid #2196F3; background: white;">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1F2937;">
-                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Class="mr-2" Style="color: #2196F3;"/>
-                            Livraisons
-                        </MudText>
-                        <MudText Typo="Typo.body2" Style="color: #6B7280;">
-                            Gérez vos livraisons et suivez leur statut en temps réel
-                        </MudText>
-                    </MudStack>
-                    
-                    <MudFab Variant="Variant.Filled"
-                            Color="Color.Primary"
-                            StartIcon="@Icons.Material.Filled.Add"
-                            OnClick="@(() => NavigationManager.NavigateTo("/livraisons/nouvelle", true))" />
-                </MudStack>
-            </MudPaper>
+            <!-- En-tête -->
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <div>
+                    <MudText Typo="Typo.h5" Class="font-weight-bold" Style="color: #1F2937;">Livraisons</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Gérez et suivez vos livraisons en temps réel</MudText>
+                </div>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => NavigationManager.NavigateTo("/livraisons/nouvelle", true))">
+                    Nouvelle livraison
+                </MudButton>
+            </MudStack>
 
-            <!-- Barre de filtres -->
-            <MudPaper Elevation="2" Class="pa-4 mb-3">
+            <!-- Filtres -->
+            <MudPaper Elevation="0" Class="pa-4 mb-3 rounded-lg" Style="border: 1px solid #E5E7EB;">
                 <MudGrid Spacing="2">
-                    <!-- Recherche -->
                     <MudItem xs="12" md="4">
                         <MudTextField @bind-Value="_searchTerm"
-                                      Label="Rechercher"
                                       Placeholder="Référence, client, ville..."
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Search"
                                       Variant="Variant.Outlined"
-                                      DebounceInterval="500"
+                                      Margin="Margin.Dense"
+                                      DebounceInterval="400"
                                       OnDebounceIntervalElapsed="OnSearchChanged"
                                       Clearable="true"
-                                      FullWidth="true" />
+                                      FullWidth="true"/>
                     </MudItem>
 
-                    <!-- Enseigne -->
                     <MudItem xs="12" sm="4" md="2">
                         <MudSelect T="int?"
                                    Value="_selectedStoreId"
                                    ValueChanged="@((int? v) => OnStoreChangedAsync(v))"
-                                   Label="Enseigne"
+                                   Placeholder="Enseigne"
                                    Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
                                    Clearable="true"
                                    AdornmentIcon="@Icons.Material.Filled.Store"
                                    AdornmentColor="Color.Primary">
                             @foreach (var store in _stores)
                             {
-                                <MudSelectItem T="int?" Value="@store.Id">
-                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                        <MudIcon Icon="@Icons.Material.Filled.Store"
-                                                 Size="Size.Small"
-                                                 Color="Color.Primary" />
-                                        <MudText>@store.Name</MudText>
-                                    </MudStack>
-                                </MudSelectItem>
+                                <MudSelectItem T="int?" Value="@store.Id">@store.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
 
-                    <!-- Statut -->
                     <MudItem xs="12" sm="4" md="2">
                         <MudSelect T="DeliveryStatus?"
                                    Value="_selectedStatus"
                                    ValueChanged="@((DeliveryStatus? v) => OnStatusChangedAsync(v))"
-                                   Label="Statut"
+                                   Placeholder="Statut"
                                    Variant="Variant.Outlined"
-                                   Clearable="true"
-                                   AdornmentColor="Color.Primary">
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
                             <MudSelectItem T="DeliveryStatus?" Value="DeliveryStatus.ToBePlanned">
-                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Circle"
-                                             Size="Size.Small"
-                                             Color="Color.Error" />
-                                    <MudText>@GetStatusLabel(DeliveryStatus.ToBePlanned)</MudText>
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Size="Size.Small" Style="color:#D97706;"/>
+                                    <span>@GetStatusLabel(DeliveryStatus.ToBePlanned)</span>
                                 </MudStack>
                             </MudSelectItem>
                             <MudSelectItem T="DeliveryStatus?" Value="DeliveryStatus.Confirmed">
-                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Filled.AccessTime"
-                                             Size="Size.Small"
-                                             Color="Color.Success" />
-                                    <MudText>@GetStatusLabel(DeliveryStatus.Confirmed)</MudText>
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Style="color:#1D4ED8;"/>
+                                    <span>@GetStatusLabel(DeliveryStatus.Confirmed)</span>
                                 </MudStack>
                             </MudSelectItem>
                             <MudSelectItem T="DeliveryStatus?" Value="DeliveryStatus.InProgress">
-                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Circle"
-                                             Size="Size.Small"
-                                             Style="color: #8B5CF6;" />
-                                    <MudText>@GetStatusLabel(DeliveryStatus.InProgress)</MudText>
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" Style="color:#7C3AED;"/>
+                                    <span>@GetStatusLabel(DeliveryStatus.InProgress)</span>
                                 </MudStack>
                             </MudSelectItem>
                             <MudSelectItem T="DeliveryStatus?" Value="DeliveryStatus.Delivered">
-                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                                             Size="Size.Small"
-                                             Style="color: #10B981;" />
-                                    <MudText>@GetStatusLabel(DeliveryStatus.Delivered)</MudText>
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Small" Style="color:#059669;"/>
+                                    <span>@GetStatusLabel(DeliveryStatus.Delivered)</span>
                                 </MudStack>
                             </MudSelectItem>
                             <MudSelectItem T="DeliveryStatus?" Value="DeliveryStatus.Canceled">
-                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Cancel"
-                                             Size="Size.Small"
-                                             Style="color: #6B7280;" />
-                                    <MudText>@GetStatusLabel(DeliveryStatus.Canceled)</MudText>
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Style="color:#6B7280;"/>
+                                    <span>@GetStatusLabel(DeliveryStatus.Canceled)</span>
                                 </MudStack>
                             </MudSelectItem>
                         </MudSelect>
                     </MudItem>
 
-                    <!-- Date de -->
                     <MudItem xs="12" sm="6" md="2">
                         <MudDatePicker Date="_dateFrom"
                                        DateChanged="@((DateTime? v) => OnDateFromChangedAsync(v))"
-                                       Label="Du"
-                                       Color="Color.Info"
+                                       Placeholder="Du"
                                        Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
                                        Clearable="true"
                                        DateFormat="dd/MM/yyyy"
                                        MaxDate="@_dateTo"/>
                     </MudItem>
 
-                    <!-- Date à -->
                     <MudItem xs="12" sm="6" md="2">
                         <MudDatePicker Date="_dateTo"
                                        DateChanged="@((DateTime? v) => OnDateToChangedAsync(v))"
-                                       Label="Au"
+                                       Placeholder="Au"
                                        Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
                                        Clearable="true"
                                        DateFormat="dd/MM/yyyy"
                                        MinDate="@_dateFrom"/>
                     </MudItem>
                 </MudGrid>
 
-                <!-- Filtres actifs -->
-                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3" Style="flex-wrap: wrap;">
-
+                <!-- Chips filtres actifs + résultats + toggle vue -->
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-3" Style="flex-wrap: wrap; gap: 6px;">
                     @if (!_selectedStatus.HasValue)
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined"
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
                                  Icon="@Icons.Material.Filled.FilterList">
                             Par défaut : À planifier · Planifiée · En cours
                         </MudChip>
@@ -300,194 +207,156 @@
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
                                  OnClose="@((MudChip<string> _) => ClearSearchAsync())">
-                            "@_searchTerm"
+                            «@_searchTerm»
                         </MudChip>
                     }
 
                     <MudSpacer/>
 
-                    <MudText Typo="Typo.caption" Style="color: #6B7280;">@_totalCount résultat(s)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@_totalCount résultat(s)</MudText>
 
                     <MudButton Variant="Variant.Text"
-                               StartIcon="@Icons.Material.Filled.FilterListOff"
+                               StartIcon="@Icons.Material.Outlined.FilterAlt"
                                OnClick="ResetFiltersAsync"
                                Color="Color.Default"
                                Size="Size.Small">
                         Réinitialiser
                     </MudButton>
 
+                    <MudDivider Vertical="true" FlexItem="true" Class="mx-1"/>
+
+                    <MudToggleGroup @bind-Value="_viewMode"
+                                    Color="Color.Primary"
+                                    CheckMark="false"
+                                    Outlined="true"
+                                    Style="height: 32px;">
+                        <MudToggleItem Value="@ViewMode.List">
+                            <MudTooltip Text="Vue Liste" Placement="Placement.Top">
+                                <MudIcon Icon="@Icons.Material.Filled.ViewList" Size="Size.Small"/>
+                            </MudTooltip>
+                        </MudToggleItem>
+                        <MudToggleItem Value="@ViewMode.Cards">
+                            <MudTooltip Text="Vue Cartes" Placement="Placement.Top">
+                                <MudIcon Icon="@Icons.Material.Filled.GridView" Size="Size.Small"/>
+                            </MudTooltip>
+                        </MudToggleItem>
+                    </MudToggleGroup>
                 </MudStack>
             </MudPaper>
 
-            <!-- Barre d'actions contextuelle -->
-            <MudPaper Elevation="2" Class="pa-4 mb-3">
-                @if (!_selectedDeliveries.Any())
-                {
-                    <!-- Aucune sélection -->
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body1" Style="color: #4B5563;">
-                            @(_totalCount) livraisons
+            <!-- Bannière de sélection (visible uniquement si sélection active) -->
+            @if (_selectedDeliveries.Any())
+            {
+                <div class="selection-banner mb-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex-wrap: wrap;">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Size="Size.Small"/>
+                        <MudText Typo="Typo.body2" Style="color: #1D4ED8; font-weight: 500;">
+                            @_selectedDeliveries.Count livraison(s) sélectionnée(s)
                         </MudText>
 
-                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudDivider Vertical="true" FlexItem="true" Class="mx-1"/>
 
-                            <MudDivider Vertical="true" FlexItem="true" Class="mx-2"/>
-
-                            <MudToggleGroup @bind-Value="_viewMode"
-                                            Color="Color.Primary"
-                                            CheckMark="false"
-                                            Outlined="true"
-                                            Style="width: 60px;"
-                                            Class="view-toggle-group">
-                                <MudToggleItem Value="@ViewMode.List" Class="toggle-item">
-                                    <MudTooltip Text="Vue Liste" Placement="Placement.Top">
-                                        <MudIcon Icon="@Icons.Material.Filled.ViewList" Size="Size.Small" />
-                                    </MudTooltip>
-                                </MudToggleItem>
-                                <MudToggleItem Value="@ViewMode.Cards" Class="toggle-item">
-                                    <MudTooltip Text="Vue Cartes" Placement="Placement.Top">
-                                        <MudIcon Icon="@Icons.Material.Filled.GridView" Size="Size.Small" />
-                                    </MudTooltip>
-                                </MudToggleItem>
-                            </MudToggleGroup>
-                        </MudStack>
-                    </MudStack>
-                }
-                else if (_selectedDeliveries.Count == 1)
-                {
-                    <!-- 1 sélection -->
-                    <MudStack Spacing="3">
-                        <MudText Typo="Typo.body1" Style="color: #2196F3; font-weight: 500;">
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"/>
-                            1 livraison sélectionnée
-                        </MudText>
-
-                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Style="flex-wrap: wrap;">
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.Edit"
-                                       IconColor="Color.Surface"
-                                       OnClick="@(() => EditDeliveryAsync(_selectedDeliveries.First().Id))"
-                                       Size="Size.Medium">
+                        @if (_selectedDeliveries.Count == 1)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.Edit"
+                                       OnClick="@(() => EditDeliveryAsync(_selectedDeliveries.First().Id))">
                                 Modifier
                             </MudButton>
-
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Warning"
-                                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                                       OnClick="@(() => GeneratePdfAsync(_selectedDeliveries.First().Id))"
-                                       Size="Size.Medium">
-                                Bon de Livraison
+                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.PictureAsPdf"
+                                       OnClick="@(() => GeneratePdfAsync(_selectedDeliveries.First().Id))">
+                                Bon de livraison
                             </MudButton>
-
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
-                                       OnClick="@(() => DeleteDeliveryAsync(_selectedDeliveries.First().Id))"
-                                       Size="Size.Medium">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.Delete"
+                                       OnClick="@(() => DeleteDeliveryAsync(_selectedDeliveries.First().Id))">
                                 Supprimer
                             </MudButton>
-
-                            <MudSpacer/>
-
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Dark"
-                                       StartIcon="@Icons.Material.Filled.Close"
-                                       OnClick="ClearSelection"
-                                       Size="Size.Medium">
-                                Désélectionner
-                            </MudButton>
-                        </MudStack>
-                    </MudStack>
-                }
-                else
-                {
-                    <!-- Plusieurs sélections -->
-                    <MudStack Spacing="3">
-                        <MudText Typo="Typo.body1" Style="color: #2196F3; font-weight: 500;">
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"/>
-                            @_selectedDeliveries.Count livraisons sélectionnées
-                        </MudText>
-
-                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Style="flex-wrap: wrap;">
+                        }
+                        else
+                        {
                             <MudMenu Label="Changer statut"
                                      Variant="Variant.Outlined"
-                                     Color="Color.Surface"
-                                     StartIcon="@Icons.Material.Filled.Adjust"
-                                     IconColor="Color.Info"
-                                     Size="Size.Medium">
+                                     Color="Color.Default"
+                                     StartIcon="@Icons.Material.Filled.Tune"
+                                     Size="Size.Small">
                                 <MudMenuItem OnClick="@(() => BulkChangeStatusAsync(DeliveryStatus.ToBePlanned))">
-                                    🔴 À planifier
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Size="Size.Small" Style="color:#D97706;"/>
+                                        <span>À planifier</span>
+                                    </MudStack>
                                 </MudMenuItem>
                                 <MudMenuItem OnClick="@(() => BulkChangeStatusAsync(DeliveryStatus.Confirmed))">
-                                    🟢 Planifiée
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Style="color:#1D4ED8;"/>
+                                        <span>Planifiée</span>
+                                    </MudStack>
                                 </MudMenuItem>
                                 <MudMenuItem OnClick="@(() => BulkChangeStatusAsync(DeliveryStatus.InProgress))">
-                                    🟣 En cours
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" Style="color:#7C3AED;"/>
+                                        <span>En cours</span>
+                                    </MudStack>
                                 </MudMenuItem>
                                 <MudMenuItem OnClick="@(() => BulkChangeStatusAsync(DeliveryStatus.Delivered))">
-                                    ✅ Livrée
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Small" Style="color:#059669;"/>
+                                        <span>Livrée</span>
+                                    </MudStack>
                                 </MudMenuItem>
                                 <MudMenuItem OnClick="@(() => BulkChangeStatusAsync(DeliveryStatus.Canceled))">
-                                    ⚫ Annulée
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Style="color:#6B7280;"/>
+                                        <span>Annulée</span>
+                                    </MudStack>
                                 </MudMenuItem>
                             </MudMenu>
 
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Warning"
-                                       StartIcon="@Icons.Material.Filled.FileDownload"
-                                       OnClick="ExportSelectedAsync"
-                                       Size="Size.Medium">
-                                Bons de livraisons
+                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.FileDownload"
+                                       OnClick="ExportSelectedAsync">
+                                Bons de livraison
                             </MudButton>
 
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Delete"
-                                       OnClick="DeleteSelectedAsync"
-                                       Size="Size.Medium">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.Delete"
+                                       OnClick="DeleteSelectedAsync">
                                 Supprimer tout
                             </MudButton>
+                        }
 
-                            <MudSpacer/>
+                        <MudSpacer/>
 
-                            <MudButton Variant="Variant.Outlined"
-                                       StartIcon="@Icons.Material.Filled.Close"
-                                       OnClick="ClearSelection"
-                                       Size="Size.Medium">
-                                Désélectionner tout
-                            </MudButton>
-                        </MudStack>
+                        <MudTooltip Text="Désélectionner tout">
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           Size="Size.Small"
+                                           OnClick="ClearSelection"/>
+                        </MudTooltip>
                     </MudStack>
-                }
-            </MudPaper>
+                </div>
+            }
 
-            <!-- Liste des livraisons -->
+            <!-- Vue Cards -->
             @if (_viewMode == ViewMode.Cards)
             {
-                <!-- Vue Cards en grille -->
                 @if (_isLoading)
                 {
-                    <MudPaper Class="pa-8" Style="text-align: center;">
+                    <MudPaper Elevation="0" Class="pa-12 rounded-lg" Style="border: 1px solid #E5E7EB; text-align: center;">
                         <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
-                        <MudText Typo="Typo.body1" Class="mt-4" Style="color: #6B7280;">
-                            Chargement des livraisons...
-                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">Chargement...</MudText>
                     </MudPaper>
                 }
                 else if (!_deliveries.Any())
                 {
-                    <MudPaper Class="pa-8" Style="text-align: center;">
-                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color: #9CA3AF; font-size: 4rem;"/>
-                        <MudText Typo="Typo.h6" Class="mt-4" Style="color: #4B5563;">Aucune livraison trouvée</MudText>
-                        <MudText Typo="Typo.body2" Style="color: #9CA3AF;">
-                            Essayez de modifier vos filtres ou créez une nouvelle livraison
-                        </MudText>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                    <MudPaper Elevation="0" Class="pa-12 rounded-lg" Style="border: 1px solid #E5E7EB; text-align: center;">
+                        <MudIcon Icon="@Icons.Material.Outlined.LocalShipping"
+                                 Style="font-size: 48px; color: #D1D5DB;"/>
+                        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-3">Aucune livraison trouvée</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Modifiez vos filtres ou créez une nouvelle livraison</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Add"
-                                   OnClick="OpenCreateDialog"
-                                   Class="mt-4">
+                                   OnClick="OpenCreateDialog" Class="mt-4">
                             Créer une livraison
                         </MudButton>
                     </MudPaper>
@@ -497,95 +366,84 @@
                     <div class="delivery-grid">
                         @foreach (var delivery in _deliveries)
                         {
-                            <MudPaper Class="@($"delivery-card {(IsSelected(delivery) ? "selected" : string.Empty)}")"
+                            <MudPaper Class="@($"delivery-card pa-4 {(IsSelected(delivery) ? "selected" : string.Empty)}")"
                                       Elevation="1"
-                                      @onclick="@(() => ToggleSelection(delivery))"
-                                      Style="@($"{GetCardStyle(delivery)}; cursor: pointer; transition: all 0.2s ease;")">
+                                      Style="@GetCardStyle(delivery)"
+                                      @onclick="@(() => ToggleSelection(delivery))">
 
-                            <!-- Header -->
+                                <!-- Card header -->
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
-                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                                         <MudCheckBox Value="@IsSelected(delivery)"
                                                      ValueChanged="@((bool _) => ToggleSelection(delivery))"
-                                                     Color="Color.Primary"
-                                                     Dense="true"
+                                                     Color="Color.Primary" Dense="true"
                                                      @onclick:stopPropagation/>
-
-                                        <MudText Typo="Typo.body2" Style="font-weight: 600; color: #2196F3;">
+                                        <MudText Typo="Typo.caption" Style="font-weight:600; color:#0284c7;">
                                             #@delivery.SequentialNumber
                                         </MudText>
                                     </MudStack>
-
-                                    <MudChip T="DeliveryStatus" Size="Size.Small"
-                                             Style="@GetStatusBadgeStyle(delivery.Status)">
-                                        @GetStatusEmoji(delivery.Status)
+                                    <MudChip T="DeliveryStatus" Size="Size.Small" Variant="Variant.Filled"
+                                             Class="df-status-chip" Style="@GetStatusBadgeStyle(delivery.Status)">
+                                        @GetStatusLabel(delivery.Status)
                                     </MudChip>
                                 </MudStack>
 
-                                <!-- Reference -->
-                                <MudText Typo="Typo.caption" Style="color: #6B7280;" Class="mb-2">
-                                    @delivery.Reference
-                                </MudText>
-
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@delivery.Reference</MudText>
                                 <MudDivider Class="my-2"/>
 
                                 <div class="delivery-card-content">
-                                    <!-- Client -->
                                     <MudStack Spacing="1" Class="mb-2">
-                                        <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 500;">
-                                            👤 @delivery.ClientName
-                                        </MudText>
-                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">
-                                            📍 @delivery.City
-                                        </MudText>
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" Style="color:#6B7280;"/>
+                                            <MudText Typo="Typo.body2" Style="font-weight:500;">@delivery.ClientName</MudText>
+                                        </MudStack>
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small" Style="color:#6B7280;"/>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@delivery.City</MudText>
+                                        </MudStack>
                                     </MudStack>
 
-                                    <!-- Enseigne -->
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info" Class="mb-2">
-                                        🏪 @delivery.StoreName
-                                    </MudChip>
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-2">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Store" Size="Size.Small" Style="color:#0284c7;"/>
+                                        <MudText Typo="Typo.caption" Style="color:#0284c7;">@delivery.StoreName</MudText>
+                                    </MudStack>
 
-                                    <!-- Details row -->
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-3">
                                         <MudStack Spacing="0">
                                             @if (delivery.ScheduledDate.HasValue)
                                             {
-                                                <MudText Typo="Typo.caption" Style="color: #6B7280;">
-                                                    📅 @delivery.ScheduledDate.Value.ToString("dd/MM")
-                                                </MudText>
+                                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                    <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small" Style="color:#94a3b8; font-size:13px;"/>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @delivery.ScheduledDate.Value.ToString("dd/MM")
+                                                    </MudText>
+                                                </MudStack>
                                             }
-                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">
-                                                📦 @delivery.TotalPackages colis
-                                            </MudText>
+                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Small" Style="color:#94a3b8; font-size:13px;"/>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@delivery.TotalPackages colis</MudText>
+                                            </MudStack>
                                         </MudStack>
-
-                                        <MudText Typo="Typo.body1" Style="font-weight: 600; color: #059669;">
+                                        <MudText Typo="Typo.body2" Style="font-weight:600; color:#059669;">
                                             @delivery.Price.ToString("C")
                                         </MudText>
                                     </MudStack>
                                 </div>
-
                             </MudPaper>
                         }
                     </div>
 
-                    <!-- Pagination Cards -->
                     @if (_pagedResult is { TotalPages: > 1 })
                     {
-                        <MudPaper Elevation="0" Class="mt-3 pa-3">
+                        <MudPaper Elevation="0" Class="mt-3 pa-3 rounded-lg" Style="border: 1px solid #E5E7EB;">
                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                <MudSelect T="int"
-                                           Value="_filters.PageSize"
-                                           Label="Par page"
-                                           Variant="Variant.Outlined"
-                                           Margin="Margin.Dense"
-                                           Style="width: 120px;"
+                                <MudSelect T="int" Value="_filters.PageSize" Variant="Variant.Outlined"
+                                           Margin="Margin.Dense" Style="width:110px;"
                                            ValueChanged="OnPageSizeChanged">
-                                    <MudSelectItem T="int" Value="20">20</MudSelectItem>
-                                    <MudSelectItem T="int" Value="40">40</MudSelectItem>
-                                    <MudSelectItem T="int" Value="60">60</MudSelectItem>
+                                    <MudSelectItem T="int" Value="20">20 / page</MudSelectItem>
+                                    <MudSelectItem T="int" Value="40">40 / page</MudSelectItem>
+                                    <MudSelectItem T="int" Value="60">60 / page</MudSelectItem>
                                 </MudSelect>
-
                                 <MudPagination Count="@_pagedResult.TotalPages"
                                                Selected="@_filters.Page"
                                                SelectedChanged="OnPageChanged"
@@ -593,8 +451,7 @@
                                                Variant="Variant.Outlined"
                                                ShowFirstButton="true"
                                                ShowLastButton="true"/>
-
-                                <MudText Typo="Typo.body2" Style="color: #6B7280;">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     Page @_filters.Page / @_pagedResult.TotalPages
                                 </MudText>
                             </MudStack>
@@ -604,146 +461,149 @@
             }
             else
             {
-                <!-- Vue Liste (Table avec ServerData) -->
-                <div class="modern-table">
-    <MudTable @ref="_tableRef"
-              ServerData="ServerReload"
-              T="DeliveryViewDto"
-              Dense="true"
-              Hover="true"
-              Striped="false"
-              RowsPerPage="20"
-              MultiSelection="true"
-              SelectedItems="_selectedTableItems"
-              SelectedItemsChanged="OnSelectedTableItemsChanged"
-              RowStyleFunc="@((item, i) => GetRowStyle(item))"
-              Elevation="0"
-              Class="rounded-lg">
-        
-        <HeaderContent>
-            <MudTh Style="min-width: 200px;">
-                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.SequentialNumber)">
-                    Réf / Client
-                </MudTableSortLabel>
-            </MudTh>
+                <!-- Vue Liste -->
+                <MudPaper Elevation="0" Class="rounded-lg" Style="border: 1px solid #E5E7EB; overflow: hidden;">
+                    <MudTable @ref="_tableRef"
+                              ServerData="ServerReload"
+                              T="DeliveryViewDto"
+                              Dense="true"
+                              Hover="true"
+                              Striped="false"
+                              RowsPerPage="20"
+                              MultiSelection="true"
+                              SelectedItems="_selectedTableItems"
+                              SelectedItemsChanged="OnSelectedTableItemsChanged"
+                              RowStyleFunc="@((item, i) => GetRowStyle(item))"
+                              Elevation="0">
 
-            <MudTh>
-                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.City)">
-                    Ville
-                </MudTableSortLabel>
-            </MudTh>
+                        <HeaderContent>
+                            <MudTh Style="min-width:200px;">
+                                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.SequentialNumber)">
+                                    Réf / Client
+                                </MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>
+                                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.City)">
+                                    Ville
+                                </MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>Enseigne</MudTh>
+                            <MudTh Style="min-width:130px;">
+                                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.ScheduledDate)">
+                                    Dates
+                                </MudTableSortLabel>
+                            </MudTh>
+                            <MudTh Style="text-align:center;">Colis</MudTh>
+                            <MudTh Style="text-align:center; min-width:80px;">
+                                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.Price)">
+                                    Prix
+                                </MudTableSortLabel>
+                            </MudTh>
+                            <MudTh Style="min-width:120px;">
+                                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.Status)">
+                                    Statut
+                                </MudTableSortLabel>
+                            </MudTh>
+                            <MudTh Style="width:100px;"></MudTh>
+                        </HeaderContent>
 
-            <MudTh>Enseigne</MudTh>
+                        <RowTemplate>
+                            <MudTd DataLabel="Réf / Client">
+                                <MudStack Spacing="0">
+                                    <span class="df-ref">@context.Reference</span>
+                                    <span class="df-client-name">@context.ClientName</span>
+                                </MudStack>
+                            </MudTd>
 
-            <MudTh Style="min-width: 130px;">
-                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.ScheduledDate)">
-                    Dates
-                </MudTableSortLabel>
-            </MudTh>
+                            <MudTd DataLabel="Ville">
+                                <span class="df-city">@context.City</span>
+                            </MudTd>
 
-            <MudTh Style="text-align: center;">Colis</MudTh>
+                            <MudTd DataLabel="Enseigne">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">
+                                    @context.StoreName
+                                </MudChip>
+                            </MudTd>
 
-            <MudTh Style="text-align: right; min-width: 80px;">
-                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.Price)">
-                    Prix
-                </MudTableSortLabel>
-            </MudTh>
+                            <MudTd DataLabel="Dates">
+                                <MudStack Spacing="0">
+                                    <div class="df-date-row">
+                                        <span class="df-date-label">In</span>
+                                        <span class="df-date-value">@context.CreatedDate.ToString("dd/MM/yy")</span>
+                                    </div>
+                                    <div class="df-date-row">
+                                        <span class="df-date-label">Lv</span>
+                                        @if (context.ScheduledDate.HasValue)
+                                        {
+                                            <span class="df-date-value">@context.ScheduledDate.Value.ToString("dd/MM/yy")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="df-date-empty">—</span>
+                                        }
+                                    </div>
+                                </MudStack>
+                            </MudTd>
 
-            <MudTh Style="min-width: 120px;">
-                <MudTableSortLabel T="DeliveryViewDto" SortLabel="@nameof(DeliveryViewDto.Status)">
-                    Statut
-                </MudTableSortLabel>
-            </MudTh>
+                            <MudTd DataLabel="Colis" Style="text-align:center;">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Small" Style="color:#94a3b8;"/>
+                                    <span class="df-packages">@context.TotalPackages</span>
+                                </MudStack>
+                            </MudTd>
 
-            <MudTh Style="width: 88px;"></MudTh>
-        </HeaderContent>
+                            <MudTd DataLabel="Prix" Style="text-align:center;">
+                                <span class="price-cell">@context.Price.ToString("C")</span>
+                            </MudTd>
 
-        <RowTemplate>
-            <MudTd DataLabel="Réf / Client">
-                <MudStack Spacing="0">
-                    <span class="df-ref">@context.Reference</span>
-                    <span class="df-client-name">@context.ClientName</span>
-                </MudStack>
-            </MudTd>
+                            <MudTd DataLabel="Statut">
+                                <MudChip T="DeliveryStatus" Size="Size.Small" Variant="Variant.Filled"
+                                         Class="df-status-chip" Style="@GetStatusBadgeStyle(context.Status)">
+                                    @GetStatusLabel(context.Status)
+                                </MudChip>
+                            </MudTd>
 
-            <MudTd DataLabel="Ville">
-                <span class="df-city">@context.City</span>
-            </MudTd>
+                            <MudTd>
+                                <span @onclick:stopPropagation="true">
+                                    <MudStack Row="true" Spacing="0" AlignItems="AlignItems.Center">
+                                        <MudTooltip Text="Voir" Placement="Placement.Top">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                           Size="Size.Small" Color="Color.Info"
+                                                           OnClick="@(() => ViewDetailsAsync(context.Id))"/>
+                                        </MudTooltip>
+                                        <MudTooltip Text="Modifier" Placement="Placement.Top">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                           Size="Size.Small" Color="Color.Primary"
+                                                           OnClick="@(() => EditDeliveryAsync(context.Id))"/>
+                                        </MudTooltip>
+                                        <MudTooltip Text="Supprimer" Placement="Placement.Top">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                           Size="Size.Small" Color="Color.Error"
+                                                           OnClick="@(() => DeleteDeliveryAsync(context.Id))"/>
+                                        </MudTooltip>
+                                    </MudStack>
+                                </span>
+                            </MudTd>
+                        </RowTemplate>
 
-            <MudTd DataLabel="Enseigne">
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">
-                    @context.StoreName
-                </MudChip>
-            </MudTd>
+                        <NoRecordsContent>
+                            <MudStack AlignItems="AlignItems.Center" Class="py-12" Spacing="3">
+                                <MudIcon Icon="@Icons.Material.Outlined.LocalShipping"
+                                         Style="font-size:48px; color:#D1D5DB;"/>
+                                <MudText Typo="Typo.body1" Color="Color.Secondary">Aucune livraison trouvée</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Modifiez vos filtres ou créez une nouvelle livraison
+                                </MudText>
+                            </MudStack>
+                        </NoRecordsContent>
 
-            <MudTd DataLabel="Dates">
-                <MudStack Spacing="0">
-                    <div class="df-date-row">
-                        <span class="df-date-label">In</span>
-                        <span class="df-date-value">@context.CreatedDate.ToString("dd/MM/yy")</span>
-                    </div>
-                    <div class="df-date-row">
-                        <span class="df-date-label">Lv</span>
-                        @if (context.ScheduledDate.HasValue)
-                        {
-                            <span class="df-date-value">@context.ScheduledDate.Value.ToString("dd/MM/yy")</span>
-                        }
-                        else
-                        {
-                            <span class="df-date-empty">—</span>
-                        }
-                    </div>
-                </MudStack>
-            </MudTd>
-
-            <MudTd DataLabel="Colis" Style="text-align: center;">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
-                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Small" Style="color: #94a3b8;"/>
-                    <span class="df-packages">@context.TotalPackages</span>
-                </MudStack>
-            </MudTd>
-
-            <MudTd DataLabel="Prix" Style="text-align: right;">
-                <span class="price-cell">@context.Price.ToString("C")</span>
-            </MudTd>
-
-            <MudTd DataLabel="Statut">
-                <MudChip T="DeliveryStatus"
-                         Size="Size.Small"
-                         Variant="Variant.Filled"
-                         Class="df-status-chip"
-                         Style="@GetStatusBadgeStyle(context.Status)">
-                    @GetStatusEmoji(context.Status) @GetStatusLabel(context.Status)
-                </MudChip>
-            </MudTd>
-
-            <MudTd>
-                <span @onclick:stopPropagation="true">
-                    <MudStack Row="true" Spacing="0" AlignItems="AlignItems.Center">
-                        <MudTooltip Text="Modifier" Placement="Placement.Top">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           Color="Color.Primary"
-                                           OnClick="@(() => EditDeliveryAsync(context.Id))"/>
-                        </MudTooltip>
-                        <MudTooltip Text="Supprimer" Placement="Placement.Top">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           OnClick="@(() => DeleteDeliveryAsync(context.Id))"/>
-                        </MudTooltip>
-                    </MudStack>
-                </span>
-            </MudTd>
-        </RowTemplate>
-        
-        <PagerContent>
-            <MudTablePager PageSizeOptions="new int[]{20, 50, 100}" 
-                           InfoFormat="{first_item}-{last_item} sur {all_items}"
-                           RowsPerPageString="Lignes par page:" />
-        </PagerContent>
-    </MudTable>
-</div>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new int[]{20, 50, 100}"
+                                           InfoFormat="{first_item}-{last_item} sur {all_items}"
+                                           RowsPerPageString="Lignes par page :"/>
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
             }
 
         </MudContainer>

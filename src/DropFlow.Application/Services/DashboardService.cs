@@ -189,7 +189,7 @@ public class DashboardService(
             var threeDaysAgo = today.AddDays(-3);
 
             // À planifier en urgence = ToBePlanned depuis plus de 3 jours
-            var riskyDeliveries = await context.Deliveries
+            var rows = await context.Deliveries
                 .Where(d => d.Status == DeliveryStatus.ToBePlanned &&
                            d.CreatedDate.Date <= threeDaysAgo)
                 .Include(d => d.Client)
@@ -197,20 +197,22 @@ public class DashboardService(
                 .Include(d => d.TimeSlot)
                 .OrderBy(d => d.CreatedDate)
                 .Take(10)
-                .Select(d => new RiskyDeliveryDto
-                {
-                    Id = d.Id,
-                    Reference = d.Reference,
-                    ClientName = d.Client.DisplayName,
-                    DeliveryAddress = d.ClientAddress.Address,
-                    DeliveryCity = d.ClientAddress.City,
-                    EstimatedTime = d.ScheduledDate.HasValue
-                        ? d.ScheduledDate.Value.Add(d.TimeSlot != null ? d.TimeSlot.StartTime : TimeSpan.Zero)
-                        : DateTime.Now,
-                    RiskReason = CalculateRiskReason(d.CreatedDate),
-                    RiskLevel = CalculateRiskLevel(d.CreatedDate)
-                })
+                .AsNoTracking()
                 .ToListAsync();
+
+            var riskyDeliveries = rows.Select(d => new RiskyDeliveryDto
+            {
+                Id = d.Id,
+                Reference = d.Reference,
+                ClientName = d.Client.DisplayName,
+                DeliveryAddress = d.ClientAddress.Address,
+                DeliveryCity = d.ClientAddress.City,
+                EstimatedTime = d.ScheduledDate.HasValue
+                    ? d.ScheduledDate.Value.Add(d.TimeSlot != null ? d.TimeSlot.StartTime : TimeSpan.Zero)
+                    : DateTime.UtcNow,
+                RiskReason = CalculateRiskReason(d.CreatedDate),
+                RiskLevel = CalculateRiskLevel(d.CreatedDate)
+            }).ToList();
 
             logger.LogInformation("[Dashboard] ✅ Loaded {Count} deliveries to plan urgently (ToBePlanned > 3 days)", riskyDeliveries.Count);
             return riskyDeliveries;
@@ -225,7 +227,7 @@ public class DashboardService(
     /// <summary>
     /// Calcule la raison du risque en fonction de l'ancienneté
     /// </summary>
-    private string CalculateRiskReason(DateTime createdDate)
+    private static string CalculateRiskReason(DateTime createdDate)
     {
         var daysOld = (DateTime.UtcNow.Date - createdDate.Date).Days;
         
@@ -241,7 +243,7 @@ public class DashboardService(
     /// <summary>
     /// Calcule le niveau de risque en fonction de l'ancienneté
     /// </summary>
-    private string CalculateRiskLevel(DateTime createdDate)
+    private static string CalculateRiskLevel(DateTime createdDate)
     {
         var daysOld = (DateTime.UtcNow.Date - createdDate.Date).Days;
         

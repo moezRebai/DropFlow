@@ -32,4 +32,6 @@ public class RouteDeliveryDto
     // ✅ TimeSlot (optionnel)
     public int? TimeSlotId { get; set; }
     public string? TimeSlotName { get; set; }
+
+    public int ItemCount { get; set; }
 }

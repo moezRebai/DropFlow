@@ -54,7 +54,7 @@ public class TenantDepotConfiguration : IEntityTypeConfiguration<TenantDepot>
         // ═══ AUDIT FIELDS ═══
         builder.Property(d => d.CreatedDate)
             .IsRequired()
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("NOW()");
         
         // ═══ RELATIONSHIPS ═══
         builder.HasOne(d => d.Tenant)
@@ -71,7 +71,7 @@ public class TenantDepotConfiguration : IEntityTypeConfiguration<TenantDepot>
         // Index filtré pour trouver rapidement le dépôt par défaut
         builder.HasIndex(d => new { d.TenantId, d.IsDefault })
             .HasDatabaseName("IX_TenantDepots_IsDefault")
-            .HasFilter("[IsDefault] = 1");
+            .HasFilter("\"IsDefault\" = true");
         
         // Index pour les dépôts actifs
         builder.HasIndex(d => new { d.TenantId, d.IsActive })

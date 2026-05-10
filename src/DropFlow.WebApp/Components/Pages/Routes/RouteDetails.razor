@@ -5,7 +5,7 @@
 @inject IRouteService RouteService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Tournée — @_route?.Reference</PageTitle>
 
@@ -122,11 +122,11 @@ else
                 </MudItem>
                 <MudItem xs="6" sm="3" Class="text-center">
                     <MudText Typo="Typo.h3" Class="font-weight-bold">@FormatDuration(_route.TotalDuration)</MudText>
-                    <MudText Typo="Typo.body2">Durée trajet</MudText>
+                    <MudText Typo="Typo.body2">Durée Totale</MudText>
                 </MudItem>
                 <MudItem xs="6" sm="3" Class="text-center">
-                    <MudText Typo="Typo.h3" Class="font-weight-bold">@_route.TeamMembers.Count</MudText>
-                    <MudText Typo="Typo.body2">Équipe</MudText>
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@_route.Deliveries.Sum(d => d.ItemCount)</MudText>
+                    <MudText Typo="Typo.body2">Articles</MudText>
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -362,7 +362,7 @@ else
             var fileName = $"Feuille-Route-{_route.Reference}-{DateTime.Now:yyyyMMdd-HHmmss}.pdf";
 
             await EnsureDownloadFunctionExists();
-            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf", pdfBytes);
+            await JsRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf", pdfBytes);
 
             Snackbar.Add($"Feuille de route {_route.Reference} téléchargée avec succès", Severity.Success);
         }
@@ -379,12 +379,12 @@ else
 
     private async Task EnsureDownloadFunctionExists()
     {
-        var functionExists = await JSRuntime.InvokeAsync<bool>("eval",
+        var functionExists = await JsRuntime.InvokeAsync<bool>("eval",
             "typeof window.downloadFileFromBytes !== 'undefined'");
 
         if (!functionExists)
         {
-            await JSRuntime.InvokeVoidAsync("eval", @"
+            await JsRuntime.InvokeVoidAsync("eval", @"
                 window.downloadFileFromBytes = (fileName, contentType, byteArray) => {
                     const blob = new Blob([new Uint8Array(byteArray)], { type: contentType });
                     const url = window.URL.createObjectURL(blob);

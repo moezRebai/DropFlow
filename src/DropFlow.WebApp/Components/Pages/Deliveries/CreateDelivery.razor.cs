@@ -205,11 +205,12 @@ public partial class CreateDelivery : IAsyncDisposable
                     Designation = i.Designation,
                     Quantity = i.Quantity,
                     Information = i.Information
-                }).ToList() ?? []
+                }).ToList() ?? [],
+
+                RouteId = delivery.RouteId
             };
 
-            // waiting for routesheet
-            _isAssignedToRoute = false;
+            _isAssignedToRoute = delivery.RouteId.HasValue;
         }
         catch (Exception ex)
         {
