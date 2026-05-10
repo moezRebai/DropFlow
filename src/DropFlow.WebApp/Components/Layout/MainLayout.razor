@@ -32,6 +32,12 @@
         color: #0284c7 !important;
     }
 
+    .df-brand-text {
+        color: #0284c7;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+    }
+
     .df-search {
         max-width: 300px;
     }
@@ -260,19 +266,11 @@
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        OnClick="DrawerToggle"
                        Edge="Edge.Start"/>
+        <MudText Typo="Typo.h6" Class="df-brand-text ml-1">DropFlow</MudText>
         <MudSpacer/>
 
         <AuthorizeView>
             <Authorized>
-                <!-- Search + Actions -->
-                <MudTextField Placeholder="Rechercher..."
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              Class="df-search"
-                              Margin="Margin.Dense"
-                              T="string"/>
-
                 <MudTooltip Text="Notifications" Color="Color.Info">
                     <MudBadge Content="@_notificationCount"
                               Color="Color.Secondary"
@@ -445,12 +443,6 @@
                             Logs d'Audit
                         </MudNavLink>
                         
-                        <MudDivider Class="my-2" />
-
-                        <MudNavLink Href="/profile"
-                                    Icon="@Icons.Material.Filled.Person">
-                            Mon Profil
-                        </MudNavLink>
                     }
 
                     @* Navigation MANAGER *@
@@ -481,12 +473,10 @@
                         <MudNavLink Href="/tournees"
                                     Icon="@Icons.Material.Filled.Route"
                                     Class="@GetNavClass("/tournees")">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-grow-1">
-                               @if (_drawerOpen)
-                               {
-                                   <span>Tournées</span>
-                               }
-                            </MudStack>
+                            @if (_drawerOpen)
+                            {
+                                <span>Tournées</span>
+                            }
                         </MudNavLink>
    
                         <MudNavLink Href="/clients"
@@ -498,34 +488,26 @@
                             }
                         </MudNavLink>
 
-                        <MudNavLink Href="/invoices"  Disabled="true"
-                                    Icon="@Icons.Material.Filled.Receipt"
-                                    Class="@GetNavClass("/invoices")">
-                            @if (_drawerOpen)
-                            {
-                                <span>Factures</span>
-                            }
-                        </MudNavLink>
-
-                        <MudDivider Class="my-3 df-divider"/>
-
-                        <MudNavLink Href="/profile"
-                                    Icon="@Icons.Material.Filled.Person"
-                                    Class="@GetNavClass("/profile")">
-                            @if (_drawerOpen)
-                            {
-                                <span>Mon Profil</span>
-                            }
-                        </MudNavLink>
+                        <MudTooltip Text="Bientôt disponible" Placement="Placement.Right" Color="Color.Info">
+                            <MudNavLink Href="/invoices" Disabled="true"
+                                        Icon="@Icons.Material.Filled.Receipt"
+                                        Class="@GetNavClass("/invoices")">
+                                @if (_drawerOpen)
+                                {
+                                    <span>Factures</span>
+                                }
+                            </MudNavLink>
+                        </MudTooltip>
                         
-                        <MudNavLink Href="/settings"
-                                    Icon="@Icons.Material.Filled.Settings"
-                                    Class="@GetNavClass("/settings")">
+                        <MudNavLink Icon="@Icons.Material.Outlined.Settings"
+                                     Href="/settings"
+                                     Class="@GetNavClass("/settings")">
                             @if (_drawerOpen)
                             {
                                 <span>Paramètres</span>
                             }
                         </MudNavLink>
+
                     }
 
                     @* Navigation LIVREUR *@
@@ -551,6 +533,7 @@
                         </MudNavLink>
                     }
 
+                    
                     <MudNavLink Href="/help"
                                 Icon="@Icons.Material.Filled.HelpCenter"
                                 Class="@GetNavClass("/help")">
@@ -583,11 +566,11 @@
 </MudLayout>
 
 @code {
-    private bool _drawerOpen = false;
+    private bool _drawerOpen = true;
     private bool _isAuthenticated;
     private ClaimsPrincipal? _user;
     private MudTheme? _theme;
-    private readonly int _notificationCount = 3;
+    private readonly int _notificationCount = 0;
     private readonly int _pendingDeliveries = 0;
 
     private string _userName = string.Empty;
@@ -646,7 +629,11 @@
         return names.Length >= 2 ? $"{names[0][0]}{names[1][0]}" : _userName[0].ToString();
     }
 
-    private bool IsActive(string href) => new Uri(NavigationManager.Uri).AbsolutePath.Equals(href);
+    private bool IsActive(string href)
+    {
+        var path = new Uri(NavigationManager.Uri).AbsolutePath;
+        return href == "/" ? path == "/" : path.StartsWith(href, StringComparison.OrdinalIgnoreCase);
+    }
 
     private string GetNavClass(string href) => IsActive(href) ? "df-nav-link-active" : "";
 

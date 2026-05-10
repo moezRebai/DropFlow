@@ -48,7 +48,8 @@ builder.Services.AddSingleton<IDeliveryEventBus, DeliveryEventBus>(); // ✅
 // HTTP Clients
 builder.Services.AddHttpClient("DropFlowAPI", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7001/");
+    var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001/";
+    client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 

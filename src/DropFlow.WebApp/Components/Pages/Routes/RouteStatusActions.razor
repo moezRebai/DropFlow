@@ -12,13 +12,15 @@
 @if (Route != null)
 {
     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Justify="Justify.Center">
-        <!-- Badge Statut -->
-        <MudChip Color="@GetStatusColor()"
-                 Size="Size.Small"
-                 T="string"
-                 Variant="Variant.Filled">
-            @GetStatusText()
-        </MudChip>
+        @if (ShowStatusChip)
+        {
+            <MudChip Color="@GetStatusColor()"
+                     Size="Size.Small"
+                     T="string"
+                     Variant="Variant.Filled">
+                @GetStatusText()
+            </MudChip>
+        }
 
         <!-- Menu Actions -->
         <MudMenu Icon="@Icons.Material.Filled.MoreVert"
@@ -146,6 +148,7 @@
 
 @code {
     [Parameter] public RouteViewDto? Route { get; set; }
+    [Parameter] public bool ShowStatusChip { get; set; } = true;
     [Parameter] public EventCallback OnStatusChanged { get; set; }
     [Parameter] public EventCallback OnEdit { get; set; }
     [Parameter] public EventCallback OnView { get; set; }

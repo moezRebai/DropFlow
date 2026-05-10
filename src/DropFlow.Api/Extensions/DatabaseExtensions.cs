@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Bogus;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Route = DropFlow.Domain.Entities.Route;
 
 namespace DropFlow.Api.Extensions;
 
@@ -175,8 +174,6 @@ public static class DatabaseExtensions
         await userManager.AddToRoleAsync(testUser, Roles.Manager);
 
         await SeedVehiclesAndDriversAsync(context, testTenant.Id, testUser.Id, logger);
-
-        await SeedRoutesAsync(context, testTenant.Id, testUser.Id, logger);
         
         // 3. ✅ SEED STORES
         var stores = new[]
@@ -235,6 +232,9 @@ public static class DatabaseExtensions
 
         // 5. ✅ SEED DELIVERIES avec Bogus
         await SeedDeliveriesAsync(context, testTenant.Id, testUser.Id, stores, logger);
+
+        // 6. ✅ SEED AUDIT LOGS pour les notifications du dashboard
+        await SeedAuditLogsAsync(context, testTenant.Id, testUser.Id, logger);
 
         logger.LogInformation("Development data seeded successfully");
     }
@@ -390,6 +390,30 @@ public static class DatabaseExtensions
             stores: stores,
             sequentialNumber: ref sequentialNumber,
             dateRange: (-30, -1) // Passées
+        ));
+
+        // ═══ LIVRÉES AUJOURD'HUI (5 livraisons) ═══
+        deliveries.AddRange(GenerateDeliveries(
+            count: 5,
+            status: DeliveryStatus.Delivered,
+            tenantId: tenantId,
+            userId: userId,
+            clients: clients,
+            stores: stores,
+            sequentialNumber: ref sequentialNumber,
+            dateRange: (0, 0) // Aujourd'hui
+        ));
+
+        // ═══ EN COURS AUJOURD'HUI (3 livraisons) ═══
+        deliveries.AddRange(GenerateDeliveries(
+            count: 3,
+            status: DeliveryStatus.InProgress,
+            tenantId: tenantId,
+            userId: userId,
+            clients: clients,
+            stores: stores,
+            sequentialNumber: ref sequentialNumber,
+            dateRange: (0, 0) // Aujourd'hui
         ));
 
         // ═══ ANNULÉES (5 livraisons) ═══
@@ -656,71 +680,6 @@ public static class DatabaseExtensions
 
         logger.LogInformation("✅ Seeded {Count} drivers", drivers.Count);
     }
-
-    private static async Task SeedRoutesAsync(
-        ApplicationDbContext context,
-        int tenantId,
-        string userId,
-        ILogger logger)
-    {
-        logger.LogInformation("Seeding route sheets...");
-
-        var vehicles = await context.Vehicles
-            .Where(v => v.TenantId == tenantId)
-            .ToListAsync();
-
-        var drivers = await context.Drivers
-            .Where(d => d.TenantId == tenantId)
-            .ToListAsync();
-
-        if (!vehicles.Any() || drivers.Count < 2)
-        {
-            logger.LogWarning("Not enough vehicles or drivers, skipping route sheets");
-            return;
-        }
-
-        var faker = new Faker("fr");
-        var routeSheets = new List<Route>();
-
-        // 2 feuilles de route pour aujourd'hui
-        for (int i = 0; i < 2; i++)
-        {
-            var rs = Route.Create(
-                reference: $"FR-{DateTime.Today:yyyyMMdd}-{i + 1:D3}",
-                date: DateTime.Today,
-                vehicleId: vehicles[i].Id,
-                startTime: new TimeSpan(8, 0, 0),
-                departureAddress: "123 Rue de l'Entrepôt, 75015 Paris",
-                departureLatitude: 48.8566,
-                departureLongitude: 2.3522
-            );
-
-            rs.GetType().GetProperty("TenantId")!.SetValue(rs, tenantId);
-            rs.GetType().GetProperty("CreatedBy")!.SetValue(rs, userId);
-            rs.GetType().GetProperty("ModifiedBy")!.SetValue(rs, userId);
-
-            routeSheets.Add(rs);
-        }
-
-        context.Routes.AddRange(routeSheets);
-        await context.SaveChangesAsync();
-
-        // Assigner équipages
-        var crew = new List<RouteTeam>();
-
-        // RouteSheet 1: Driver 0 (main) + Driver 1 (helper)
-        crew.Add(RouteTeam.Create(routeSheets[0].Id, drivers[0].Id, TeamMemberRole.MainDriver));
-        crew.Add(RouteTeam.Create(routeSheets[0].Id, drivers[1].Id, TeamMemberRole.Helper));
-
-        // RouteSheet 2: Driver 2 (main) + Driver 3 (helper)
-        crew.Add(RouteTeam.Create(routeSheets[1].Id, drivers[2].Id, TeamMemberRole.MainDriver));
-        crew.Add(RouteTeam.Create(routeSheets[1].Id, drivers[3].Id, TeamMemberRole.Helper));
-
-        context.RouteTeams.AddRange(crew);
-        await context.SaveChangesAsync();
-
-        logger.LogInformation("✅ Seeded {Count} route sheets with crews", routeSheets.Count);
-    }
     
     /// <summary>
     /// Seed les dépôts de test pour le tenant
@@ -780,5 +739,39 @@ public static class DatabaseExtensions
         await context.SaveChangesAsync();
 
         logger.LogInformation("✅ Seeded {Count} tenant depots", depots.Length);
+    }
+
+    private static async Task SeedAuditLogsAsync(
+        ApplicationDbContext context,
+        int tenantId,
+        string userId,
+        ILogger logger)
+    {
+        logger.LogInformation("Seeding audit logs...");
+
+        var now = DateTime.UtcNow;
+
+        var logs = new[]
+        {
+            AuditLog.Create(tenantId, userId, "Created",       "Delivery", changes: "Nouvelle livraison créée pour Jean Martin"),
+            AuditLog.Create(tenantId, userId, "Completed",     "Route",    changes: "Tournée du jour démarrée avec succès"),
+            AuditLog.Create(tenantId, userId, "StatusUpdated", "Delivery", changes: "Livraison marquée comme Livrée"),
+            AuditLog.Create(tenantId, userId, "Warning",       "Delivery", changes: "3 livraisons non planifiées depuis plus de 14 jours"),
+            AuditLog.Create(tenantId, userId, "Created",       "Route",    changes: "Nouvelle tournée planifiée pour demain"),
+            AuditLog.Create(tenantId, userId, "StatusUpdated", "Delivery", changes: "Livraison en cours de livraison"),
+            AuditLog.Create(tenantId, userId, "Created",       "Client",   changes: "Nouveau client ajouté : Dupont"),
+        };
+
+        // Étaler les timestamps sur les dernières heures via réflexion
+        var timestampProp = typeof(AuditLog).GetProperty("Timestamp")!;
+        for (int i = 0; i < logs.Length; i++)
+        {
+            timestampProp.SetValue(logs[i], now.AddMinutes(-(i * 25)));
+        }
+
+        context.AuditLogs.AddRange(logs);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("✅ Seeded {Count} audit logs", logs.Length);
     }
 }

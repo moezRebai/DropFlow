@@ -39,4 +39,11 @@
       <AdditionalFiles Include="Components\Pages\Settings\Stores\StoreDialog.razor" />
       <AdditionalFiles Include="Components\Pages\Settings\Stores\Stores.razor" />
     </ItemGroup>
+
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Components\Pages\Dashboard\Dashboard.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Dashboard\GreetingCard.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Dashboard\NotificationsPopover.razor" />
+    </ItemGroup>
 </Project>

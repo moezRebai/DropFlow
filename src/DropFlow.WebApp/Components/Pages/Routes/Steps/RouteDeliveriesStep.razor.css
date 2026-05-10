@@ -1,0 +1,8 @@
+::deep .pre-assigned-row {
+    opacity: 0.72;
+    background-color: rgba(255, 167, 38, 0.06) !important;
+}
+
+::deep .invalid-address-row {
+    background-color: rgba(244, 67, 54, 0.05) !important;
+}

@@ -77,6 +77,25 @@ public class DashboardService(
                 .Count(s => s == RouteStatus.InProgress || s == RouteStatus.Confirmed);
             var totalRoutesToday = todayRouteStatuses.Count;
 
+            // Drivers on road = distinct drivers assigned to an InProgress route today
+            var driversOnRoad = await context.RouteTeams
+                .Where(rt => rt.Route.Date == today && rt.Route.Status == RouteStatus.InProgress)
+                .Select(rt => rt.DriverId)
+                .Distinct()
+                .CountAsync();
+
+            // Idle vehicles = active vehicles with no InProgress/Confirmed route today
+            var busyVehicleIds = await context.Routes
+                .Where(r => r.Date == today &&
+                            (r.Status == RouteStatus.InProgress || r.Status == RouteStatus.Confirmed))
+                .Select(r => r.VehicleId)
+                .Distinct()
+                .ToListAsync();
+
+            var idleVehicles = await context.Vehicles
+                .Where(v => v.IsActive && !busyVehicleIds.Contains(v.Id))
+                .CountAsync();
+
             return new DashboardStatsDto
             {
                 UnplannedDeliveries = unplannedCount,
@@ -86,7 +105,9 @@ public class DashboardService(
                 MonthlyRevenue = monthlyRevenue,
                 RevenueTrend = revenueTrend,
                 ActiveRoutes = activeRoutesCount,
-                TotalRoutesToday = totalRoutesToday
+                TotalRoutesToday = totalRoutesToday,
+                DriversOnRoad = driversOnRoad,
+                IdleVehicles = idleVehicles
             };
         }
         catch (Exception ex)
@@ -109,30 +130,37 @@ public class DashboardService(
         {
             var today = DateTime.UtcNow.Date;
 
-            var deliveries = await context.Deliveries
+            var nowTime = DateTime.UtcNow.TimeOfDay;
+
+            var entities = await context.Deliveries
                 .Where(d => d.ScheduledDate == today)
                 .Include(d => d.Client)
                 .Include(d => d.ClientAddress)
+                .Include(d => d.TimeSlot)
                 .Include(d => d.UrgentDriver)
                     .ThenInclude(ud => ud!.User)
                 .OrderBy(d => d.TimeSlot != null ? d.TimeSlot.StartTime : TimeSpan.Zero)
-                .Select(d => new TodayDeliveryDto
-                {
-                    Id = d.Id,
-                    Reference = d.Reference,
-                    ClientName = d.Client.DisplayName,
-                    DeliveryAddress = d.ClientAddress.Address,
-                    DeliveryCity = d.ClientAddress.City,
-                    ScheduledDate = d.ScheduledDate!.Value,
-                    ScheduledTime = d.TimeSlot != null ? d.TimeSlot.StartTime : null,
-                    Status = d.Status.ToString(),
-                    DriverName = d.UrgentDriver != null
-                        ? $"{d.UrgentDriver.User.FirstName} {d.UrgentDriver.User.LastName}"
-                        : null,
-                    IsLate = false
-                })
-                .Take(10) // Limiter à 10 pour le dashboard
+                .Take(10)
                 .ToListAsync();
+
+            var deliveries = entities.Select(d => new TodayDeliveryDto
+            {
+                Id = d.Id,
+                Reference = d.Reference,
+                ClientName = d.Client.DisplayName,
+                DeliveryAddress = d.ClientAddress.Address,
+                DeliveryCity = d.ClientAddress.City,
+                ScheduledDate = d.ScheduledDate!.Value,
+                ScheduledTime = d.TimeSlot?.StartTime,
+                Status = d.Status.ToString(),
+                DriverName = d.UrgentDriver != null
+                    ? $"{d.UrgentDriver.User.FirstName} {d.UrgentDriver.User.LastName}"
+                    : null,
+                IsLate = d.Status != DeliveryStatus.Delivered
+                      && d.Status != DeliveryStatus.Canceled
+                      && d.TimeSlot != null
+                      && d.TimeSlot.StartTime < nowTime
+            }).ToList();
 
             logger.LogInformation("[Dashboard] ✅ Loaded {Count} today deliveries", deliveries.Count);
             return deliveries;
@@ -158,17 +186,17 @@ public class DashboardService(
         try
         {
             var today = DateTime.UtcNow.Date;
-            var sevenDaysAgo = today.AddDays(-7);
+            var threeDaysAgo = today.AddDays(-3);
 
-            // Livraisons à risque = ToBePlanned depuis plus de 7 jours
+            // À planifier en urgence = ToBePlanned depuis plus de 3 jours
             var riskyDeliveries = await context.Deliveries
                 .Where(d => d.Status == DeliveryStatus.ToBePlanned &&
-                           d.CreatedDate.Date <= sevenDaysAgo)
+                           d.CreatedDate.Date <= threeDaysAgo)
                 .Include(d => d.Client)
                 .Include(d => d.ClientAddress)
                 .Include(d => d.TimeSlot)
-                .OrderBy(d => d.CreatedDate) // Les plus anciennes en premier
-                .Take(10) // Limiter à 10 pour le dashboard
+                .OrderBy(d => d.CreatedDate)
+                .Take(10)
                 .Select(d => new RiskyDeliveryDto
                 {
                     Id = d.Id,
@@ -176,15 +204,15 @@ public class DashboardService(
                     ClientName = d.Client.DisplayName,
                     DeliveryAddress = d.ClientAddress.Address,
                     DeliveryCity = d.ClientAddress.City,
-                    EstimatedTime = d.ScheduledDate.HasValue 
+                    EstimatedTime = d.ScheduledDate.HasValue
                         ? d.ScheduledDate.Value.Add(d.TimeSlot != null ? d.TimeSlot.StartTime : TimeSpan.Zero)
-                        : DateTime.Now, // Si pas de date, utiliser maintenant
+                        : DateTime.Now,
                     RiskReason = CalculateRiskReason(d.CreatedDate),
                     RiskLevel = CalculateRiskLevel(d.CreatedDate)
                 })
                 .ToListAsync();
 
-            logger.LogInformation("[Dashboard] ✅ Loaded {Count} risky deliveries (ToBePlanned > 7 days)", riskyDeliveries.Count);
+            logger.LogInformation("[Dashboard] ✅ Loaded {Count} deliveries to plan urgently (ToBePlanned > 3 days)", riskyDeliveries.Count);
             return riskyDeliveries;
         }
         catch (Exception ex)
@@ -203,10 +231,10 @@ public class DashboardService(
         
         return daysOld switch
         {
-            >= 30 => $"Non planifiée depuis {daysOld} jours !",
-            >= 14 => $"Non planifiée depuis {daysOld} jours",
-            >= 7 => $"À planifier ({daysOld} jours)",
-            _ => "À planifier"
+            >= 14 => $"Non planifiée depuis {daysOld} jours !",
+            >= 7  => $"Non planifiée depuis {daysOld} jours",
+            >= 3  => $"À planifier ({daysOld} jours)",
+            _     => "À planifier"
         };
     }
 
@@ -219,10 +247,10 @@ public class DashboardService(
         
         return daysOld switch
         {
-            >= 30 => "Error",    // Très urgent (30+ jours)
-            >= 14 => "Warning",  // Urgent (14-29 jours)
-            >= 7 => "Info",      // À surveiller (7-13 jours)
-            _ => "Info"
+            >= 7 => "Error",    // Très urgent (14+ jours)
+            >= 5  => "Warning",  // Urgent (7-13 jours)
+            >= 3  => "Info",     // À surveiller (3-6 jours)
+            _     => "Info"
         };
     }
 
@@ -375,6 +403,10 @@ public class DashboardService(
                 chartData.Labels.Add(GetStatusLabel(status));
                 chartData.Values.Add(count);
             }
+
+            chartData.DeliveredCount = statusGroups
+                .FirstOrDefault(g => g.Status == DeliveryStatus.Delivered)?.Count ?? 0;
+            chartData.TotalCount = statusGroups.Sum(g => g.Count);
 
             logger.LogInformation("[Dashboard] ✅ Status chart data loaded for {Period}", period);
             return chartData;

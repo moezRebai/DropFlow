@@ -5,21 +5,23 @@
 @inject IRouteService RouteService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Tournée - @_route?.Reference</PageTitle>
+<PageTitle>Tournée — @_route?.Reference</PageTitle>
 
 @if (_loading)
 {
-    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudContainer MaxWidth="MaxWidth.Large" Class="d-flex flex-column align-center justify-center mt-16">
         <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h6" Class="mt-4">Chargement...</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">Chargement...</MudText>
     </MudContainer>
 }
 else if (_route == null)
 {
     <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
         <MudAlert Severity="Severity.Error">Tournée introuvable</MudAlert>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/tournees" Class="mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/tournees" Class="mt-4"
+                   StartIcon="@Icons.Material.Filled.ArrowBack">
             Retour à la liste
         </MudButton>
     </MudContainer>
@@ -27,64 +29,146 @@ else if (_route == null)
 else
 {
     <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+
         <!-- Header -->
-        <MudCard Class="mb-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h5">
-                        <MudIcon Icon="@Icons.Material.Filled.Route" Class="mr-2" />
-                        @_route.Reference
-                    </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Créée le @_route.CreatedDate.ToString("dd/MM/yyyy à HH:mm") par @_route.CreatedBy
-                    </MudText>
-                </CardHeaderContent>
-                <CardHeaderActions>
+        <MudPaper Elevation="1" Class="pa-4 mb-4 rounded-lg">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.Route" />
+                    </MudAvatar>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h5" Class="font-weight-bold">@_route.Reference</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Créée le @_route.CreatedDate.ToString("dd/MM/yyyy à HH:mm") par @_route.CreatedBy
+                        </MudText>
+                    </MudStack>
                     @GetStatusChip(_route.Status)
+                </MudStack>
+                <MudStack Row="true" Spacing="2">
+                    @if (_route.Status == RouteStatus.Draft)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   Href="@($"/tournees/edit/{_route.Id}")">
+                            Modifier
+                        </MudButton>
+                    }
+                    @if (_route.Status == RouteStatus.Confirmed)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                   OnClick="StartRoute">
+                            Démarrer
+                        </MudButton>
+                    }
+                    @if (_route.Status == RouteStatus.InProgress)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.CheckCircle"
+                                   OnClick="CompleteRoute">
+                            Terminer
+                        </MudButton>
+                    }
+                    @if (_route.Status != RouteStatus.Completed && _route.Status != RouteStatus.Cancelled)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                   OnClick="CancelRoute">
+                            Annuler
+                        </MudButton>
+                    }
+                    @if (_route.Status != RouteStatus.Draft && _route.TotalDeliveries > 0)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                                   Disabled="@_downloading"
+                                   OnClick="DownloadRouteSheet">
+                            @if (_downloading)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                                <text>Génération...</text>
+                            }
+                            else
+                            {
+                                <text>PDF</text>
+                            }
+                        </MudButton>
+                    }
                     <MudButton Variant="Variant.Text"
-                              StartIcon="@Icons.Material.Filled.ArrowBack"
-                              Href="/tournees">
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               Href="/tournees">
                         Retour
                     </MudButton>
-                </CardHeaderActions>
-            </MudCardHeader>
-        </MudCard>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Stats banner -->
+        <MudPaper Elevation="2" Class="pa-4 mb-4 rounded-lg" Style="background: var(--mud-palette-primary); color: white;">
+            <MudGrid>
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@_route.TotalDeliveries</MudText>
+                    <MudText Typo="Typo.body2">Livraisons</MudText>
+                </MudItem>
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@_route.TotalDistance.ToString("F1")</MudText>
+                    <MudText Typo="Typo.body2">Kilomètres</MudText>
+                </MudItem>
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@FormatDuration(_route.TotalDuration)</MudText>
+                    <MudText Typo="Typo.body2">Durée trajet</MudText>
+                </MudItem>
+                <MudItem xs="6" sm="3" Class="text-center">
+                    <MudText Typo="Typo.h3" Class="font-weight-bold">@_route.TeamMembers.Count</MudText>
+                    <MudText Typo="Typo.body2">Équipe</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
 
         <MudGrid>
             <!-- Informations Générales -->
             <MudItem xs="12" md="6">
-                <MudCard>
+                <MudCard Outlined="true">
                     <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Primary" />
+                        </CardHeaderAvatar>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">Informations Générales</MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudList T="RouteDto?" Dense="true">
-                            <MudListItem Icon="@Icons.Material.Filled.CalendarToday">
+                        <MudList T="RouteDto" Dense="true">
+                            <MudListItem T="RouteDto" Icon="@Icons.Material.Filled.CalendarToday">
                                 <MudText Typo="Typo.body2">
                                     <strong>Date :</strong> @_route.Date.ToString("dddd dd MMMM yyyy")
                                 </MudText>
                             </MudListItem>
-                            <MudListItem Icon="@Icons.Material.Filled.AccessTime">
+                            <MudListItem T="RouteDto" Icon="@Icons.Material.Filled.AccessTime">
                                 <MudText Typo="Typo.body2">
                                     <strong>Heure départ :</strong> @_route.StartTime.ToString(@"hh\:mm")
                                 </MudText>
                             </MudListItem>
                             @if (_route.EstimatedEndTime.HasValue)
                             {
-                                <MudListItem Icon="@Icons.Material.Filled.Schedule">
+                                <MudListItem T="RouteDto" Icon="@Icons.Material.Filled.Schedule">
                                     <MudText Typo="Typo.body2">
-                                        <strong>Heure fin estimée :</strong> @_route.EstimatedEndTime.Value.ToString(@"hh\:mm")
+                                        <strong>Fin estimée :</strong> @_route.EstimatedEndTime.Value.ToString(@"hh\:mm")
                                     </MudText>
                                 </MudListItem>
                             }
-                            <MudListItem Icon="@Icons.Material.Filled.DirectionsCar">
+                            <MudListItem T="RouteDto" Icon="@Icons.Material.Filled.DirectionsCar">
                                 <MudText Typo="Typo.body2">
                                     <strong>Véhicule :</strong> @_route.VehicleName
                                 </MudText>
                             </MudListItem>
-                            <MudListItem Icon="@Icons.Material.Filled.Place">
+                            <MudListItem T="RouteDto" Icon="@Icons.Material.Filled.Place">
                                 <MudText Typo="Typo.body2">
                                     <strong>Adresse départ :</strong> @_route.DepartureAddress
                                 </MudText>
@@ -96,8 +180,11 @@ else
 
             <!-- Équipe -->
             <MudItem xs="12" md="6">
-                <MudCard>
+                <MudCard Outlined="true">
                     <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Primary" />
+                        </CardHeaderAvatar>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">Équipe (@_route.TeamMembers.Count)</MudText>
                         </CardHeaderContent>
@@ -108,7 +195,7 @@ else
                             {
                                 <MudListItem T="RouteTeamDto" Icon="@GetTeamIcon(crew.Role)">
                                     <MudText Typo="Typo.body2">
-                                        <strong>@crew.DriverName</strong> - @crew.RoleDisplay
+                                        <strong>@crew.DriverName</strong> — @crew.RoleDisplay
                                     </MudText>
                                 </MudListItem>
                             }
@@ -117,117 +204,39 @@ else
                 </MudCard>
             </MudItem>
 
-            <!-- Statistiques -->
+            <!-- Livraisons -->
             <MudItem xs="12">
-                <MudCard>
-                    <MudCardContent>
-                        <MudGrid>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudPaper Class="pa-4" Elevation="0">
-                                    <MudText Typo="Typo.h4" Color="Color.Primary">@_route.TotalDeliveries</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Livraisons</MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudPaper Class="pa-4" Elevation="0">
-                                    <MudText Typo="Typo.h4" Color="Color.Info">@_route.TotalDistance.ToString("F1") km</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Distance totale</MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudPaper Class="pa-4" Elevation="0">
-                                    <MudText Typo="Typo.h4" Color="Color.Warning">@FormatDuration(_route.TotalDuration)</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Durée totale</MudText>
-                                </MudPaper>
-                            </MudItem>
-                            @if (_route.TotalVolume.HasValue)
-                            {
-                                <MudItem xs="12" sm="6" md="3">
-                                    <MudPaper Class="pa-4" Elevation="0">
-                                        <MudText Typo="Typo.h4" Color="Color.Success">@_route.TotalVolume m³</MudText>
-                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Volume total</MudText>
-                                    </MudPaper>
-                                </MudItem>
-                            }
-                        </MudGrid>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Actions -->
-            <MudItem xs="12">
-                <MudCard>
+                <MudCard Outlined="true">
                     <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Actions</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudButtonGroup Variant="Variant.Filled">
-                            @if (_route.Status == RouteStatus.Confirmed)
-                            {
-                                <MudButton Color="Color.Success"
-                                          StartIcon="@Icons.Material.Filled.PlayArrow"
-                                          OnClick="StartRoute">
-                                    Démarrer la Tournée
-                                </MudButton>
-                            }
-
-                            @if (_route.Status == RouteStatus.InProgress)
-                            {
-                                <MudButton Color="Color.Success"
-                                          StartIcon="@Icons.Material.Filled.CheckCircle"
-                                          OnClick="CompleteRoute">
-                                    Terminer la Tournée
-                                </MudButton>
-                            }
-
-                            @if (_route.Status != RouteStatus.Completed && _route.Status != RouteStatus.Cancelled)
-                            {
-                                <MudButton Color="Color.Error"
-                                          StartIcon="@Icons.Material.Filled.Cancel"
-                                          OnClick="CancelRoute">
-                                    Annuler
-                                </MudButton>
-                            }
-
-                            <MudButton Color="Color.Info"
-                                      StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                                      Disabled="true">
-                                Télécharger PDF
-                            </MudButton>
-                        </MudButtonGroup>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Liste Livraisons -->
-            <MudItem xs="12">
-                <MudCard>
-                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Primary" />
+                        </CardHeaderAvatar>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">Livraisons (@_route.Deliveries.Count)</MudText>
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
                         <MudTable Items="@_route.Deliveries.OrderBy(d => d.SequenceOrder)"
-                                 Hover="true"
-                                 Dense="true"
-                                 Breakpoint="Breakpoint.Sm">
+                                  Hover="true"
+                                  Dense="true"
+                                  Breakpoint="Breakpoint.Sm">
                             <HeaderContent>
                                 <MudTh>#</MudTh>
                                 <MudTh>Référence</MudTh>
                                 <MudTh>Client</MudTh>
                                 <MudTh>Adresse</MudTh>
+                                <MudTh>Départ</MudTh>
+                                <MudTh>Arrivée</MudTh>
+                                <MudTh>Trajet</MudTh>
+                                <MudTh>Prestation</MudTh>
                                 <MudTh>Créneau</MudTh>
-                                <MudTh>Durée</MudTh>
                             </HeaderContent>
                             <RowTemplate>
                                 <MudTd DataLabel="#">
-                                    <MudChip T="RouteDeliveryDto" Size="Size.Small" Color="Color.Primary">@context.SequenceOrder</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@context.SequenceOrder</MudChip>
                                 </MudTd>
                                 <MudTd DataLabel="Référence">
-                                    <MudText Typo="Typo.body2">@context.Reference</MudText>
+                                    <MudText Typo="Typo.body2" Class="font-weight-bold">@context.Reference</MudText>
                                 </MudTd>
                                 <MudTd DataLabel="Client">
                                     <MudText Typo="Typo.body2">@context.ClientName</MudText>
@@ -235,42 +244,68 @@ else
                                 <MudTd DataLabel="Adresse">
                                     <MudText Typo="Typo.body2">@context.Address</MudText>
                                 </MudTd>
-                                <MudTd DataLabel="Créneau">
+                                <MudTd DataLabel="Départ">
+                                    @if (context.DepartureTime.HasValue)
+                                    {
+                                        <MudText Typo="Typo.body2">@context.DepartureTime.Value.ToString(@"hh\:mm")</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Arrivée">
                                     @if (context.EstimatedArrivalTime.HasValue)
                                     {
-                                        <MudText Typo="Typo.body2">
+                                        <MudText Typo="Typo.body2" Class="font-weight-bold">
                                             @context.EstimatedArrivalTime.Value.ToString(@"hh\:mm")
                                         </MudText>
                                     }
-                                    @if (!string.IsNullOrEmpty(context.TimeSlotName))
+                                    else
                                     {
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                            @context.TimeSlotName
-                                        </MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
                                     }
                                 </MudTd>
-                                <MudTd DataLabel="Durée">
-                                    <MudText Typo="Typo.body2">@context.EstimatedDurationMinutes min</MudText>
+                                <MudTd DataLabel="Trajet">
+                                    @if (context.TravelDurationMinutes is > 0)
+                                    {
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudText Typo="Typo.body2">@FormatDuration(context.TravelDurationMinutes.Value)</MudText>
+                                            @if (context.DistanceToNextMeters is > 0)
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    (@((context.DistanceToNextMeters.Value / 1000.0m).ToString("F1")) km)
+                                                </MudText>
+                                            }
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Prestation">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Icon="@Icons.Material.Filled.Timer">
+                                        @context.EstimatedDurationMinutes min
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="Créneau">
+                                    @if (!string.IsNullOrEmpty(context.TimeSlotName))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Icon="@Icons.Material.Filled.Schedule">
+                                            @context.TimeSlotName
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                                    }
                                 </MudTd>
                             </RowTemplate>
                         </MudTable>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
-
-            <!-- TODO: Carte Google Maps -->
-            <!-- <MudItem xs="12">
-                <MudCard>
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Itinéraire</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <RouteMap Deliveries="@_routeSheet.Deliveries" />
-                    </MudCardContent>
-                </MudCard>
-            </MudItem> -->
         </MudGrid>
     </MudContainer>
 }
@@ -280,6 +315,7 @@ else
 
     private RouteDto? _route;
     private bool _loading = true;
+    private bool _downloading = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -304,6 +340,66 @@ else
         _loading = false;
     }
 
+    private async Task DownloadRouteSheet()
+    {
+        if (_route == null) return;
+
+        _downloading = true;
+        StateHasChanged();
+
+        try
+        {
+            Snackbar.Add("Génération de la feuille de route en cours...", Severity.Info);
+
+            var (success, pdfBytes, errorMessage) = await RouteService.DownloadRouteSheetAsync(_route.Id);
+
+            if (!success || pdfBytes == null)
+            {
+                Snackbar.Add(errorMessage ?? "Erreur lors du téléchargement", Severity.Error);
+                return;
+            }
+
+            var fileName = $"Feuille-Route-{_route.Reference}-{DateTime.Now:yyyyMMdd-HHmmss}.pdf";
+
+            await EnsureDownloadFunctionExists();
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf", pdfBytes);
+
+            Snackbar.Add($"Feuille de route {_route.Reference} téléchargée avec succès", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors du téléchargement : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _downloading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task EnsureDownloadFunctionExists()
+    {
+        var functionExists = await JSRuntime.InvokeAsync<bool>("eval",
+            "typeof window.downloadFileFromBytes !== 'undefined'");
+
+        if (!functionExists)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                window.downloadFileFromBytes = (fileName, contentType, byteArray) => {
+                    const blob = new Blob([new Uint8Array(byteArray)], { type: contentType });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                };
+            ");
+        }
+    }
+
     private async Task StartRoute()
     {
         var confirmed = await DialogService.ShowMessageBox(
@@ -315,7 +411,6 @@ else
         if (confirmed == true && _route != null)
         {
             var result = await RouteService.StartAsync(_route.Id);
-
             if (result.Succeeded)
             {
                 Snackbar.Add("Tournée démarrée", Severity.Success);
@@ -339,7 +434,6 @@ else
         if (confirmed == true && _route != null)
         {
             var result = await RouteService.CompleteAsync(_route.Id);
-
             if (result.Succeeded)
             {
                 Snackbar.Add("Tournée terminée", Severity.Success);
@@ -363,7 +457,6 @@ else
         if (confirmed == true && _route != null)
         {
             var result = await RouteService.CancelAsync(_route.Id);
-
             if (result.Succeeded)
             {
                 Snackbar.Add("Tournée annulée", Severity.Warning);
@@ -378,36 +471,29 @@ else
 
     private RenderFragment GetStatusChip(RouteStatus status)
     {
-        var (color, text) = status switch
+        var (color, icon, text) = status switch
         {
-            RouteStatus.Draft => (Color.Default, "Brouillon"),
-            RouteStatus.Confirmed => (Color.Info, "Confirmée"),
-            RouteStatus.InProgress => (Color.Warning, "En cours"),
-            RouteStatus.Completed => (Color.Success, "Terminée"),
-            RouteStatus.Cancelled => (Color.Error, "Annulée"),
-            _ => (Color.Default, status.ToString())
+            RouteStatus.Draft      => (Color.Default, Icons.Material.Filled.Edit,        "Brouillon"),
+            RouteStatus.Confirmed  => (Color.Info,    Icons.Material.Filled.CheckCircle, "Confirmée"),
+            RouteStatus.InProgress => (Color.Warning, Icons.Material.Filled.PlayArrow,   "En cours"),
+            RouteStatus.Completed  => (Color.Success, Icons.Material.Filled.Flag,        "Terminée"),
+            RouteStatus.Cancelled  => (Color.Error,   Icons.Material.Filled.Cancel,      "Annulée"),
+            _                      => (Color.Default, Icons.Material.Filled.Help,        status.ToString())
         };
 
-        return @<MudChip T="string" Size="Size.Medium" Color="@color">@text</MudChip>;
+        return @<MudChip T="string" Size="Size.Medium" Color="@color" Icon="@icon">@text</MudChip>;
     }
 
-    private string GetTeamIcon(TeamMemberRole role)
+    private static string GetTeamIcon(TeamMemberRole role) => role switch
     {
-        return role switch
-        {
-            TeamMemberRole.MainDriver => Icons.Material.Filled.DriveEta,
-            TeamMemberRole.Helper => Icons.Material.Filled.Person,
-            _ => Icons.Material.Filled.Person
-        };
-    }
+        TeamMemberRole.MainDriver => Icons.Material.Filled.DriveEta,
+        _ => Icons.Material.Filled.Person
+    };
 
-    private string FormatDuration(int minutes)
+    private static string FormatDuration(int minutes)
     {
         var hours = minutes / 60;
         var mins = minutes % 60;
-
-        if (hours > 0)
-            return $"{hours}h{mins:D2}";
-        return $"{mins}min";
+        return hours > 0 ? $"{hours}h{mins:D2}" : $"{mins}min";
     }
 }

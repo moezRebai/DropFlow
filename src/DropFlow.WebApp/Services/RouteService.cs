@@ -36,6 +36,9 @@ public class RouteService(
             var queryString = $"?Page={filter.Page}" +
                               $"&PageSize={filter.PageSize}";
 
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+                queryString += $"&SearchTerm={Uri.EscapeDataString(filter.SearchTerm)}";
+
             if (filter.Date.HasValue)
                 queryString += $"&Date={filter.Date.Value:yyyy-MM-dd}";
 

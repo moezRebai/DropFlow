@@ -31,6 +31,12 @@ public class RouteService(
             .ThenInclude(d => d.User)
             .AsQueryable();
 
+        if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+        {
+            var term = filter.SearchTerm.Trim();
+            query = query.Where(rs => rs.Reference.Contains(term));
+        }
+
         if (filter.Date.HasValue)
             query = query.Where(rs => rs.Date.Date == filter.Date.Value.Date);
 
@@ -197,6 +203,7 @@ public class RouteService(
             // Set totals & status
             route.TotalDistance = dto.TotalDistance;
             route.TotalDuration = dto.TotalDuration;
+            route.TotalDeliveries = dto.Deliveries.Count;
             route.EstimatedEndTime = dto.StartTime.Add(TimeSpan.FromMinutes(dto.TotalDuration));
             route.Status = RouteStatus.Draft;
 
@@ -231,17 +238,14 @@ public class RouteService(
                 if (delivery.RouteId.HasValue)
                     throw new Exception($"Livraison {delivery.Reference} déjà assignée");
 
-                // Find or create TimeSlot
-                var timeSlot = await FindOrCreateTimeSlotAsync(
-                    deliveryDto.TimeSlotStart,
-                    deliveryDto.TimeSlotEnd
-                );
+                // Find or create TimeSlot based on estimated arrival time
+                var timeSlot = await FindOrCreateTimeSlotAsync(deliveryDto.EstimatedArrivalTime);
 
                 // ✅ ROUTE ASSIGNMENT
                 delivery.RouteId = route.Id;
                 delivery.SequenceOrder = deliveryDto.SequenceOrder;
                 delivery.EstimatedArrivalTime = deliveryDto.EstimatedArrivalTime;
-                delivery.TimeSlotId = timeSlot.Id;
+                delivery.TimeSlotId = timeSlot?.Id;
 
                 // ✅ ⭐ NOUVEAUX CHAMPS - OPTIMISATION
                 delivery.DepartureAddress = deliveryDto.DepartureAddress;
@@ -378,15 +382,10 @@ public class RouteService(
                     return ResponseResult.Failure($"Livraison {delivery.Reference} déjà assignée à une autre tournée");
                 }
 
-                // Find or create TimeSlot
-                TimeSlot? timeSlot = null;
-                if (deliveryDto is { TimeSlotStart: not null, TimeSlotEnd: not null })
-                {
-                    timeSlot = await FindOrCreateTimeSlotAsync(
-                        deliveryDto.TimeSlotStart.Value,
-                        deliveryDto.TimeSlotEnd.Value
-                    );
-                }
+                // Find or create TimeSlot based on estimated arrival time
+                var timeSlot = deliveryDto.EstimatedArrivalTime.HasValue
+                    ? await FindOrCreateTimeSlotAsync(deliveryDto.EstimatedArrivalTime.Value)
+                    : null;
 
                 delivery.RouteId = route.Id;
                 delivery.SequenceOrder = deliveryDto.SequenceOrder;
@@ -1021,9 +1020,9 @@ public class RouteService(
                 });
             }
 
-            // ✅ 8. Calculer les totaux
-            var totalDistanceKm = optimizedRoute.Legs.Sum(l => l.Distance?.Value ?? 0) / 1000m;
-            var totalTravelMinutes = optimizedRoute.Legs.Sum(l => l.Duration?.Value ?? 0) / 60;
+            // ✅ 8. Calculer les totaux (premiers n legs seulement, le n+1 est le retour au dépôt)
+            var totalDistanceKm = optimizedRoute.Legs.Take(deliveries.Count).Sum(l => l.Distance?.Value ?? 0) / 1000m;
+            var totalTravelMinutes = optimizedRoute.Legs.Take(deliveries.Count).Sum(l => l.Duration?.Value ?? 0) / 60;
 
             // ✅ Ajouter les durées de prestation de chaque livraison
             var totalServiceMinutes = deliveries.Sum(d => d.EstimatedDurationMinutes ?? 15);
@@ -1114,7 +1113,7 @@ public class RouteService(
             }
 
             // ═══ 4. CONSTRUIRE LES WAYPOINTS (dans l'ordre donné) ═══
-            var wayPoints = string.Join("|", deliveries.Select(d =>
+            var wayPoints = string.Join("|", orderedDeliveries.Select(d =>
                 $"{d.ClientAddress.Latitude!.Value},{d.ClientAddress.Longitude!.Value}"));
 
             logger.LogInformation("Waypoints (ordre manuel): {WayPoints}", wayPoints);
@@ -1141,30 +1140,32 @@ public class RouteService(
 
             var route = googleResponse.Routes[0];
             var legs = route.Legs;
-            var waypointOrder = route.WaypointOrder;
 
-            if (waypointOrder == null || waypointOrder.Length != deliveries.Count)
+            // With optimize:false Google returns waypoint_order:[] (empty) and
+            // legs.Count = n+1 because destination = last waypoint coord produces
+            // a zero-distance final leg. We need at least n legs (one per delivery).
+            if (legs == null || legs.Count < orderedDeliveries.Count)
             {
                 logger.LogError(
-                    "Nombre de legs ({LegsCount}) ne correspond pas au nombre de livraisons ({DeliveriesCount})",
-                    legs?.Count ?? 0, deliveries.Count);
+                    "Nombre de legs ({LegsCount}) insuffisant pour {DeliveriesCount} livraisons",
+                    legs?.Count ?? 0, orderedDeliveries.Count);
                 return ResponseResult<OptimizePathResponseDto>.Failure(
                     "Erreur de calcul d'itinéraire");
             }
 
             // ═══ 6. CONSTRUIRE LE RÉSULTAT (DANS L'ORDRE DONNÉ) ═══
-            // ⚠️ PAS de réordonnancement selon waypoint_order
+            // Only consume the first n legs — the n+1th is a zero-distance return leg.
             var optimizedDeliveries = new List<OptimizedDeliveryDto>();
 
-            for (int i = 0; i < deliveries.Count; i++)
+            for (int i = 0; i < orderedDeliveries.Count; i++)
             {
-                var delivery = deliveries[i];
-                var leg = legs[i]; // Leg correspondant dans l'ordre
+                var delivery = orderedDeliveries[i];
+                var leg = legs[i];
 
                 optimizedDeliveries.Add(new OptimizedDeliveryDto
                 {
                     DeliveryId = delivery.Id,
-                    SequenceOrder = i + 1, // Ordre séquentiel
+                    SequenceOrder = i + 1,
                     Address = delivery.ClientAddress.FullAddress,
                     Latitude = delivery.ClientAddress.Latitude.Value,
                     Longitude = delivery.ClientAddress.Longitude.Value,
@@ -1173,9 +1174,9 @@ public class RouteService(
                 });
             }
 
-            // ═══ 7. CALCULER LES TOTAUX ═══
-            var totalDistanceMeters = legs.Sum(leg => leg.Distance?.Value ?? 0);
-            var totalDurationSeconds = legs.Sum(leg => leg.Duration?.Value ?? 0);
+            // ═══ 7. CALCULER LES TOTAUX (premiers n legs seulement) ═══
+            var totalDistanceMeters = legs.Take(orderedDeliveries.Count).Sum(leg => leg.Distance?.Value ?? 0);
+            var totalDurationSeconds = legs.Take(orderedDeliveries.Count).Sum(leg => leg.Duration?.Value ?? 0);
 
             var response = new OptimizePathResponseDto
             {
@@ -1333,7 +1334,7 @@ public class RouteService(
     /// Crée un acronyme à partir du nom de l'entreprise
     /// Ex: "SRS Services" => "SRS", "Société de Transport" => "SDT"
     /// </summary>
-    private string GetCompanyAcronym(string companyName)
+    private static string GetCompanyAcronym(string companyName)
     {
         if (string.IsNullOrWhiteSpace(companyName))
             return "SRS"; // Valeur par défaut
@@ -1346,27 +1347,9 @@ public class RouteService(
             .Select(w => w[0].ToString().ToUpper())
             .ToArray();
 
-        if (words.Length == 0)
-        {
+        return words.Length == 0 ?
             // Si aucun mot valide, prendre les 3 premières lettres du nom
-            return companyName.Substring(0, Math.Min(3, companyName.Length)).ToUpper();
-        }
-
-        return string.Join("", words);
-    }
-
-    private string GetServiceTypeLabel(string? notes)
-    {
-        if (string.IsNullOrEmpty(notes))
-            return "N";
-
-        notes = notes.ToLower();
-
-        if (notes.Contains("montage"))
-            return "M";
-        if (notes.Contains("dépose"))
-            return "D";
-        return notes.Contains("reprise") ? "R" : "N"; // Normal/Livraison simple
+            companyName[..Math.Min(3, companyName.Length)].ToUpper() : string.Join("", words);
     }
 
     private async Task RecalculateMetricsInternalAsync(int routeId)
@@ -1391,13 +1374,20 @@ public class RouteService(
         await context.SaveChangesAsync();
     }
 
-    private async Task<TimeSlot> FindOrCreateTimeSlotAsync(TimeSpan start, TimeSpan end)
+    private async Task<TimeSlot> FindOrCreateTimeSlotAsync(TimeSpan arrivalTime)
     {
+        // Match against a manager-defined slot that covers the arrival time
         var existing = await context.TimeSlots
-            .FirstOrDefaultAsync(ts => ts.StartTime == start && ts.EndTime == end);
+            .Where(ts => ts.StartTime <= arrivalTime && arrivalTime < ts.EndTime)
+            .OrderBy(ts => ts.StartTime)
+            .FirstOrDefaultAsync();
 
         if (existing != null)
             return existing;
+
+        // No predefined slot covers this time — create a 2-hour fallback snapped to whole hours
+        var start = TimeSpan.FromHours(arrivalTime.Hours);
+        var end = start.Add(TimeSpan.FromHours(2));
 
         var timeSlot = new TimeSlot
         {

@@ -223,6 +223,14 @@ public class DeliveryService(
     /// Récupère les livraisons disponibles pour ajout à une tournée
     /// Exclut automatiquement les livraisons verrouillées dans des tournées actives
     /// </summary>
+    public async Task<ResponseResult<DeliveryDto>> GeocodeDeliveryAsync(int id)
+    {
+        Logger.LogInformation("Geocoding delivery {Id}", id);
+        var result = await PostAsync<object, ResponseResult<DeliveryDto>>(
+            $"/api/deliveries/{id}/geocode", new { });
+        return result ?? ResponseResult<DeliveryDto>.Failure("Réponse invalide du serveur");
+    }
+
     public async Task<ResponseResult<List<DeliveryDto>>> GetAvailableDeliveriesForRouteAsync(
         DateTime date, 
         int? currentRouteId = null)

@@ -186,7 +186,8 @@ public class RouteWizardState
     public void MarkAsOptimized()
     {
         HasChanged = false;
-        
+        IsManuallyReordered = false;
+
         // Sauvegarder les hash pour future comparaison
         _lastDeliveriesHash = GetDeliveriesHash();
         _lastDepartureHash = GetDepartureHash();

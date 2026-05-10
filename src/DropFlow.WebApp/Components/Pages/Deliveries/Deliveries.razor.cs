@@ -22,6 +22,14 @@ public partial class Deliveries
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     // ════════════════════════════════════════════════════════════════
+    // QUERY PARAMETERS
+    // ════════════════════════════════════════════════════════════════
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "status")]
+    public string? StatusQuery { get; set; }
+
+    // ════════════════════════════════════════════════════════════════
     // STATE
     // ════════════════════════════════════════════════════════════════
 
@@ -70,7 +78,15 @@ public partial class Deliveries
     protected override async Task OnInitializedAsync()
     {
         await LoadStoresAsync();
-        
+
+        // Appliquer le filtre status issu du query string (?status=ToBePlanned, etc.)
+        if (!string.IsNullOrEmpty(StatusQuery) &&
+            Enum.TryParse<DeliveryStatus>(StatusQuery, ignoreCase: true, out var status))
+        {
+            _selectedStatus = status;
+            _filters.Statuses = [status];
+        }
+
         // En mode Cards, charger les données directement
         if (_viewMode == ViewMode.Cards)
         {
@@ -237,8 +253,50 @@ public partial class Deliveries
 
     private async Task OnSearchChanged()
     {
-        _filters.Page = 1; // Reset à la page 1
-        
+        _filters.Page = 1;
+        await ReloadDeliveriesAsync();
+    }
+
+    private async Task OnStoreChangedAsync(int? storeId)
+    {
+        _selectedStoreId = storeId;
+        _filters.Page = 1;
+        await ReloadDeliveriesAsync();
+    }
+
+    private async Task OnStatusChangedAsync(DeliveryStatus? status)
+    {
+        _selectedStatus = status;
+        _filters.Page = 1;
+        await ReloadDeliveriesAsync();
+    }
+
+    private async Task OnDateFromChangedAsync(DateTime? date)
+    {
+        _dateFrom = date;
+        _filters.Page = 1;
+        await ReloadDeliveriesAsync();
+    }
+
+    private async Task OnDateToChangedAsync(DateTime? date)
+    {
+        _dateTo = date;
+        _filters.Page = 1;
+        await ReloadDeliveriesAsync();
+    }
+
+    private async Task ClearDatesAsync()
+    {
+        _dateFrom = null;
+        _dateTo = null;
+        _filters.Page = 1;
+        await ReloadDeliveriesAsync();
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        _searchTerm = null;
+        _filters.Page = 1;
         await ReloadDeliveriesAsync();
     }
 
@@ -524,6 +582,20 @@ public partial class Deliveries
     // ════════════════════════════════════════════════════════════════
     // HELPERS - STYLE & AFFICHAGE
     // ════════════════════════════════════════════════════════════════
+
+    private static string GetRowStyle(DeliveryViewDto delivery)
+    {
+        var color = delivery.Status switch
+        {
+            DeliveryStatus.ToBePlanned => "#F59E0B",
+            DeliveryStatus.Confirmed   => "#3B82F6",
+            DeliveryStatus.InProgress  => "#8B5CF6",
+            DeliveryStatus.Delivered   => "#10B981",
+            DeliveryStatus.Canceled    => "#9CA3AF",
+            _ => "#E5E7EB"
+        };
+        return $"border-left: 3px solid {color};";
+    }
 
     private string GetCardStyle(DeliveryViewDto delivery)
     {

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(sqllocaldb info *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet build *)",
+      "mcp__codegraph__codegraph_explore",
+      "Bash(codegraph init *)",
+      "Bash(codegraph sync *)"
+    ]
+  }
+}

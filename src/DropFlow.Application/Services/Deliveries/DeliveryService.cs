@@ -583,7 +583,7 @@ public class DeliveryService(
             delivery.InternalNotes = dto.InternalNotes;
             delivery.UrgentDriverId = dto.UrgentDriverId; // ✅ AJOUTÉ
             delivery.ModifiedDate = DateTime.UtcNow;
-            delivery.ModifiedBy = currentUser.Id;
+            delivery.ModifiedBy = currentUser?.Id;
 
             // Update items
             if (dto.Items != null)
@@ -1077,6 +1077,52 @@ public class DeliveryService(
             logger.LogError(ex, "Error getting available deliveries for route");
             return ResponseResult<List<DeliveryDto>>.Failure(
                 "Erreur lors de la récupération des livraisons disponibles");
+        }
+    }
+
+    public async Task<ResponseResult<DeliveryDto>> GeocodeDeliveryAsync(int id)
+    {
+        try
+        {
+            var delivery = await context.Deliveries
+                .Include(d => d.ClientAddress)
+                .Include(d => d.Client)
+                .Include(d => d.Store)
+                .Include(d => d.Items)
+                .Include(d => d.Route)
+                .Include(d => d.TimeSlot)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (delivery == null)
+                return ResponseResult<DeliveryDto>.Failure("Livraison introuvable");
+
+            var geocode = await geocodingService.GeocodeAddressAsync(
+                delivery.ClientAddress.Address,
+                delivery.ClientAddress.ZipCode,
+                delivery.ClientAddress.City);
+
+            if (!geocode.Latitude.HasValue || !geocode.Longitude.HasValue)
+                return ResponseResult<DeliveryDto>.Failure(
+                    $"Adresse introuvable : {delivery.ClientAddress.Address}, {delivery.ClientAddress.ZipCode} {delivery.ClientAddress.City}");
+
+            delivery.ClientAddress.Latitude = geocode.Latitude;
+            delivery.ClientAddress.Longitude = geocode.Longitude;
+
+            await context.SaveChangesAsync();
+
+            logger.LogInformation(
+                "Geocoded delivery {Id}: ({Lat}, {Lng})",
+                id, geocode.Latitude, geocode.Longitude);
+
+            var dto = await GetDeliveryByIdAsync(id);
+            return dto.Succeeded && dto.Data != null
+                ? ResponseResult<DeliveryDto>.Success(dto.Data)
+                : ResponseResult<DeliveryDto>.Failure("Erreur lors du rechargement de la livraison");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error geocoding delivery {Id}", id);
+            return ResponseResult<DeliveryDto>.Failure($"Erreur lors du géocodage : {ex.Message}");
         }
     }
 

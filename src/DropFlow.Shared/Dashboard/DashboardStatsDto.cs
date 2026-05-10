@@ -44,4 +44,14 @@ public class DashboardStatsDto
     /// Nombre total de tournées planifiées aujourd'hui
     /// </summary>
     public int TotalRoutesToday { get; set; }
+
+    /// <summary>
+    /// Nombre de chauffeurs en route (affectés à une tournée InProgress aujourd'hui)
+    /// </summary>
+    public int DriversOnRoad { get; set; }
+
+    /// <summary>
+    /// Nombre de véhicules actifs non affectés à une tournée active aujourd'hui
+    /// </summary>
+    public int IdleVehicles { get; set; }
 }

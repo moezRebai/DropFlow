@@ -136,7 +136,7 @@ public partial class CreateEditRoute
                     ServiceDurationMinutes = rd.EstimatedDurationMinutes,
                     
                     TimeSlotStart = rd.EstimatedArrivalTime ?? TimeSpan.Zero,
-                    TimeSlotEnd = (rd.EstimatedArrivalTime ?? TimeSpan.Zero).Add(TimeSpan.FromMinutes(30))
+                    TimeSlotEnd = (rd.EstimatedArrivalTime ?? TimeSpan.Zero).Add(TimeSpan.FromMinutes(rd.EstimatedDurationMinutes))
                 }).ToList();
 
             _wizardState.TotalDistanceKm = route.TotalDistance;
@@ -152,6 +152,10 @@ public partial class CreateEditRoute
             _step2Valid = true;
             _step3Valid = true;
             _step4Valid = true;
+
+            // Marquer comme optimisé pour que les modifications ultérieures déclenchent
+            // la réoptimisation mais que la navigation sans changement ne la déclenche pas
+            _wizardState.MarkAsOptimized();
         }
         catch (Exception ex)
         {

@@ -2,8 +2,8 @@
 @page "/livraisons/edit/{id:int}"
 @using DropFlow.Domain.Enums
 @using DropFlow.Shared.Clients
+@using DropFlow.Shared.Routes
 @using DropFlow.WebApp.Models.Auth
-@using Microsoft.AspNetCore.Components.Authorization
 
 <style>
     .section-card {
@@ -482,10 +482,19 @@
                                        Clearable="true"
                                        AnchorOrigin="Origin.BottomCenter"
                                        For="@(() => _model.RouteId)">
-                                @* @foreach (var route in _routes) *@
-                                @* { *@
-                                @*     <MudSelectItem T="int?" Value="@route.Id">@route.Name</MudSelectItem> *@
-                                @* } *@
+                                @foreach (var route in _routes)
+                                {
+                                    <MudSelectItem T="int?" Value="@route.Id">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudText Typo="Typo.body2" Style="font-weight: 500;">@route.Reference</MudText>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">@route.Date.ToString("dd/MM/yyyy")</MudText>
+                                            @if (!string.IsNullOrEmpty(route.MainDriverName))
+                                            {
+                                                <MudText Typo="Typo.caption" Style="color: #9CA3AF;">· @route.MainDriverName</MudText>
+                                            }
+                                        </MudStack>
+                                    </MudSelectItem>
+                                }
                             </MudSelect>
                         </MudItem>
 

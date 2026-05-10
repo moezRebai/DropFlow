@@ -124,6 +124,16 @@ public class DeliveriesController(IDeliveryService deliveryService) : Controller
     /// <param name="date">Date de la tournée</param>
     /// <param name="currentRouteId">ID de la tournée courante (optionnel, pour mode édition)</param>
     /// <returns>Liste des livraisons disponibles avec indication si déjà dans une route Draft</returns>
+    [HttpPost("{id}/geocode")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> GeocodeDelivery(int id)
+    {
+        var result = await deliveryService.GeocodeDeliveryAsync(id);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
+        return Ok(result);
+    }
+
     [HttpGet("available-for-route")]
     [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> GetAvailableForRoute(

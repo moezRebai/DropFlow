@@ -22,77 +22,102 @@
                         </MudText>
                     </MudStack>
 
-                    <MudFab Variant="Variant.Filled"
-                            Color="Color.Success"
-                            StartIcon="@Icons.Material.Filled.Add"
-                            OnClick="@(() => NavigationManager.NavigateTo("/tournees/create"))" />
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => NavigationManager.NavigateTo("/tournees/create"))">
+                        Nouvelle tournée
+                    </MudButton>
                 </MudStack>
             </MudPaper>
 
             <!-- Filters toolbar -->
-            <MudPaper Elevation="1" Class="mb-4 px-3 py-2 rounded-lg">
-                <MudStack Row="true"
-                          AlignItems="AlignItems.Center"
-                          Spacing="2"
-                          Justify="Justify.SpaceBetween">
+            <MudPaper Elevation="1" Class="mb-3 px-3 py-2 rounded-lg">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
 
-                    <!-- Filters (50%) -->
-                    <MudStack Row="true"
-                              AlignItems="AlignItems.Center"
-                              Spacing="2"
-                              Style="flex: 1 1 50%; max-width: 50%;">
+                    <MudTextField T="string"
+                                  Value="_searchTerm"
+                                  ValueChanged="@OnSearchChangedAsync"
+                                  Placeholder="Rechercher par référence..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Clearable="true"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Style="flex: 1 1 30%;" />
 
-                        <MudDatePicker Label="Date"
-                                       @bind-Date="_filterDate"
-                                       Clearable="true"
-                                       Variant="Variant.Outlined"
-                                       Placeholder="Toutes les dates"
-                                       Style="flex:1" />
-
-                        <MudSelect T="RouteStatus?"
-                                   Label="Statut"
-                                   @bind-Value="_filterStatus"
+                    <MudDatePicker Label="Date"
+                                   Date="_filterDate"
+                                   DateChanged="@OnDateChangedAsync"
                                    Clearable="true"
                                    Variant="Variant.Outlined"
-                                   Placeholder="Tous les statuts"
-                                   Style="flex:1">
-                            @foreach (var status in Enum.GetValues<RouteStatus>())
-                            {
-                                <MudSelectItem Value="@((RouteStatus?)status)">
-                                    @GetStatusDisplay(status)
-                                </MudSelectItem>
-                            }
-                        </MudSelect>
+                                   Margin="Margin.Dense"
+                                   Placeholder="Toutes les dates"
+                                   Style="flex: 1 1 25%;" />
 
-                    </MudStack>
-
-                    <!-- Actions (right aligned, unchanged) -->
-                    <MudStack Row="true"
-                              AlignItems="AlignItems.End"
-                              Justify="Justify.FlexEnd"
-                              Spacing="1">
-
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   OnClick="ApplyFilters"
-                                   Size="Size.Large"
-                                   StartIcon="@Icons.Material.Filled.Search">
-                            Rechercher
-                        </MudButton>
-
-                        <MudButton Variant="Variant.Text"
-                                   Color="Color.Secondary"
-                                   OnClick="ResetFilters"
-                                   Size="Size.Large"
-                                   StartIcon="@Icons.Material.Filled.Clear">
-                            Réinitialiser
-                        </MudButton>
-
-                    </MudStack>
+                    <MudSelect T="RouteStatus?"
+                               Label="Statut"
+                               Value="_filterStatus"
+                               ValueChanged="@OnStatusChangedAsync"
+                               Clearable="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Placeholder="Tous les statuts"
+                               Style="flex: 1 1 25%;">
+                        @foreach (var status in Enum.GetValues<RouteStatus>())
+                        {
+                            <MudSelectItem Value="@((RouteStatus?)status)">
+                                @GetStatusDisplay(status)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
 
                 </MudStack>
             </MudPaper>
 
+            <!-- Active filters -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-3 px-1" Wrap="Wrap.Wrap">
+                @if (!HasActiveFilters)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
+                             Icon="@Icons.Material.Filled.FilterList">
+                        Aucun filtre actif — toutes les tournées
+                    </MudChip>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Style="color: #6B7280; margin-right: 4px;">Filtres actifs :</MudText>
+
+                    @if (!string.IsNullOrWhiteSpace(_searchTerm))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                 OnClose="@ClearSearchAsync">
+                            Ref : @_searchTerm
+                        </MudChip>
+                    }
+
+                    @if (_filterDate.HasValue)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                 OnClose="@ClearDateAsync">
+                            Date : @_filterDate.Value.ToString("dd/MM/yyyy")
+                        </MudChip>
+                    }
+
+                    @if (_filterStatus.HasValue)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                 OnClose="@ClearStatusAsync">
+                            Statut : @GetStatusDisplay(_filterStatus.Value)
+                        </MudChip>
+                    }
+
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
+                               OnClick="ResetFilters">
+                        Réinitialiser
+                    </MudButton>
+                }
+            </MudStack>
 
             <!-- Data card -->
             <MudCard Elevation="2" Class="rounded-lg">
@@ -100,23 +125,23 @@
                     <MudTable Items="@_routes"
                               Hover="true"
                               Dense="true"
-                              Striped="true"
+                              Striped="false"
                               Bordered="false"
                               Breakpoint="Breakpoint.Sm"
                               Loading="@_loading"
                               FixedHeader="true"
                               Height="60vh"
-                              LoadingProgressColor="Color.Primary">
+                              LoadingProgressColor="Color.Primary"
+                              RowStyleFunc="@((item, i) => GetRowStyle(item))">
 
                         <HeaderContent>
                             <MudTh>Référence</MudTh>
                             <MudTh>Date</MudTh>
-                            <MudTh>Véhicule</MudTh>
-                            <MudTh>Chauffeur</MudTh>
-                            <MudTh>Livraisons</MudTh>
-                            <MudTh>Distance</MudTh>
-                            <MudTh>Durée</MudTh>
-                            <MudTh Style="min-width: 250px;">Statut & Actions</MudTh>
+                            <MudTh Style="text-align: center;">Équipe</MudTh>
+                            <MudTh Style="text-align: center;">Livraisons</MudTh>
+                            <MudTh>Dist · Durée</MudTh>
+                            <MudTh>Statut</MudTh>
+                            <MudTh Style="width: 60px;"></MudTh>
                         </HeaderContent>
 
                         <RowTemplate>
@@ -132,55 +157,65 @@
                                 </MudText>
                             </MudTd>
 
-                            <MudTd DataLabel="Véhicule">
-                                <MudText Typo="Typo.body2">@context.VehicleName</MudText>
-                            </MudTd>
-
-                            <MudTd DataLabel="Chauffeur">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.Center">
-                                    <MudText Typo="Typo.body2">@context.MainDriverName</MudText>
-                                    @if (context.TeamCount > 1)
-                                    {
-                                        <MudChip T="int" Size="Size.Small"
-                                                 Color="Color.Info"
-                                                 Variant="Variant.Outlined"
-                                                 Icon="@Icons.Material.Filled.Group">
-                                            +@(context.TeamCount - 1)
-                                        </MudChip>
-                                    }
+                            <MudTd DataLabel="Équipe" Style="text-align: center;">
+                                <MudStack Spacing="0" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudText Typo="Typo.body2" Class="font-weight-medium">@context.MainDriverName</MudText>
+                                        @if (context.TeamCount > 1)
+                                        {
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">+@(context.TeamCount - 1)</MudText>
+                                        }
+                                    </MudStack>
+                                    <MudText Typo="Typo.caption" Style="color: #9CA3AF;">@context.VehicleName</MudText>
                                 </MudStack>
                             </MudTd>
 
-                            <MudTd DataLabel="Livraisons">
-                                <MudChip T="int" Size="Size.Small"
-                                         Color="Color.Primary"
-                                         Variant="Variant.Outlined"
-                                         Icon="@Icons.Material.Filled.LocalShipping">
-                                    @context.TotalDeliveries
+                            <MudTd DataLabel="Livraisons" Style="text-align: center;">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="0">
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" Style="color: #0ea5e9;" Class="mr-1"/>
+                                    <MudText Typo="Typo.body2">@context.TotalDeliveries</MudText>
+                                </MudStack>
+                            </MudTd>
+
+                            <MudTd DataLabel="Dist · Durée">
+                                <MudText Typo="Typo.body2" Style="color: #6B7280;">
+                                    @context.TotalDistance.ToString("F1") km · @FormatDuration(context.TotalDuration)
+                                </MudText>
+                            </MudTd>
+
+                            <MudTd DataLabel="Statut">
+                                <MudChip T="string" Size="Size.Small"
+                                         Color="@GetRouteStatusColor(context.Status)"
+                                         Variant="Variant.Filled"
+                                         Class="df-status-chip">
+                                    @context.StatusDisplay
                                 </MudChip>
                             </MudTd>
 
-                            <MudTd DataLabel="Distance">
-                                <MudText Typo="Typo.body2">
-                                    @context.TotalDistance.ToString("F1") km
-                                </MudText>
-                            </MudTd>
-
-                            <MudTd DataLabel="Durée">
-                                <MudText Typo="Typo.body2">
-                                    @FormatDuration(context.TotalDuration)
-                                </MudText>
-                            </MudTd>
-
-                            <MudTd DataLabel="Statut & Actions">
-                                <!-- ✅ NOUVEAU COMPOSANT -->
-                                <RouteStatusActions Route="@context"
-                                                    OnStatusChanged="LoadRoutes"
-                                                    OnEdit="@(() => Edit(context.Id))"
-                                                    OnView="@(() => ViewDetails(context.Id))"
-                                                    OnDelete="@(() => Delete(context.Id, context.Reference))"/>
+                            <MudTd DataLabel="Actions">
+                                <span @onclick:stopPropagation="true">
+                                    <RouteStatusActions Route="@context"
+                                                        ShowStatusChip="false"
+                                                        OnStatusChanged="LoadRoutes"
+                                                        OnEdit="@(() => Edit(context.Id))"
+                                                        OnView="@(() => ViewDetails(context.Id))"
+                                                        OnDelete="@(() => Delete(context.Id, context.Reference))"/>
+                                </span>
                             </MudTd>
                         </RowTemplate>
+
+                        <NoRecordsContent>
+                            <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                                <MudIcon Icon="@Icons.Material.Filled.Route" Style="font-size: 3rem; color: #D1D5DB;"/>
+                                <MudText Typo="Typo.body1" Style="color: #9CA3AF;">Aucune tournée trouvée</MudText>
+                                @if (HasActiveFilters)
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="ResetFilters">
+                                        Réinitialiser les filtres
+                                    </MudButton>
+                                }
+                            </MudStack>
+                        </NoRecordsContent>
 
                         <PagerContent>
                             <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"
@@ -195,3 +230,7 @@
         <RedirectToAccessDenied />
     </NotAuthorized>
 </AuthorizeView>
+
+<style>
+    .df-status-chip { min-width: 90px; }
+</style>

@@ -36,6 +36,8 @@ public interface IDeliveryService
     /// <param name="currentRouteId">ID de la tournée courante (pour mode édition)</param>
     /// <returns>Liste des livraisons disponibles avec indication si déjà dans route Draft</returns>
     Task<ResponseResult<List<DeliveryDto>>> GetAvailableDeliveriesForRouteAsync(
-        DateTime date, 
+        DateTime date,
         int? currentRouteId = null);
+
+    Task<ResponseResult<DeliveryDto>> GeocodeDeliveryAsync(int id);
 }

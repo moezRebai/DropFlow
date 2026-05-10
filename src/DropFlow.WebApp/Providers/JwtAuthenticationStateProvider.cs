@@ -63,11 +63,12 @@ public class JwtAuthenticationStateProvider(
             {
                 var type = claim.Type switch
                 {
-                    "sub"   => ClaimTypes.NameIdentifier,
-                    "name"  => ClaimTypes.Name,
-                    "email" => ClaimTypes.Email,
-                    "role"  => ClaimTypes.Role,
-                    _       => claim.Type
+                    "sub"         => ClaimTypes.NameIdentifier,
+                    "name"        => ClaimTypes.Name,
+                    "unique_name" => ClaimTypes.Name,
+                    "email"       => ClaimTypes.Email,
+                    "role"        => ClaimTypes.Role,
+                    _             => claim.Type
                 };
 
                 return new Claim(type, claim.Value);

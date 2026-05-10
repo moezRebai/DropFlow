@@ -35,12 +35,6 @@ public class TenantDepotDto
         get
         {
             var parts = new List<string> { FullAddress };
-            
-            if (!string.IsNullOrEmpty(ZipCode) && !string.IsNullOrEmpty(City))
-                parts.Add($"{ZipCode} {City}");
-            else if (!string.IsNullOrEmpty(City))
-                parts.Add(City);
-            
             return string.Join(", ", parts);
         }
     }

@@ -4,6 +4,7 @@ namespace DropFlow.Shared.Routes;
 
 public class RouteFilterDto
 {
+    public string? SearchTerm { get; set; }
     public DateTime? Date { get; set; }
     public RouteStatus? Status { get; set; }
     public int? VehicleId { get; set; }

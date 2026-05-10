@@ -90,7 +90,7 @@ public class GeocodingService(
                 "Google Maps API Key non configurée dans appsettings.json");
         }
 
-        var destination = wayPoints.Split('|').Last();
+        var destination = originAddress;
 
         var optimizeParam = optimize ? "optimize:true" : "optimize:false";
 

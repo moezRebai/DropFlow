@@ -1,6 +1,7 @@
 ﻿using DropFlow.Domain.Enums;
 using DropFlow.Shared.Clients;
 using DropFlow.Shared.Deliveries;
+using DropFlow.Shared.Routes;
 using DropFlow.Shared.Stores;
 using DropFlow.Shared.TimeSlots;
 using DropFlow.WebApp.Interfaces;
@@ -24,6 +25,7 @@ public partial class CreateDelivery : IAsyncDisposable
     [Inject] private NavigationManager Navigation { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
+    [Inject] private IRouteService RouteService { get; set; } = default!;
     [Inject] private ITimeSlotService TimeSlotService { get; set; } = default!;
     // ════════════════════════════════════════════════════════════════
     // PARAMETERS
@@ -38,7 +40,8 @@ public partial class CreateDelivery : IAsyncDisposable
     private CreateDeliveryModel _model = new();
     private ClientLookupDto? _selectedClient;
     private List<StoreDto> _stores = new();
-    private List<TimeSlotDto> _timeSlots = new(); // ✅ NOUVEAU
+    private List<RouteViewDto> _routes = new();
+    private List<TimeSlotDto> _timeSlots = new();
     private bool _isAssignedToRoute; // ✅ NOUVEAU
     private bool _isSaving;
     
@@ -124,12 +127,16 @@ public partial class CreateDelivery : IAsyncDisposable
     {
         try
         {
-            // var routes = (await RouteService.GetRoutesAsync(new RouteFilterDto()))?.Items;
-            // _routes = routes ?? [];
+            var result = await RouteService.GetRoutesAsync(new RouteFilterDto
+            {
+                PageSize = 100
+            });
+            _routes = result?.Items.ToList() ?? [];
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading routes: {ex.Message}");
+            _routes = [];
         }
     }
 

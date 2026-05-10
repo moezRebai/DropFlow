@@ -396,6 +396,8 @@
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 16px;
+        max-height: 280px;
+        overflow-y: auto;
     }
 
     .df-activity-item {
@@ -458,6 +460,8 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
+        max-height: 280px;
+        overflow-y: auto;
     }
 
     .df-notification {
@@ -558,6 +562,8 @@
     /* === Deliveries Table === */
     .df-table-wrapper {
         overflow-x: auto;
+        max-height: 400px;
+        overflow-y: auto;
     }
 
     .df-table {
@@ -696,6 +702,17 @@
         gap: 4px;
     }
 
+    /* === MudChart axis visibility fix === */
+    .mud-charts-yaxis text,
+    .mud-charts-xaxis text {
+        fill: #1e293b !important;
+    }
+
+    .mud-charts-gridlines-yaxis path {
+        stroke: rgba(30, 41, 59, 0.15) !important;
+        stroke-width: 0.5 !important;
+    }
+
     /* === Chart Section === */
     .df-chart-header {
         display: flex;
@@ -774,6 +791,8 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        max-height: 280px;
+        overflow-y: auto;
     }
 
     .df-risk-item {
@@ -1044,6 +1063,235 @@
         border-color: var(--mud-palette-primary) !important;
     }
 
+    /* === Performance KPI mini-cards === */
+    .df-perf-kpis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
+    .df-perf-kpi {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 16px;
+        border-radius: var(--df-radius-md);
+        background: var(--df-background);
+        border: 1px solid var(--df-border);
+        text-align: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .df-perf-kpi:hover {
+        border-color: var(--df-primary);
+        background: rgba(2, 132, 199, 0.04);
+    }
+
+    .df-perf-kpi-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 4px;
+    }
+
+    .df-perf-kpi-icon--primary { background: rgba(2, 132, 199, 0.1); color: var(--df-primary); }
+    .df-perf-kpi-icon--success { background: rgba(16, 185, 129, 0.1); color: var(--df-success); }
+    .df-perf-kpi-icon--info    { background: rgba(59, 130, 246, 0.1); color: var(--df-info); }
+
+    .df-perf-kpi-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--df-text-primary);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+    }
+
+    .df-perf-kpi-label {
+        font-size: 0.72rem;
+        color: var(--df-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 500;
+    }
+
+    /* === Leaderboard === */
+    .df-leaderboard {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .df-leaderboard-row {
+        display: grid;
+        grid-template-columns: 40px 160px 1fr 100px 44px;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .df-leaderboard-rank {
+        font-size: 1rem;
+        text-align: center;
+        line-height: 1;
+    }
+
+    .df-leaderboard-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--df-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .df-leaderboard-bar-wrap {
+        height: 10px;
+        background: var(--df-background);
+        border-radius: 99px;
+        overflow: hidden;
+        border: 1px solid var(--df-border);
+    }
+
+    .df-leaderboard-bar-fill {
+        height: 100%;
+        border-radius: 99px;
+        transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .df-leaderboard-value {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--df-text-primary);
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .df-leaderboard-pct {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+        text-align: right;
+        font-weight: 500;
+    }
+
+    .df-leaderboard-total {
+        padding-top: 16px;
+        border-top: 1px solid var(--df-border);
+        font-size: 0.875rem;
+        color: var(--df-text-secondary);
+        text-align: right;
+    }
+
+    @@media (max-width: 768px) {
+        .df-perf-kpis {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .df-leaderboard-row {
+            grid-template-columns: 32px 1fr 70px 36px;
+        }
+
+        .df-leaderboard-bar-wrap {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .df-perf-kpis {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* === Loading bar === */
+    .df-loading-bar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        margin: -8px -8px 20px -8px;
+        border-radius: 0;
+    }
+
+    /* === Refresh row === */
+    .df-refresh-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        justify-content: flex-end;
+    }
+
+    .df-refresh-text {
+        font-size: 0.75rem;
+        color: var(--df-text-muted);
+    }
+
+    /* === KPI progress bar === */
+    .df-kpi-progress-wrap {
+        margin-top: 12px;
+    }
+
+    .df-kpi-progress-track {
+        width: 100%;
+        height: 4px;
+        background: rgba(0,0,0,0.06);
+        border-radius: 99px;
+        overflow: hidden;
+    }
+
+    .df-kpi-progress-fill {
+        height: 100%;
+        border-radius: 99px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .df-kpi-progress-fill--primary { background: var(--df-gradient-primary); }
+    .df-kpi-progress-fill--success { background: var(--df-gradient-success); }
+    .df-kpi-progress-fill--warning { background: var(--df-gradient-warning); }
+    .df-kpi-progress-fill--error   { background: var(--df-gradient-error); }
+
+    .df-kpi-progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 0.7rem;
+        color: var(--df-text-muted);
+    }
+
+    /* === Table empty state === */
+    .df-table-empty {
+        text-align: center;
+        padding: 40px 16px;
+        color: var(--df-text-muted);
+    }
+
+    .df-table-empty-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 12px;
+        border-radius: 50%;
+        background: var(--df-background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--df-text-muted);
+    }
+
+    /* === Skeleton === */
+    .df-skeleton-card {
+        border-radius: var(--df-radius-lg);
+        overflow: hidden;
+        height: 130px;
+    }
+
+    @@keyframes skeleton-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
+    }
+
 </style>
 
 <PageTitle>Dashboard - DropFlow</PageTitle>
@@ -1051,6 +1299,11 @@
 <AuthorizeView Roles="@Roles.Manager">
 
     <Authorized>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="df-loading-bar"/>
+        }
+
         <!-- Page Header -->
         <MudGrid Class="df-page-header" AlignItems="Center">
             <!-- Titre + date -->
@@ -1099,13 +1352,55 @@
                             <MudIconButton Icon="@Icons.Material.Filled.WarningAmber"
                                            Color="Color.Error"
                                            Size="Size.Medium"
-                                           OnClick="ImportData"/>
+                                           OnClick="NavigateToLateDeliveries"/>
                         </MudTooltip>
                     </MudStack>
                 </div>
             </MudItem>
 
         </MudGrid>
+
+        <!-- Refresh row -->
+        <div class="df-refresh-row">
+            @if (_lastRefreshed != default)
+            {
+                <span class="df-refresh-text">Mis à jour à @_lastRefreshed.ToString("HH:mm:ss")</span>
+            }
+            <MudTooltip Text="Actualiser">
+                <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                               Size="Size.Small"
+                               Disabled="_isLoading"
+                               OnClick="RefreshDashboardAsync"/>
+            </MudTooltip>
+        </div>
+
+        <!-- KPI Skeleton -->
+        @if (_isLoading)
+        {
+            <MudGrid Spacing="3" Class="mb-4">
+                @for (var i = 0; i < 4; i++)
+                {
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="130px" Class="df-skeleton-card"/>
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudGrid Spacing="3" Class="mb-4">
+                @for (var i = 0; i < 3; i++)
+                {
+                    <MudItem xs="12" md="4">
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" Class="df-skeleton-card"/>
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudGrid Spacing="3" Class="mb-4">
+                <MudItem xs="12">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="260px" Class="df-skeleton-card"/>
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
 
         <!-- KPI Cards -->
         <MudGrid Spacing="3" Class="mb-4">
@@ -1122,6 +1417,21 @@
                     </div>
                     <div class="df-kpi-value">@_stats.TodayDeliveries</div>
                     <div class="df-kpi-label">Livraisons du jour</div>
+                    @{
+                        var deliveryPct = _stats.TodayDeliveries > 0
+                            ? (int)Math.Round(_stats.DeliveredToday * 100.0 / _stats.TodayDeliveries)
+                            : 0;
+                    }
+                    <div class="df-kpi-progress-wrap">
+                        <div class="df-kpi-progress-track">
+                            <div class="df-kpi-progress-fill df-kpi-progress-fill--primary"
+                                 style="width: @(deliveryPct)%"></div>
+                        </div>
+                        <div class="df-kpi-progress-label">
+                            <span>@_stats.DeliveredToday livrées</span>
+                            <span>@deliveryPct%</span>
+                        </div>
+                    </div>
                 </div>
             </MudItem>
 
@@ -1140,6 +1450,15 @@
                     </div>
                     <div class="df-kpi-value">@_stats.UnplannedDeliveries</div>
                     <div class="df-kpi-label">Non planifiées</div>
+                    <div class="df-kpi-progress-wrap">
+                        <div class="df-kpi-progress-track">
+                            <div class="df-kpi-progress-fill df-kpi-progress-fill--warning"
+                                 style="width: @(_stats.TodayDeliveries > 0 ? (int)Math.Round(_stats.UnplannedDeliveries * 100.0 / _stats.TodayDeliveries) : 0)%"></div>
+                        </div>
+                        <div class="df-kpi-progress-label">
+                            <span>Sur @_stats.TodayDeliveries total</span>
+                        </div>
+                    </div>
                 </div>
             </MudItem>
 
@@ -1201,14 +1520,14 @@
                                 <div class="df-activity-icon df-activity-icon--drivers">
                                     <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small"/>
                                 </div>
-                                <div class="df-activity-value">@_driversOnRoad</div>
+                                <div class="df-activity-value">@_stats.DriversOnRoad</div>
                                 <div class="df-activity-label">Chauffeurs</div>
                             </div>
                             <div class="df-activity-item">
                                 <div class="df-activity-icon df-activity-icon--vehicles">
                                     <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small"/>
                                 </div>
-                                <div class="df-activity-value">@_idleVehicles</div>
+                                <div class="df-activity-value">@_stats.IdleVehicles</div>
                                 <div class="df-activity-label">Inactifs</div>
                             </div>
                         </div>
@@ -1238,7 +1557,8 @@
                                         <div class="df-notification-time">Il y a @notif.TimeAgo</div>
                                     </div>
                                     <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
-                                                   Class="df-notification-dismiss"/>
+                                                   Class="df-notification-dismiss"
+                                                   OnClick="@(() => DismissNotification(notif))"/>
                                 </div>
                             }
                         </div>
@@ -1251,9 +1571,9 @@
                     <div class="df-section-header">
                         <div class="df-section-title">
                             <MudIcon Icon="@Icons.Material.Outlined.Warning" Size="Size.Small"/>
-                            Livraisons à risque
+                            À planifier en urgence
                         </div>
-                        <MudLink Href="/deliveries?filter=risk" Class="df-section-link">
+                        <MudLink Href="/livraisons?status=ToBePlanned" Class="df-section-link">
                             Voir tout
                             <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small"/>
                         </MudLink>
@@ -1273,7 +1593,9 @@
                             <div class="df-risk-list">
                                 @foreach (var risk in _riskyDeliveries)
                                 {
-                                    <div class="df-risk-item df-risk-item--@risk.RiskLevel.ToLower()">
+                                    <div class="df-risk-item df-risk-item--@risk.RiskLevel.ToLower()"
+                                         @onclick="@(() => NavigationManager.NavigateTo($"/livraisons/edit/{risk.Id}"))"
+                                         style="cursor: pointer;">
                                         <div class="df-risk-icon">
                                             <MudIcon Icon="@GetRiskIconFromLevel(risk.RiskLevel)" Size="Size.Small"/>
                                         </div>
@@ -1307,7 +1629,7 @@
                             Livraisons du jour
                             <span class="df-section-badge">@_stats.TodayDeliveries</span>
                         </div>
-                        <MudLink Href="/deliveries" Class="df-section-link">
+                        <MudLink Href="/livraisons" Class="df-section-link">
                             Voir tout
                             <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small"/>
                         </MudLink>
@@ -1324,6 +1646,19 @@
                             </tr>
                             </thead>
                             <tbody>
+                            @if (!_todayDeliveries.Any())
+                            {
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="df-table-empty">
+                                            <div class="df-table-empty-icon">
+                                                <MudIcon Icon="@Icons.Material.Outlined.LocalShipping"/>
+                                            </div>
+                                            <div>Aucune livraison planifiée aujourd'hui</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                             @foreach (var delivery in _todayDeliveries)
                             {
                                 <tr>
@@ -1359,11 +1694,14 @@
                                     <td>
                                         <div class="df-table-actions">
                                             <MudIconButton Icon="@Icons.Material.Outlined.Visibility" Size="Size.Small"
-                                                           Title="Voir"/>
+                                                           Title="Voir"
+                                                           OnClick="@(() => NavigationManager.NavigateTo($"/livraisons/edit/{delivery.Id}"))"/>
                                             <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small"
-                                                           Title="Modifier"/>
+                                                           Title="Modifier"
+                                                           OnClick="@(() => NavigationManager.NavigateTo($"/livraisons/edit/{delivery.Id}"))"/>
                                             <MudIconButton Icon="@Icons.Material.Outlined.Map" Size="Size.Small"
-                                                           Title="Carte"/>
+                                                           Title="Carte"
+                                                           OnClick="@(() => Snackbar.Add("Fonctionnalité cartographique bientôt disponible", Severity.Info))"/>
                                         </div>
                                     </td>
                                 </tr>
@@ -1375,11 +1713,13 @@
             </MudItem>
         </MudGrid>
 
-        <!-- Chart -->
+        <!-- Performance -->
         <MudGrid Spacing="3">
-            <MudItem xs="12" md="12">
+            <MudItem xs="12">
                 <div class="df-section-card">
                     <div class="df-section-content">
+
+                        <!-- Header: title + period selector -->
                         <div class="df-chart-header">
                             <div class="df-section-title" style="margin-bottom: 0;">
                                 <MudIcon Icon="@Icons.Material.Outlined.BarChart" Size="Size.Small"/>
@@ -1404,74 +1744,107 @@
                             </MudButtonGroup>
                         </div>
 
-                        <!-- Line + Donut côte à côte -->
-                        <div class="df-chart-container">
-                            <MudGrid GutterSize="3">
-                                <MudItem xs="12" md="6">
-                                    <MudChart ChartType="ChartType.Line"
-                                              ChartSeries="@GetChartData()"
-                                              XAxisLabels="@GetChartLabels()"
-                                              Width="100%" Height="300px"
-                                              ChartOptions="@_chartOptions"/>
-                                </MudItem>
-
-                                <MudItem xs="12" md="6">
-                                    <MudChart ChartType="ChartType.Donut"
-                                              InputLabels="@_statusChartData.Labels.ToArray()"
-                                              InputData="@_statusChartData.Values.ToArray()"
-                                              Width="100%" Height="100%"
-                                              Class="df-gauge-chart"/>
-                                </MudItem>
-                            </MudGrid>
-                        </div>
-
-                        <!-- Résumé -->
-                        <div class="df-chart-summary">
-                            <div class="df-chart-stat">
-                                <span class="df-chart-stat-dot df-chart-stat-dot--deliveries"></span>
-                                <div>
-                                    <div class="df-chart-stat-label">Total livraisons</div>
-                                    @* <div class="df-chart-stat-value">@_totalDeliveries</div> *@
+                        <!-- 3 KPI mini-cards -->
+                        <div class="df-perf-kpis">
+                            <div class="df-perf-kpi">
+                                <div class="df-perf-kpi-icon df-perf-kpi-icon--primary">
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small"/>
                                 </div>
+                                <div class="df-perf-kpi-value">@_revenueChartData.DeliveryCount.Sum().ToString("N0")</div>
+                                <div class="df-perf-kpi-label">Livraisons</div>
                             </div>
-                            <div class="df-chart-stat">
-                                <span class="df-chart-stat-dot df-chart-stat-dot--revenue"></span>
-                                <div>
-                                    <div class="df-chart-stat-label">Revenus total</div>
-                                    @* <div class="df-chart-stat-value">@_totalRevenue.ToString("N0")€</div> *@
+                            <div class="df-perf-kpi">
+                                <div class="df-perf-kpi-icon df-perf-kpi-icon--success">
+                                    <MudIcon Icon="@Icons.Material.Filled.Euro" Size="Size.Small"/>
                                 </div>
+                                <div class="df-perf-kpi-value">@_revenueChartData.Revenues.Sum().ToString("N0")€</div>
+                                <div class="df-perf-kpi-label">Revenus</div>
+                            </div>
+                            <div class="df-perf-kpi">
+                                <div class="df-perf-kpi-icon df-perf-kpi-icon--info">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small"/>
+                                </div>
+                                <div class="df-perf-kpi-value">
+                                    @(_statusChartData.TotalCount == 0 ? "—" : $"{GetSuccessRate()}%")
+                                </div>
+                                <div class="df-perf-kpi-label">Taux de succès</div>
                             </div>
                         </div>
+
+                        <!-- Full-width trend line chart -->
+                        <MudChart ChartType="ChartType.Line"
+                                  ChartSeries="@GetChartData()"
+                                  XAxisLabels="@GetChartLabels()"
+                                  Width="100%" Height="280px"
+                                  ChartOptions="@_chartOptions"/>
+
                     </div>
                 </div>
             </MudItem>
         </MudGrid>
-        <!-- Revenus par magasin -->
+
+        <!-- Top magasins leaderboard -->
         <MudGrid Spacing="3" Class="mt-4">
-            <MudItem xs="12" md="12">
+            <MudItem xs="12">
                 <div class="df-section-card">
                     <div class="df-section-content">
-                        <div class="df-chart-header">
+                        <div class="df-chart-header" style="margin-bottom: 20px;">
                             <div class="df-section-title" style="margin-bottom: 0;">
                                 <MudIcon Icon="@Icons.Material.Outlined.Leaderboard" Size="Size.Small"/>
-                                Revenus par magasin
+                                Top magasins
                             </div>
                             <MudText Typo="Typo.caption" Class="df-chart-stat-label">
-                                Top magasins par revenus pour la période sélectionnée
+                                Revenus pour la période sélectionnée
                             </MudText>
                         </div>
 
-                        <div class="df-chart-container">
-                            <MudChart ChartType="ChartType.Bar"
-                                      ChartSeries="@GetStoreRevenueSeries()"
-                                      XAxisLabels="@GetStoreLabels()"
-                                      Width="100%" Height="300px"
-                                      AxisChartOptions="@_axisChartOptions"/>
-                        </div>
+                        @if (_storeChartData.Revenues.Count == 0)
+                        {
+                            <div class="df-table-empty">
+                                <div class="df-table-empty-icon">
+                                    <MudIcon Icon="@Icons.Material.Outlined.StoreMallDirectory"/>
+                                </div>
+                                <div>Aucune donnée disponible</div>
+                            </div>
+                        }
+                        else
+                        {
+                            var totalRevenue = _storeChartData.Revenues.Sum();
+                            var maxRevenue = _storeChartData.Revenues.Max();
+
+                            <div class="df-leaderboard">
+                                @for (var i = 0; i < _storeChartData.StoreNames.Count; i++)
+                                {
+                                    var storeName = _storeChartData.StoreNames[i];
+                                    var revenue = i < _storeChartData.Revenues.Count ? _storeChartData.Revenues[i] : 0;
+                                    var pct = totalRevenue > 0 ? (int)Math.Round(revenue / totalRevenue * 100) : 0;
+                                    var barWidth = maxRevenue > 0 ? (int)Math.Round(revenue / maxRevenue * 100) : 0;
+                                    var color = GetStoreColor(i);
+
+                                    <div class="df-leaderboard-row">
+                                        <div class="df-leaderboard-rank">@GetRankMedal(i + 1)</div>
+                                        <div class="df-leaderboard-name">@storeName</div>
+                                        <div class="df-leaderboard-bar-wrap">
+                                            <div class="df-leaderboard-bar-fill"
+                                                 style="width: @barWidth%; background: @color;"></div>
+                                        </div>
+                                        <div class="df-leaderboard-value">@revenue.ToString("N0")€</div>
+                                        <div class="df-leaderboard-pct">@pct%</div>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="df-leaderboard-total">
+                                Total période :&nbsp;<strong>@totalRevenue.ToString("N0")€</strong>
+                            </div>
+                        }
+
                     </div>
                 </div>
             </MudItem>
         </MudGrid>
+
+        } @* end else (not loading) *@
 
     </Authorized>
 
@@ -1496,10 +1869,22 @@
     private string _userName = string.Empty;
     private string _userEmail = string.Empty;
     private string _userRole = string.Empty;
-    private int _tenantId = 0;
-    private bool _isAuthorized = false;
+    private int _tenantId;
+    private bool _isAuthorized;
+    private bool _isLoading = true;
+    private DateTime _lastRefreshed;
 
     private readonly AxisChartOptions _axisChartOptions = new AxisChartOptions();
+
+    private readonly ChartOptions _storeChartOptions = new ChartOptions
+    {
+        ChartPalette = new[]
+        {
+            "#0284c7", "#10b981", "#f59e0b", "#ef4444",
+            "#8b5cf6", "#14b8a6", "#f97316", "#ec4899",
+            "#64748b", "#06b6d4"
+        }
+    };
 
     // === Enums ===
 
@@ -1543,10 +1928,8 @@
     private List<NotificationDto> _notifications = new();
     private List<EventDto> _events = new();
 
-    // === Activity (TODO: À ajouter dans DashboardStatsDto) ===
-    private int _driversOnRoad = 0; // TODO: Récupérer depuis le backend
-    private int _idleVehicles = 0; // TODO: Récupérer depuis le backend
-    private int _pendingInvoices = 0; // TODO: Récupérer depuis le backend
+    // PendingInvoices reste à 0 — module Factures pas encore implémenté
+    private int _pendingInvoices = 0;
 
     // === Chart ===
     private ChartPeriod _selectedPeriod = ChartPeriod.Month;
@@ -1569,25 +1952,31 @@
         if (_storeChartData.Revenues.Count == 0)
             return new List<ChartSeries>();
 
-        return new List<ChartSeries>
+        var count = _storeChartData.Revenues.Count;
+        var series = new List<ChartSeries>();
+
+        for (int i = 0; i < count; i++)
         {
-            new ChartSeries
+            var data = new double[count];
+            data[i] = _storeChartData.Revenues[i];
+            series.Add(new ChartSeries
             {
-                Name = "Revenus (k€)",
-                Data = _storeChartData.Revenues.ToArray()
-            }
-        };
+                Name = i < _storeChartData.StoreNames.Count ? _storeChartData.StoreNames[i] : $"Magasin {i + 1}",
+                Data = data
+            });
+        }
+
+        return series;
     }
 
     private string[] GetStoreLabels() => _storeChartData.StoreNames.ToArray();
 
-    private async void SetChartPeriod(ChartPeriod period)
+    private async Task SetChartPeriod(ChartPeriod period)
     {
         _selectedPeriod = period;
 
         try
         {
-            // Recharger les données des graphiques avec la nouvelle période
             var revenueTask = DashboardService.GetRevenueChartDataAsync(period);
             var statusTask = DashboardService.GetStatusChartDataAsync(period);
             var storeTask = DashboardService.GetStoreChartDataAsync(period);
@@ -1598,13 +1987,22 @@
             _statusChartData = statusTask.Result;
             _storeChartData = storeTask.Result;
 
-            // Forcer le rafraîchissement
             StateHasChanged();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[Dashboard] Erreur changement période: {ex.Message}");
         }
+    }
+
+    private async Task RefreshDashboardAsync()
+    {
+        await LoadDashboardDataAsync();
+    }
+
+    private void DismissNotification(NotificationDto notif)
+    {
+        _notifications.Remove(notif);
     }
 
     private string GetButtonClass(ChartPeriod period)
@@ -1666,8 +2064,8 @@
             _isAuthorized = true;
 
             // Extraire les informations utilisateur
-            var firstName = user.FindFirst("name")?.Value?.Split(' ').FirstOrDefault();
-            _userName = firstName ?? "Utilisateur";
+            var fullName = user.FindFirst(ClaimTypes.Name)?.Value;
+            _userName = fullName?.Split(' ').FirstOrDefault() ?? "Utilisateur";
 
             _userEmail = user.FindFirst("email")?.Value ?? "";
 
@@ -1695,6 +2093,9 @@
     /// </summary>
     private async Task LoadDashboardDataAsync()
     {
+        _isLoading = true;
+        StateHasChanged();
+
         try
         {
             Console.WriteLine("[Dashboard] Chargement des données...");
@@ -1721,15 +2122,18 @@
             _statusChartData = statusTask.Result;
             _storeChartData = storeTask.Result;
 
+            _lastRefreshed = DateTime.Now;
             Console.WriteLine($"[Dashboard] ✅ Données chargées : {_todayDeliveries.Count} livraisons, {_notifications.Count} notifications");
-
-            // Forcer le rafraîchissement de l'interface
-            StateHasChanged();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[Dashboard] ❌ Erreur chargement données: {ex.Message}");
             Snackbar.Add("Erreur lors du chargement des données du dashboard", Severity.Warning);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -1771,27 +2175,44 @@
         _ => Icons.Material.Filled.Info
     };
 
+    private int GetSuccessRate()
+    {
+        if (_statusChartData.TotalCount == 0) return 0;
+        return (int)Math.Round(_statusChartData.DeliveredCount * 100.0 / _statusChartData.TotalCount);
+    }
+
+    private static string GetRankMedal(int rank) => rank switch
+    {
+        1 => "🥇",
+        2 => "🥈",
+        3 => "🥉",
+        _ => $"#{rank}"
+    };
+
+    private static readonly string[] _storeColors =
+    {
+        "#0284c7", "#10b981", "#f59e0b", "#ef4444",
+        "#8b5cf6", "#14b8a6", "#f97316", "#ec4899",
+        "#64748b", "#06b6d4"
+    };
+
+    private static string GetStoreColor(int index) =>
+        _storeColors[index % _storeColors.Length];
+
     // === Navigation ===
-    private void NavigateToDeliveries() => NavigationManager.NavigateTo("/deliveries");
-    private void NavigateToUnplanned() => NavigationManager.NavigateTo("/deliveries?filter=unplanned");
-    private void NavigateToInvoices() => NavigationManager.NavigateTo("/invoices?filter=pending");
-    private void NavigateToReports() => NavigationManager.NavigateTo("/reports");
+    private void NavigateToDeliveries() => NavigationManager.NavigateTo("/livraisons");
+    private void NavigateToUnplanned()  => NavigationManager.NavigateTo("/livraisons?status=ToBePlanned");
+    private void NavigateToInvoices()   => Snackbar.Add("Module Factures bientôt disponible", Severity.Info);
+    private void NavigateToReports()    => Snackbar.Add("Module Rapports bientôt disponible", Severity.Info);
 
     // === Actions ===
-    private void CreateDelivery()
-    {
-        Snackbar.Add("Ouverture du formulaire...", Severity.Info);
-        NavigationManager.NavigateTo("/deliveries/new");
-    }
+    private void CreateDelivery() => NavigationManager.NavigateTo("/livraisons/nouvelle");
 
-    private void SendInvoices() => Snackbar.Add("Préparation de l'envoi groupé...", Severity.Info);
-    private void ImportData() => Snackbar.Add("Ouverture de l'import...", Severity.Info);
+    private void SendInvoices() => Snackbar.Add("Module Factures bientôt disponible", Severity.Info);
 
-    private void OptimizeRoutes()
-    {
-        Snackbar.Add("Optimisation en cours...", Severity.Info);
-        NavigationManager.NavigateTo("/routes/optimize");
-    }
+    private void NavigateToLateDeliveries() => NavigationManager.NavigateTo("/livraisons?status=InProgress");
+
+    private void OptimizeRoutes() => NavigationManager.NavigateTo("/tournees/create");
 
     // === Records - Kept for backward compatibility but no longer used ===
     // Now using DTOs from DashboardService

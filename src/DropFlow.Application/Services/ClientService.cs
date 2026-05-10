@@ -142,13 +142,13 @@ public class ClientService(
                 .Where(c => c.IsActive)
                 .AsQueryable();
 
-            // Recherche
-            searchTerm = searchTerm.ToLower();
+            // Recherche — pas de ToLower() ni StringComparison : SQL Server est déjà CI par défaut
+            var term = searchTerm.Trim();
             query = query.Where(c =>
-                c.FirstName.ToLower().Contains(searchTerm) ||
-                c.LastName.ToLower().Contains(searchTerm) ||
-                c.Phone.Contains(searchTerm) ||
-                (c.Email != null && c.Email.Contains(searchTerm, StringComparison.CurrentCultureIgnoreCase)));
+                c.FirstName.Contains(term) ||
+                c.LastName.Contains(term) ||
+                c.Phone.Contains(term) ||
+                (c.Email != null && c.Email.Contains(term)));
 
             var clients = await query
                 .Take(10) // Limiter à 10 résultats pour auto-complétion
