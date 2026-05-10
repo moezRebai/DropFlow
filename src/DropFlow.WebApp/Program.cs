@@ -43,6 +43,7 @@ builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ITenantManagementService, TenantManagementService>();
+builder.Services.AddScoped<SystemInfoService>();
 builder.Services.AddSingleton<IDeliveryEventBus, DeliveryEventBus>(); // ✅
 
 // HTTP Clients

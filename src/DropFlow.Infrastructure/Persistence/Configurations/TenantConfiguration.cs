@@ -27,7 +27,7 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
 
         builder.HasIndex(t => t.SubDomain)
             .IsUnique()
-            .HasFilter("[SubDomain] IS NOT NULL");
+            .HasFilter("\"SubDomain\" IS NOT NULL");
 
         builder.HasIndex(t => t.IsActive);
         

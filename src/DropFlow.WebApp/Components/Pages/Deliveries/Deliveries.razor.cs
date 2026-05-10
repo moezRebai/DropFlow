@@ -406,34 +406,6 @@ public partial class Deliveries
         NavigationManager.NavigateTo($"/livraisons/edit/{id}", true);
     }
 
-    private async Task DuplicateDeliveryAsync(int id)
-    {
-        var confirmed = await DialogService.ShowMessageBox(
-            "Dupliquer la livraison",
-            "Voulez-vous dupliquer cette livraison ?",
-            yesText: "Dupliquer",
-            cancelText: "Annuler");
-
-        if (confirmed == true)
-        {
-            var result = await DeliveryService.DuplicateDeliveryAsync(id);
-
-            if (result.Succeeded)
-            {
-                Snackbar.Add(result.Message ?? "Livraison dupliquée avec succès", Severity.Success);
-                
-                await ReloadDeliveriesAsync();
-            }
-            else
-            {
-                foreach (var error in result.Errors)
-                {
-                    Snackbar.Add(error, Severity.Error);
-                }
-            }
-        }
-    }
-
     private async Task DeleteDeliveryAsync(int id)
     {
         var confirmed = await DialogService.ShowMessageBox(

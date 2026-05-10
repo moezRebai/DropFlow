@@ -98,6 +98,8 @@ public class RouteService(
             .ThenInclude(d => d.ClientAddress)
             .Include(rs => rs.Deliveries)
             .ThenInclude(d => d.TimeSlot)
+            .Include(rs => rs.Deliveries)
+            .ThenInclude(d => d.Items)
             .FirstOrDefaultAsync(rs => rs.Id == id);
 
         if (route == null)
@@ -153,6 +155,7 @@ public class RouteService(
                     DistanceToNextMeters = d.DistanceToNextMeters,
                     DepartureTime = d.DepartureTime,
                     TravelDurationMinutes = d.TravelDurationMinutes,
+                    ItemCount = d.Items.Count,
                 }).ToList()
         };
 
@@ -207,17 +210,10 @@ public class RouteService(
             route.EstimatedEndTime = dto.StartTime.Add(TimeSpan.FromMinutes(dto.TotalDuration));
             route.Status = RouteStatus.Draft;
 
-            // Si le wizard a optimisé avec Google
-            if (route.WasOptimizedByGoogle)
-            {
+            if (dto.WasOptimizedByGoogle)
                 route.MarkAsOptimizedByGoogle();
-            }
-    
-            // Si l'ordre a été modifié manuellement après
-            if (route.WasManuallyReordered)
-            {
+            else if (dto.WasManuallyReordered)
                 route.MarkAsManuallyReordered();
-            }
             
             context.Routes.Add(route);
             await context.SaveChangesAsync(); // Get route.Id

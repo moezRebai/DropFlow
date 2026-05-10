@@ -49,6 +49,7 @@ public static class AuthenticationExtensions
             {
                 options.SaveToken = true;
                 options.RequireHttpsMetadata = true;
+                options.MapInboundClaims = true;
             
                 options.TokenValidationParameters = new TokenValidationParameters
                 {

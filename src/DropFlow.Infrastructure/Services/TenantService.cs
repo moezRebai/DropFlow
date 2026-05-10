@@ -47,8 +47,7 @@ public class TenantService(
     
     public ApplicationUser? GetCurrentUser()
     {
-        var userId = httpContextAccessor.HttpContext?.User
-            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = GetCurrentUserId();
 
         if (string.IsNullOrEmpty(userId))
             return null;
@@ -60,8 +59,7 @@ public class TenantService(
 
     public async Task<ApplicationUser?> GetCurrentUserAsync()
     {
-        var userId = httpContextAccessor.HttpContext?.User
-            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = GetCurrentUserId();
 
         if (string.IsNullOrEmpty(userId))
             return null;
@@ -69,5 +67,13 @@ public class TenantService(
         return await context.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId);
+    }
+
+    private string? GetCurrentUserId()
+    {
+        var user = httpContextAccessor.HttpContext?.User;
+        // ClaimTypes.NameIdentifier when MapInboundClaims=true, "sub" when false
+        return user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+               ?? user?.FindFirst("sub")?.Value;
     }
 }

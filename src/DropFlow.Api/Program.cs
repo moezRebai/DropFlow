@@ -16,6 +16,10 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        // Npgsql legacy mode: maps DateTime to 'timestamp without time zone',
+        // matching SQL Server behavior and accepting Local/Unspecified kinds.
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
         QuestPDF.Settings.License = LicenseType.Community;  // ✅ Ligne 2
 
         var builder = WebApplication.CreateBuilder(args);

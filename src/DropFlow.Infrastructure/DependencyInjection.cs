@@ -26,8 +26,8 @@ public static class DependencyInjection
     {
         // Database
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
+            options.UseNpgsql(
+                configuration.GetConnectionString("NeonConnection"),
                 b => b.MigrationsAssembly("DropFlow.Infrastructure")));
 
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));

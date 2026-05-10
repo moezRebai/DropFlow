@@ -11,7 +11,6 @@ using FluentValidation;
 using Humanizer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Exception = System.Exception;
 
 namespace DropFlow.Application.Services.Deliveries;
 
@@ -121,6 +120,11 @@ public class DeliveryService(
                 CreatedDate = delivery.CreatedDate,
                 CreatedBy = delivery.CreatedBy
             };
+
+            // Resolve creator name from userId
+            var creator = await context.Users.FindAsync(delivery.CreatedBy);
+            if (creator != null)
+                dto.CreatedBy = creator.FullName;
 
             if (delivery.TimeSlot != null)
                 dto.TimeSlot = new TimeSlotDto
@@ -275,9 +279,10 @@ public class DeliveryService(
 
             if (!string.IsNullOrEmpty(filter.ClientSearch))
             {
+                var clientSearch = filter.ClientSearch.ToLower();
                 query = query.Where(d =>
-                    d.Client.FirstName.Contains(filter.ClientSearch) ||
-                    d.Client.LastName.Contains(filter.ClientSearch));
+                    d.Client.FirstName.ToLower().Contains(clientSearch) ||
+                    d.Client.LastName.ToLower().Contains(clientSearch));
             }
 
             if (filter.DateFrom.HasValue)
@@ -299,12 +304,13 @@ public class DeliveryService(
 
             if (!string.IsNullOrEmpty(filter.GlobalSearch))
             {
+                var gs = filter.GlobalSearch.ToLower();
                 query = query.Where(d =>
-                    d.Reference.Contains(filter.GlobalSearch) ||
-                    d.SequentialNumber.ToString().Contains(filter.GlobalSearch) ||
-                    d.Client.FirstName.Contains(filter.GlobalSearch) ||
-                    d.Client.LastName.Contains(filter.GlobalSearch) ||
-                    d.ClientAddress.City.Contains(filter.GlobalSearch));
+                    d.Reference.ToLower().Contains(gs) ||
+                    d.SequentialNumber.ToString().Contains(gs) ||
+                    d.Client.FirstName.ToLower().Contains(gs) ||
+                    d.Client.LastName.ToLower().Contains(gs) ||
+                    d.ClientAddress.City.ToLower().Contains(gs));
             }
 
             var totalCount = await query.CountAsync();
@@ -569,7 +575,8 @@ public class DeliveryService(
             }
 
             // Update fields
-            delivery.Type = dto.Type; // ✅ AJOUTÉ
+            delivery.Type = dto.Type;
+            delivery.Status = dto.Status;
             delivery.StoreId = dto.StoreId;
             delivery.FileNumber = dto.FileNumber;
             delivery.ScheduledDate = dto.ScheduledDate;

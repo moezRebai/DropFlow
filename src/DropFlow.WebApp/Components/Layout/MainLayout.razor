@@ -2,10 +2,12 @@
 @using System.Security.Claims
 @using DropFlow.WebApp.Interfaces
 @using DropFlow.WebApp.Models.Auth
+@using DropFlow.WebApp.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject IAuthService AuthService
+@inject SystemInfoService SystemInfoService
 @implements IAsyncDisposable
 
 <MudThemeProvider Theme="@_theme"/>
@@ -175,11 +177,46 @@
     /* Footer */
     .df-sidebar-footer {
         display: flex;
+        flex-direction: column;
+        align-items: center;
         gap: 8px;
-        justify-content: center;
         padding: 16px 0 8px 0;
         border-top: 1px solid rgba(255, 255, 255, 0.15);
         margin-top: auto;
+    }
+
+    .df-db-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 6px 14px;
+        cursor: default;
+        width: calc(100% - 24px);
+    }
+
+    .df-db-badge-label {
+        font-size: 9px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.55);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .df-db-badge-value {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .df-db-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
     }
 
     .df-footer-icon {
@@ -547,6 +584,17 @@
 
                 <!-- Footer -->
                 <div class="df-sidebar-footer">
+                    @if (_dbInfo != null && _drawerOpen)
+                    {
+                        <MudTooltip Text="@($"Connecté à : {_dbInfo.Host}")" Placement="Placement.Right" Color="Color.Info">
+                            <div class="df-db-badge">
+                                <div class="df-db-badge-value">
+                                    <span class="df-db-dot" style="background:@(_dbInfo.IsNeon ? "#34d399" : "#94a3b8");"></span>
+                                    <span style="color:#ffffff; font-size:12px; font-weight:700;">@_dbInfo.Label</span>
+                                </div>
+                            </div>
+                        </MudTooltip>
+                    }
                     <MudTooltip Text="Déconnexion" Placement="Placement.Right" Color="Color.Info">
                         <MudIconButton Icon="@Icons.Material.Outlined.Logout"
                                        Color="Color.Surface"
@@ -575,6 +623,7 @@
 
     private string _userName = string.Empty;
     private string _userRole = string.Empty;
+    private DbInfoDto? _dbInfo;
 
     protected override async Task OnInitializedAsync()
     {
@@ -617,6 +666,13 @@
     }
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _dbInfo = await SystemInfoService.GetDbInfoAsync();
+        StateHasChanged();
+    }
 
     private string GetUserInitials()
     {

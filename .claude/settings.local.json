@@ -8,7 +8,10 @@
       "Bash(dotnet build *)",
       "mcp__codegraph__codegraph_explore",
       "Bash(codegraph init *)",
-      "Bash(codegraph sync *)"
+      "Bash(codegraph sync *)",
+      "Bash(Remove-Item -Path \"C:\\\\Solutions\\\\DropFlow\\\\src\\\\DropFlow.Infrastructure\\\\Migrations\\\\*\" -Recurse -Force)",
+      "Bash(Write-Output \"Migrations deleted\")",
+      "Bash(dotnet run *)"
     ]
   }
 }

@@ -21,11 +21,8 @@ public static class DatabaseExtensions
         {
             var context = services.GetRequiredService<ApplicationDbContext>();
 
-            if (app.Environment.IsDevelopment())
-            {
-                logger.LogInformation("Applying database migrations...");
-                await context.Database.MigrateAsync();
-            }
+            logger.LogInformation("Applying database migrations...");
+            await context.Database.MigrateAsync();
 
             // 1. Seed Roles
             await SeedRolesAsync(services, logger);
@@ -317,204 +314,101 @@ public static class DatabaseExtensions
     {
         logger.LogInformation("Seeding deliveries with Bogus...");
 
-        var clients = await context.Clients
+        var allClients = await context.Clients
             .Include(c => c.Addresses)
             .Where(c => c.TenantId == tenantId)
             .ToListAsync();
 
-        if (!clients.Any())
+        if (allClients.Count < 10)
         {
-            logger.LogWarning("No clients found, skipping deliveries seed");
+            logger.LogWarning("Not enough clients to seed 10 deliveries, skipping");
             return;
         }
 
         Randomizer.Seed = new Random(456);
+        var faker = new Faker("fr");
+
+        // Pick 10 distinct clients — shuffle and take first 10
+        var selectedClients = allClients.OrderBy(_ => faker.Random.Int()).Take(10).ToList();
+
+        // (status, scheduledDaysOffset) — null means no scheduled date
+        var configs = new (DeliveryStatus Status, int? DaysOffset)[]
+        {
+            (DeliveryStatus.ToBePlanned, null),
+            (DeliveryStatus.ToBePlanned, null),
+            (DeliveryStatus.Confirmed,   7),
+            (DeliveryStatus.Confirmed,   14),
+            (DeliveryStatus.Confirmed,   21),
+            (DeliveryStatus.InProgress,  0),
+            (DeliveryStatus.InProgress,  0),
+            (DeliveryStatus.Delivered,  -7),
+            (DeliveryStatus.Delivered,  -14),
+            (DeliveryStatus.Canceled,    null),
+        };
 
         var sequentialNumber = 5000;
         var deliveries = new List<Delivery>();
 
-        // ═══ À PLANIFIER (10 livraisons) ═══
-        deliveries.AddRange(GenerateDeliveries(
-            count: 10,
-            status: DeliveryStatus.ToBePlanned,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (1, 30) // Futures
-        ));
-
-        // ═══ PLANIFIÉES (15 livraisons dont 5 aujourd'hui) ═══
-        deliveries.AddRange(GenerateDeliveries(
-            count: 10,
-            status: DeliveryStatus.Confirmed,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (1, 20) // Futures
-        ));
-
-        deliveries.AddRange(GenerateDeliveries(
-            count: 5,
-            status: DeliveryStatus.Confirmed,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (0, 0) // Aujourd'hui
-        ));
-
-        // ═══ EN COURS (8 livraisons) ═══
-        deliveries.AddRange(GenerateDeliveries(
-            count: 8,
-            status: DeliveryStatus.InProgress,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (-2, 0) // Hier ou aujourd'hui
-        ));
-
-        // ═══ LIVRÉES (20 livraisons) ═══
-        deliveries.AddRange(GenerateDeliveries(
-            count: 20,
-            status: DeliveryStatus.Delivered,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (-30, -1) // Passées
-        ));
-
-        // ═══ LIVRÉES AUJOURD'HUI (5 livraisons) ═══
-        deliveries.AddRange(GenerateDeliveries(
-            count: 5,
-            status: DeliveryStatus.Delivered,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (0, 0) // Aujourd'hui
-        ));
-
-        // ═══ EN COURS AUJOURD'HUI (3 livraisons) ═══
-        deliveries.AddRange(GenerateDeliveries(
-            count: 3,
-            status: DeliveryStatus.InProgress,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (0, 0) // Aujourd'hui
-        ));
-
-        // ═══ ANNULÉES (5 livraisons) ═══
-        deliveries.AddRange(GenerateDeliveries(
-            count: 5,
-            status: DeliveryStatus.Canceled,
-            tenantId: tenantId,
-            userId: userId,
-            clients: clients,
-            stores: stores,
-            sequentialNumber: ref sequentialNumber,
-            dateRange: (-15, 5) // Mixte
-        ));
-
-        context.Deliveries.AddRange(deliveries);
-        await context.SaveChangesAsync();
-
-        // ═══ ITEMS pour chaque livraison ═══
-        await SeedDeliveryItemsAsync(context, deliveries, logger);
-
-        logger.LogInformation("✅ Seeded {Count} deliveries", deliveries.Count);
-    }
-
-    private static List<Delivery> GenerateDeliveries(
-        int count,
-        DeliveryStatus status,
-        int tenantId,
-        string userId,
-        List<Client> clients,
-        Store[] stores,
-        ref int sequentialNumber,
-        (int min, int max) dateRange)
-    {
-        var faker = new Faker("fr");
-        var deliveries = new List<Delivery>();
-
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < 10; i++)
         {
-            var client = faker.PickRandom(clients);
+            var client = selectedClients[i];
             var address = client.Addresses.First(a => a.IsDefault);
             var store = faker.PickRandom(stores);
+            var (status, daysOffset) = configs[i];
 
-            var scheduledDate = dateRange.min == 0 && dateRange.max == 0
-                ? DateTime.Today
-                : DateTime.Today.AddDays(faker.Random.Int(dateRange.min, dateRange.max));
+            DateTime? scheduledDate = daysOffset.HasValue
+                ? DateTime.UtcNow.Date.AddDays(daysOffset.Value)
+                : null;
 
-            var delivery = new Delivery
+            var clientAmount = Math.Round(faker.Random.Decimal(100, 600), 0);
+            var storeAmount  = Math.Round(faker.Random.Decimal(100, 600), 0);
+
+            deliveries.Add(new Delivery
             {
-                TenantId = tenantId,
-                SequentialNumber = sequentialNumber++,
-                Reference = $"DL-{DateTime.Now.Year}-{sequentialNumber:D4}",
-                Status = status,
-
-                // Client
-                ClientId = client.Id,
-
-                // Address
-                ClientAddressId = address.Id,
-
-                // Store
-                StoreId = store.Id,
-
-                // Details
-                FileNumber = faker.Random.Bool(0.7f)
-                    ? $"D-{faker.Random.Int(1000, 9999)}"
-                    : $"D-{faker.Random.Int(1000, 9999)}",
-                ScheduledDate = scheduledDate,
-                Price = faker.Random.Decimal(150, 1500),
-                ClientPaymentAmount = faker.Random.Decimal(50, 500),
-                StorePaymentAmount = faker.Random.Decimal(100, 800),
-
-                WithAssembly = faker.Random.Bool(0.3f),
+                TenantId              = tenantId,
+                SequentialNumber      = sequentialNumber,
+                Reference             = $"DL-{DateTime.UtcNow.Year}-{sequentialNumber:D4}",
+                Status                = status,
+                ClientId              = client.Id,
+                ClientAddressId       = address.Id,
+                StoreId               = store.Id,
+                FileNumber            = $"D-{faker.Random.Int(1000, 9999)}",
+                ScheduledDate         = scheduledDate,
+                EstimatedDurationMinutes = faker.Random.Int(30, 120),
+                ClientPaymentAmount   = clientAmount,
+                StorePaymentAmount    = storeAmount,
+                Price                 = clientAmount + storeAmount,
+                WithAssembly          = faker.Random.Bool(0.3f),
                 DeliveryNotes = faker.Random.Bool(0.4f)
                     ? faker.PickRandom(
                         "Sonner 2 fois",
                         "Livrer à l'arrière du bâtiment",
                         "Code portail: 1234",
                         "Appeler avant",
-                        "Déposer devant la porte"
-                    )
+                        "Déposer devant la porte")
                     : null,
                 InternalNotes = faker.Random.Bool(0.2f)
                     ? faker.PickRandom(
                         "Client difficile",
                         "Fragile",
                         "Prioritaire",
-                        "Attention chien"
-                    )
+                        "Attention chien")
                     : null,
-
-                // Audit
-                CreatedDate = DateTime.UtcNow.AddDays(faker.Random.Int(-30, 0)),
-                CreatedBy = userId,
+                CreatedDate  = DateTime.UtcNow.AddDays(faker.Random.Int(-30, 0)),
+                CreatedBy    = userId,
                 ModifiedDate = DateTime.UtcNow,
-                ModifiedBy = userId,
-            };
+                ModifiedBy   = userId,
+            });
 
-            deliveries.Add(delivery);
+            sequentialNumber++;
         }
 
-        return deliveries;
+        context.Deliveries.AddRange(deliveries);
+        await context.SaveChangesAsync();
+
+        await SeedDeliveryItemsAsync(context, deliveries, logger);
+
+        logger.LogInformation("✅ Seeded {Count} deliveries", deliveries.Count);
     }
 
     private static async Task SeedDeliveryItemsAsync(
@@ -666,7 +560,7 @@ public static class DatabaseExtensions
             var driver = Driver.Create(
                 userId: createdDriverUsers[i].Id,
                 licenseNumber: $"LIC{faker.Random.Int(100000, 999999)}",
-                licenseExpiryDate: DateTime.Today.AddYears(faker.Random.Int(1, 5))
+                licenseExpiryDate: DateTime.UtcNow.Date.AddYears(faker.Random.Int(1, 5))
             );
 
             typeof(Driver).GetProperty("TenantId")!
