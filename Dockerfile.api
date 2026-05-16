@@ -20,5 +20,5 @@ RUN dotnet publish "DropFlow.Api.csproj" -c Release -o /app/publish /p:UseAppHos
 
 FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "DropFlow.Api.dll"]

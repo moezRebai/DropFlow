@@ -1,4 +1,5 @@
-﻿using DropFlow.Application.Interfaces;
+﻿using DropFlow.Application.Common;
+using DropFlow.Application.Interfaces;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Domain.Entities;
 using DropFlow.Domain.Enums;
@@ -18,9 +19,13 @@ public class StoreService(
     IGeocodingService geocodingService,
     IValidator<CreateStoreDto> createValidator,
     IValidator<UpdateStoreDto> updateValidator,
+    IAppCacheService cache,
     ILogger<StoreService> logger)
     : IStoreService
 {
+    private void InvalidateStoreCache() =>
+        cache.Remove(CacheKeys.StoresLookup(tenantService.GetTenantId()));
+
     public async Task<ResponseResult<int>> CreateStoreAsync(CreateStoreDto dto)
     {
         var validationResult = await createValidator.ValidateAsync(dto);
@@ -76,6 +81,7 @@ public class StoreService(
 
             context.Stores.Add(store);
             await context.SaveChangesAsync();
+            InvalidateStoreCache();
 
             // Audit
             await auditService.LogAsync(
@@ -217,27 +223,29 @@ public class StoreService(
         }
     }
     
-    public async Task<List<StoreLookupDto>> GetStoresLookupAsync()
+    public Task<List<StoreLookupDto>> GetStoresLookupAsync()
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.StoresLookup(tenantId),
+            FetchStoresLookupAsync,
+            TimeSpan.FromHours(6));
+    }
+
+    private async Task<List<StoreLookupDto>> FetchStoresLookupAsync()
     {
         try
         {
-            var stores = await context.Stores
+            return await context.Stores
                 .Where(s => s.IsActive)
                 .OrderBy(s => s.Name)
-                .Select(s => new StoreLookupDto
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    City = s.City
-                })
+                .Select(s => new StoreLookupDto { Id = s.Id, Name = s.Name, City = s.City })
                 .ToListAsync();
-
-            return stores;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Erreur lors de la récupération de la liste des magasins");
-            return new List<StoreLookupDto>();
+            return [];
         }
     }
     public async Task<ResponseResult> UpdateStoreAsync(int id, UpdateStoreDto dto)
@@ -308,6 +316,7 @@ public class StoreService(
             store.ModifiedBy = currentUser.Id;
 
             await context.SaveChangesAsync();
+            InvalidateStoreCache();
 
             // Audit
             await auditService.LogAsync(
@@ -362,6 +371,7 @@ public class StoreService(
 
             context.Stores.Remove(store);
             await context.SaveChangesAsync();
+            InvalidateStoreCache();
 
             // Audit
             await auditService.LogAsync(
@@ -406,6 +416,7 @@ public class StoreService(
             store.ModifiedBy = currentUser.Id;
 
             await context.SaveChangesAsync();
+            InvalidateStoreCache();
 
             // Audit
             await auditService.LogAsync(
@@ -450,6 +461,7 @@ public class StoreService(
             store.ModifiedBy = currentUser.Id;
 
             await context.SaveChangesAsync();
+            InvalidateStoreCache();
 
             // Audit
             await auditService.LogAsync(

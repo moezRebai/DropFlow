@@ -1,4 +1,5 @@
-﻿using DropFlow.Application.Interfaces;
+﻿using DropFlow.Application.Common;
+using DropFlow.Application.Interfaces;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Domain.Entities;
 using DropFlow.Domain.Enums;
@@ -14,9 +15,13 @@ public class TenantManagementService(
     IApplicationDbContext context,
     ITenantService tenantService,
     IAuditService auditService,
+    IAppCacheService cache,
     ILogger<TenantManagementService> logger)
     : ITenantManagementService
 {
+    private void InvalidateDepotCache() =>
+        cache.Remove(CacheKeys.Depots(tenantService.GetTenantId()));
+
     // ═══════════════════════════════════════════════════════════
     // TENANT INFO
     // ═══════════════════════════════════════════════════════════
@@ -258,11 +263,20 @@ public class TenantManagementService(
     // DEPOTS
     // ═══════════════════════════════════════════════════════════
     
-    public async Task<List<TenantDepotDto>> GetAllDepotsAsync()
+    public Task<List<TenantDepotDto>> GetAllDepotsAsync()
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.Depots(tenantId),
+            FetchAllDepotsAsync,
+            TimeSpan.FromHours(24));
+    }
+
+    private async Task<List<TenantDepotDto>> FetchAllDepotsAsync()
     {
         try
         {
-            var depots = await context.TenantDepots
+            return await context.TenantDepots
                 .Where(d => d.IsActive)
                 .OrderByDescending(d => d.IsDefault)
                 .ThenBy(d => d.Name)
@@ -282,8 +296,6 @@ public class TenantManagementService(
                     ModifiedDate = d.ModifiedDate
                 })
                 .ToListAsync();
-            
-            return depots;
         }
         catch (Exception ex)
         {
@@ -449,7 +461,8 @@ public class TenantManagementService(
             
             context.TenantDepots.Add(depot);
             await context.SaveChangesAsync();
-            
+            InvalidateDepotCache();
+
             // Audit
             await auditService.LogAsync(
                 tenantId: tenantId,
@@ -509,7 +522,8 @@ public class TenantManagementService(
             );
             
             await context.SaveChangesAsync();
-            
+            InvalidateDepotCache();
+
             // Audit
             await auditService.LogAsync(
                 tenantId: depot.TenantId,
@@ -568,7 +582,8 @@ public class TenantManagementService(
             
             context.TenantDepots.Remove(depot);
             await context.SaveChangesAsync();
-            
+            InvalidateDepotCache();
+
             // Audit
             await auditService.LogAsync(
                 tenantId: depot.TenantId,
@@ -618,9 +633,10 @@ public class TenantManagementService(
             
             // Définir le nouveau dépôt par défaut
             depot.SetAsDefault();
-            
+
             await context.SaveChangesAsync();
-            
+            InvalidateDepotCache();
+
             // Audit
             await auditService.LogAsync(
                 tenantId: depot.TenantId,
@@ -664,7 +680,8 @@ public class TenantManagementService(
                 depot.Activate();
             
             await context.SaveChangesAsync();
-            
+            InvalidateDepotCache();
+
             // Audit
             await auditService.LogAsync(
                 tenantId: depot.TenantId,

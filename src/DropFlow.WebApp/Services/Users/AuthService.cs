@@ -1,4 +1,5 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
 using DropFlow.Shared.Auth;
@@ -53,7 +54,7 @@ public class AuthService(
 
                 if (loginResponse?.Success == true && !string.IsNullOrEmpty(loginResponse.Token))
                 {
-                    await StoreTokensAsync(loginResponse.Token, null);
+                    await StoreTokensAsync(loginResponse.Token, loginResponse.RefreshToken);
                     await authStateProvider.NotifyUserAuthentication(loginResponse.Token);
                     return loginResponse;
                 }
@@ -90,7 +91,7 @@ public class AuthService(
 
                 if (registerResponse?.Success == true && !string.IsNullOrEmpty(registerResponse.Token))
                 {
-                    await StoreTokensAsync(registerResponse.Token, null);
+                    await StoreTokensAsync(registerResponse.Token, registerResponse.RefreshToken);
                     await authStateProvider.NotifyUserAuthentication(registerResponse.Token);
                     return registerResponse;
                 }
@@ -111,6 +112,25 @@ public class AuthService(
     {
         try
         {
+            var token = await GetTokenAsync();
+            var refreshToken = await GetRefreshTokenAsync();
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                var client = httpClientFactory.CreateClient("DropFlowAPI");
+                client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+                await client.PostAsJsonAsync("api/auth/logout",
+                    new RefreshTokenDto(refreshToken ?? string.Empty));
+            }
+        }
+        catch
+        {
+            // ensure local cleanup even if API call fails
+        }
+
+        try
+        {
             await localStorage.DeleteAsync(TokenKey);
             await localStorage.DeleteAsync(RefreshTokenKey);
         }
@@ -120,6 +140,40 @@ public class AuthService(
         }
 
         await authStateProvider.NotifyUserLogout();
+    }
+
+    // -------------------------
+    // REFRESH
+    // -------------------------
+    public async Task<LoginResponse> RefreshTokenAsync()
+    {
+        try
+        {
+            var refreshToken = await GetRefreshTokenAsync();
+            if (string.IsNullOrEmpty(refreshToken))
+                return Failed("Aucun refresh token disponible.");
+
+            var client = httpClientFactory.CreateClient("DropFlowAPI");
+            var response = await client.PostAsJsonAsync("api/auth/refresh",
+                new RefreshTokenDto(refreshToken));
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                if (result?.Success == true && !string.IsNullOrEmpty(result.Token))
+                {
+                    await StoreTokensAsync(result.Token, result.RefreshToken);
+                    await authStateProvider.NotifyUserAuthentication(result.Token);
+                    return result;
+                }
+            }
+
+            return Failed("Le refresh du token a échoué.");
+        }
+        catch (Exception ex)
+        {
+            return Failed($"Erreur refresh: {ex.Message}");
+        }
     }
 
     // -------------------------
@@ -183,7 +237,7 @@ public class AuthService(
 
                 if (result is { Success: true, Token: not null })
                 {
-                    await StoreTokensAsync(result.Token, null);
+                    await StoreTokensAsync(result.Token, result.RefreshToken);
                     await authStateProvider.NotifyUserAuthentication(result.Token);
                 }
 
@@ -216,6 +270,12 @@ public class AuthService(
     private async Task<string?> GetTokenAsync()
     {
         var result = await localStorage.GetAsync<string>(TokenKey);
+        return result.Success ? result.Value : null;
+    }
+
+    private async Task<string?> GetRefreshTokenAsync()
+    {
+        var result = await localStorage.GetAsync<string>(RefreshTokenKey);
         return result.Success ? result.Value : null;
     }
 

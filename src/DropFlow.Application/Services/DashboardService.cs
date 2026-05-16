@@ -1,3 +1,4 @@
+using DropFlow.Application.Common;
 using DropFlow.Application.Interfaces;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Domain.Enums;
@@ -7,21 +8,25 @@ using Microsoft.Extensions.Logging;
 
 namespace DropFlow.Application.Services;
 
-/// <summary>
-/// Service Dashboard - Fournit les statistiques et données pour le tableau de bord
-/// </summary>
 public class DashboardService(
     IApplicationDbContext context,
     ITenantService tenantService,
+    IAppCacheService cache,
     ILogger<DashboardService> logger)
     : IDashboardService
 {
     #region Stats KPI
 
-    /// <summary>
-    /// Récupère les statistiques KPI du dashboard
-    /// </summary>
-    public async Task<DashboardStatsDto> GetStatsAsync()
+    public Task<DashboardStatsDto> GetStatsAsync()
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.DashboardStats(tenantId),
+            FetchStatsAsync,
+            TimeSpan.FromMinutes(2));
+    }
+
+    private async Task<DashboardStatsDto> FetchStatsAsync()
     {
         try
         {
@@ -31,7 +36,6 @@ public class DashboardService(
             var startOfLastMonth = startOfMonth.AddMonths(-1);
             var endOfThisMonth = startOfMonth.AddMonths(1);
 
-            // Unplanned counts (two small queries, genuinely different filters)
             var unplannedCount = await context.Deliveries
                 .Where(d => d.Status == DeliveryStatus.ToBePlanned)
                 .CountAsync();
@@ -41,7 +45,6 @@ public class DashboardService(
                            d.CreatedDate.Date == yesterday)
                 .CountAsync();
 
-            // Today's deliveries — one query, split in memory
             var todayStatuses = await context.Deliveries
                 .Where(d => d.ScheduledDate == today)
                 .Select(d => d.Status)
@@ -49,7 +52,6 @@ public class DashboardService(
             var todayDeliveriesCount = todayStatuses.Count;
             var deliveredTodayCount = todayStatuses.Count(s => s == DeliveryStatus.Delivered);
 
-            // Revenue — one query covering both months, split in memory
             var revenueData = await context.Deliveries
                 .Where(d => d.ScheduledDate >= startOfLastMonth &&
                            d.ScheduledDate < endOfThisMonth &&
@@ -63,12 +65,10 @@ public class DashboardService(
                 .Where(d => d.ScheduledDate < startOfMonth)
                 .Sum(d => d.Price);
 
-            // Calcul de la tendance des revenus
             var revenueTrend = lastMonthRevenue > 0
                 ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
                 : 0;
 
-            // Routes today — one query, split in memory
             var todayRouteStatuses = await context.Routes
                 .Where(r => r.Date == today)
                 .Select(r => r.Status)
@@ -77,14 +77,12 @@ public class DashboardService(
                 .Count(s => s == RouteStatus.InProgress || s == RouteStatus.Confirmed);
             var totalRoutesToday = todayRouteStatuses.Count;
 
-            // Drivers on road = distinct drivers assigned to an InProgress route today
             var driversOnRoad = await context.RouteTeams
                 .Where(rt => rt.Route.Date == today && rt.Route.Status == RouteStatus.InProgress)
                 .Select(rt => rt.DriverId)
                 .Distinct()
                 .CountAsync();
 
-            // Idle vehicles = active vehicles with no InProgress/Confirmed route today
             var busyVehicleIds = await context.Routes
                 .Where(r => r.Date == today &&
                             (r.Status == RouteStatus.InProgress || r.Status == RouteStatus.Confirmed))
@@ -121,15 +119,20 @@ public class DashboardService(
 
     #region Today Deliveries
 
-    /// <summary>
-    /// Récupère les livraisons du jour
-    /// </summary>
-    public async Task<List<TodayDeliveryDto>> GetTodayDeliveriesAsync()
+    public Task<List<TodayDeliveryDto>> GetTodayDeliveriesAsync()
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.DashboardTodayDeliveries(tenantId),
+            FetchTodayDeliveriesAsync,
+            TimeSpan.FromMinutes(5));
+    }
+
+    private async Task<List<TodayDeliveryDto>> FetchTodayDeliveriesAsync()
     {
         try
         {
             var today = DateTime.UtcNow.Date;
-
             var nowTime = DateTime.UtcNow.TimeOfDay;
 
             var entities = await context.Deliveries
@@ -168,7 +171,7 @@ public class DashboardService(
         catch (Exception ex)
         {
             logger.LogError(ex, "[Dashboard] Error getting today deliveries");
-            return new List<TodayDeliveryDto>();
+            return [];
         }
     }
 
@@ -176,19 +179,22 @@ public class DashboardService(
 
     #region Risky Deliveries
 
-    /// <summary>
-    /// Récupère les livraisons à risque
-    /// Logique : Livraisons ToBePlanned créées il y a plus de 7 jours
-    /// → Le manager doit appeler le client pour planifier
-    /// </summary>
-    public async Task<List<RiskyDeliveryDto>> GetRiskyDeliveriesAsync()
+    public Task<List<RiskyDeliveryDto>> GetRiskyDeliveriesAsync()
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.DashboardRisky(tenantId),
+            FetchRiskyDeliveriesAsync,
+            TimeSpan.FromMinutes(10));
+    }
+
+    private async Task<List<RiskyDeliveryDto>> FetchRiskyDeliveriesAsync()
     {
         try
         {
             var today = DateTime.UtcNow.Date;
             var threeDaysAgo = today.AddDays(-3);
 
-            // À planifier en urgence = ToBePlanned depuis plus de 3 jours
             var rows = await context.Deliveries
                 .Where(d => d.Status == DeliveryStatus.ToBePlanned &&
                            d.CreatedDate.Date <= threeDaysAgo)
@@ -214,55 +220,20 @@ public class DashboardService(
                 RiskLevel = CalculateRiskLevel(d.CreatedDate)
             }).ToList();
 
-            logger.LogInformation("[Dashboard] ✅ Loaded {Count} deliveries to plan urgently (ToBePlanned > 3 days)", riskyDeliveries.Count);
+            logger.LogInformation("[Dashboard] ✅ Loaded {Count} risky deliveries", riskyDeliveries.Count);
             return riskyDeliveries;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "[Dashboard] Error getting risky deliveries");
-            return new List<RiskyDeliveryDto>();
+            return [];
         }
-    }
-
-    /// <summary>
-    /// Calcule la raison du risque en fonction de l'ancienneté
-    /// </summary>
-    private static string CalculateRiskReason(DateTime createdDate)
-    {
-        var daysOld = (DateTime.UtcNow.Date - createdDate.Date).Days;
-        
-        return daysOld switch
-        {
-            >= 14 => $"Non planifiée depuis {daysOld} jours !",
-            >= 7  => $"Non planifiée depuis {daysOld} jours",
-            >= 3  => $"À planifier ({daysOld} jours)",
-            _     => "À planifier"
-        };
-    }
-
-    /// <summary>
-    /// Calcule le niveau de risque en fonction de l'ancienneté
-    /// </summary>
-    private static string CalculateRiskLevel(DateTime createdDate)
-    {
-        var daysOld = (DateTime.UtcNow.Date - createdDate.Date).Days;
-        
-        return daysOld switch
-        {
-            >= 7 => "Error",    // Très urgent (14+ jours)
-            >= 5  => "Warning",  // Urgent (7-13 jours)
-            >= 3  => "Info",     // À surveiller (3-6 jours)
-            _     => "Info"
-        };
     }
 
     #endregion
 
     #region Notifications & Events
 
-    /// <summary>
-    /// Récupère les notifications récentes depuis AuditLogs
-    /// </summary>
     public async Task<List<NotificationDto>> GetNotificationsAsync(int count = 10)
     {
         try
@@ -290,13 +261,10 @@ public class DashboardService(
         catch (Exception ex)
         {
             logger.LogError(ex, "[Dashboard] Error getting notifications");
-            return new List<NotificationDto>();
+            return [];
         }
     }
 
-    /// <summary>
-    /// Récupère les événements récents
-    /// </summary>
     public async Task<List<EventDto>> GetRecentEventsAsync(int count = 10)
     {
         try
@@ -323,7 +291,7 @@ public class DashboardService(
         catch (Exception ex)
         {
             logger.LogError(ex, "[Dashboard] Error getting events");
-            return new List<EventDto>();
+            return [];
         }
     }
 
@@ -331,10 +299,16 @@ public class DashboardService(
 
     #region Charts
 
-    /// <summary>
-    /// Récupère les données du graphique Revenus + Livraisons
-    /// </summary>
-    public async Task<RevenueChartDataDto> GetRevenueChartDataAsync(ChartPeriod period)
+    public Task<RevenueChartDataDto> GetRevenueChartDataAsync(ChartPeriod period)
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.DashboardRevenue(tenantId, period.ToString()),
+            () => FetchRevenueChartDataAsync(period),
+            TimeSpan.FromMinutes(15));
+    }
+
+    private async Task<RevenueChartDataDto> FetchRevenueChartDataAsync(ChartPeriod period)
     {
         try
         {
@@ -370,10 +344,16 @@ public class DashboardService(
         }
     }
 
-    /// <summary>
-    /// Récupère les données du graphique Status
-    /// </summary>
-    public async Task<StatusChartDataDto> GetStatusChartDataAsync(ChartPeriod period)
+    public Task<StatusChartDataDto> GetStatusChartDataAsync(ChartPeriod period)
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.DashboardStatus(tenantId, period.ToString()),
+            () => FetchStatusChartDataAsync(period),
+            TimeSpan.FromMinutes(15));
+    }
+
+    private async Task<StatusChartDataDto> FetchStatusChartDataAsync(ChartPeriod period)
     {
         try
         {
@@ -388,7 +368,6 @@ public class DashboardService(
 
             var chartData = new StatusChartDataDto();
 
-            // Ordre des statuts
             var orderedStatuses = new[]
             {
                 DeliveryStatus.Delivered,
@@ -400,10 +379,8 @@ public class DashboardService(
             foreach (var status in orderedStatuses)
             {
                 var group = statusGroups.FirstOrDefault(g => g.Status == status);
-                var count = group?.Count ?? 0;
-
                 chartData.Labels.Add(GetStatusLabel(status));
-                chartData.Values.Add(count);
+                chartData.Values.Add(group?.Count ?? 0);
             }
 
             chartData.DeliveredCount = statusGroups
@@ -420,10 +397,16 @@ public class DashboardService(
         }
     }
 
-    /// <summary>
-    /// Récupère les données du graphique Magasins
-    /// </summary>
-    public async Task<StoreChartDataDto> GetStoreChartDataAsync(ChartPeriod period)
+    public Task<StoreChartDataDto> GetStoreChartDataAsync(ChartPeriod period)
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.DashboardStoreChart(tenantId, period.ToString()),
+            () => FetchStoreChartDataAsync(period),
+            TimeSpan.FromMinutes(30));
+    }
+
+    private async Task<StoreChartDataDto> FetchStoreChartDataAsync(ChartPeriod period)
     {
         try
         {
@@ -442,7 +425,7 @@ public class DashboardService(
                     Revenue = g.Sum(d => d.Price)
                 })
                 .OrderByDescending(g => g.Revenue)
-                .Take(5) // Top 5 magasins
+                .Take(5)
                 .ToListAsync();
 
             var chartData = new StoreChartDataDto();
@@ -450,10 +433,9 @@ public class DashboardService(
             foreach (var group in storeGroups)
             {
                 chartData.StoreNames.Add(group.StoreName);
-                chartData.Revenues.Add((double)(group.Revenue / 1000m)); // Convertir en k€
+                chartData.Revenues.Add((double)(group.Revenue / 1000m));
             }
 
-            // Ajouter une catégorie "Autres" si nécessaire
             if (storeGroups.Count == 5)
             {
                 var topStoresRevenue = storeGroups.Sum(g => g.Revenue);
@@ -524,13 +506,36 @@ public class DashboardService(
 
     private string GetStatusLabel(DeliveryStatus status) => status switch
     {
-        DeliveryStatus.Delivered => "Livrées",
-        DeliveryStatus.ToBePlanned => "À planifier",
-        DeliveryStatus.Confirmed => "Confirmées",
-        DeliveryStatus.InProgress => "En cours",
-        DeliveryStatus.Canceled => "Annulées",
+        DeliveryStatus.Delivered    => "Livrées",
+        DeliveryStatus.ToBePlanned  => "À planifier",
+        DeliveryStatus.Confirmed    => "Confirmées",
+        DeliveryStatus.InProgress   => "En cours",
+        DeliveryStatus.Canceled     => "Annulées",
         _ => status.ToString()
     };
+
+    private static string CalculateRiskReason(DateTime createdDate)
+    {
+        var daysOld = (DateTime.UtcNow.Date - createdDate.Date).Days;
+        return daysOld switch
+        {
+            >= 14 => $"Non planifiée depuis {daysOld} jours !",
+            >= 7  => $"Non planifiée depuis {daysOld} jours",
+            >= 3  => $"À planifier ({daysOld} jours)",
+            _     => "À planifier"
+        };
+    }
+
+    private static string CalculateRiskLevel(DateTime createdDate)
+    {
+        var daysOld = (DateTime.UtcNow.Date - createdDate.Date).Days;
+        return daysOld switch
+        {
+            >= 7 => "Error",
+            >= 5 => "Warning",
+            _    => "Info"
+        };
+    }
 
     private string DetermineNotificationType(string action, string entityName)
     {
@@ -540,10 +545,7 @@ public class DashboardService(
         return "Info";
     }
 
-    private string FormatNotificationTitle(string action, string entityName)
-    {
-        return $"{action} - {entityName}";
-    }
+    private string FormatNotificationTitle(string action, string entityName) => $"{action} - {entityName}";
 
     private string GetNotificationIcon(string action, string entityName)
     {
@@ -560,10 +562,8 @@ public class DashboardService(
         return "Info";
     }
 
-    private string FormatEventTitle(string action, string entityName, string? details)
-    {
-        return !string.IsNullOrWhiteSpace(details) ? details : $"{action} - {entityName}";
-    }
+    private string FormatEventTitle(string action, string entityName, string? details) =>
+        !string.IsNullOrWhiteSpace(details) ? details : $"{action} - {entityName}";
 
     #endregion
 }

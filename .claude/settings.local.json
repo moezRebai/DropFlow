@@ -11,7 +11,10 @@
       "Bash(codegraph sync *)",
       "Bash(Remove-Item -Path \"C:\\\\Solutions\\\\DropFlow\\\\src\\\\DropFlow.Infrastructure\\\\Migrations\\\\*\" -Recurse -Force)",
       "Bash(Write-Output \"Migrations deleted\")",
-      "Bash(dotnet run *)"
+      "Bash(dotnet run *)",
+      "WebFetch(domain:adaptivewebhosting.com)",
+      "Bash(Get-ChildItem -Path 'C:\\\\Solutions\\\\DropFlow\\\\src\\\\DropFlow.Application\\\\Services' -Filter '*Service.cs' -Recurse)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

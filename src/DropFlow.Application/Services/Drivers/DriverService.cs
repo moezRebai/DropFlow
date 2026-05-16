@@ -1,4 +1,5 @@
-﻿using DropFlow.Application.Interfaces;
+﻿using DropFlow.Application.Common;
+using DropFlow.Application.Interfaces;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Domain.Entities;
 using DropFlow.Shared.Common;
@@ -11,9 +12,14 @@ namespace DropFlow.Application.Services.Drivers;
 
 public class DriverService(
     IApplicationDbContext context,
+    ITenantService tenantService,
+    IAppCacheService cache,
     ILogger<DriverService> logger)
     : IDriverService
 {
+    private void InvalidateDriverCache() =>
+        cache.Remove(CacheKeys.ActiveDrivers(tenantService.GetTenantId()));
+
     public async Task<PagedResult<DriverDto>> GetAllAsync(DriverFilterDto filter)
     {
         var query = context.Drivers
@@ -134,6 +140,7 @@ public class DriverService(
 
             context.Drivers.Add(driver);
             await context.SaveChangesAsync();
+            InvalidateDriverCache();
 
             logger.LogInformation("Driver created: {DriverId}", driver.Id);
 
@@ -160,6 +167,7 @@ public class DriverService(
                 licenseExpiryDate: dto.LicenseExpiryDate);
 
             await context.SaveChangesAsync();
+            InvalidateDriverCache();
 
             logger.LogInformation("Driver updated: {DriverId}", id);
 
@@ -193,6 +201,7 @@ public class DriverService(
 
             driver.Deactivate();
             await context.SaveChangesAsync();
+            InvalidateDriverCache();
 
             logger.LogInformation("Driver deactivated: {DriverId}", id);
 
@@ -205,7 +214,16 @@ public class DriverService(
         }
     }
 
-    public async Task<List<DriverDto>> GetActiveDriversAsync()
+    public Task<List<DriverDto>> GetActiveDriversAsync()
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.ActiveDrivers(tenantId),
+            FetchActiveDriversAsync,
+            TimeSpan.FromHours(4));
+    }
+
+    private async Task<List<DriverDto>> FetchActiveDriversAsync()
     {
         return await context.Drivers
             .Include(d => d.User)

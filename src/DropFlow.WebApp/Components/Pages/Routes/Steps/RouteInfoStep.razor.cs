@@ -16,6 +16,7 @@ public partial class RouteInfoStep : IAsyncDisposable
     [Inject] private ITenantManagementService TenantManagementService { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<RouteInfoStep> Logger { get; set; } = default!;
     [Parameter] public RouteWizardState State { get; set; } = null!;
     [Parameter] public EventCallback<bool> OnValidationChanged { get; set; }
 
@@ -601,9 +602,10 @@ public partial class RouteInfoStep : IAsyncDisposable
 
             _dotNetRef?.Dispose();
         }
+        catch (JSDisconnectedException) { }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error disposing Google Maps: {ex.Message}");
+            Logger.LogWarning(ex, "Error disposing Google Maps module");
         }
     }
 

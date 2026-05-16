@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using DropFlow.Application.Interfaces;
 using DropFlow.Domain.Entities;
 using DropFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -76,10 +78,15 @@ public static class AuthenticationExtensions
                     },
                     OnTokenValidated = context =>
                     {
-                        var logger = context.HttpContext.RequestServices
-                            .GetRequiredService<ILogger<Program>>();
-                        logger.LogInformation("Token validated for user: {User}",
-                            context.Principal?.Identity?.Name);
+                        var blacklist = context.HttpContext.RequestServices
+                            .GetRequiredService<ITokenBlacklistService>();
+                        var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+
+                        if (!string.IsNullOrEmpty(jti) && blacklist.IsRevoked(jti))
+                        {
+                            context.Fail("Token has been revoked");
+                        }
+
                         return Task.CompletedTask;
                     },
                     OnChallenge = context =>
