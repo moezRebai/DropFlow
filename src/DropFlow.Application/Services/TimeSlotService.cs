@@ -1,4 +1,5 @@
-﻿using DropFlow.Application.Interfaces;
+﻿using DropFlow.Application.Common;
+using DropFlow.Application.Interfaces;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Domain.Entities;
 using DropFlow.Domain.Enums;
@@ -11,10 +12,20 @@ namespace DropFlow.Application.Services;
 public class TimeSlotService(
     IApplicationDbContext context,
     ITenantService tenantService,
-    IAuditService auditService)
+    IAuditService auditService,
+    IAppCacheService cache)
     : ITimeSlotService
 {
-    public async Task<List<TimeSlotDto>> GetAllAsync()
+    public Task<List<TimeSlotDto>> GetAllAsync()
+    {
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.TimeSlots(tenantId),
+            FetchAllAsync,
+            TimeSpan.FromHours(24));
+    }
+
+    private async Task<List<TimeSlotDto>> FetchAllAsync()
     {
         var timeSlots = await context.TimeSlots
             .OrderBy(t => t.DisplayOrder)
@@ -75,6 +86,7 @@ public class TimeSlotService(
 
         context.TimeSlots.Add(timeSlot);
         await context.SaveChangesAsync(CancellationToken.None);
+        cache.Remove(CacheKeys.TimeSlots(tenantId));
 
         await auditService.LogAsync(
             tenantId: tenantId,
@@ -112,9 +124,10 @@ public class TimeSlotService(
         timeSlot.EndTime = dto.EndTime;
         timeSlot.Name = dto.Name;
         timeSlot.DisplayOrder = dto.DisplayOrder;
-        
+
         await context.SaveChangesAsync(CancellationToken.None);
-        
+        cache.Remove(CacheKeys.TimeSlots(tenantService.GetTenantId()));
+
         return ResponseResult.Success();
     }
 
@@ -141,7 +154,8 @@ public class TimeSlotService(
 
         context.TimeSlots.Remove(timeSlot);
         await context.SaveChangesAsync(CancellationToken.None);
-        
+        cache.Remove(CacheKeys.TimeSlots(tenantService.GetTenantId()));
+
         return ResponseResult.Success();
     }
 

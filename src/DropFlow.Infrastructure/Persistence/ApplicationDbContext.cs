@@ -35,6 +35,9 @@ public class ApplicationDbContext(
     // ═══ ✨ COMPANY SETTINGS ═══
     public DbSet<TenantDepot> TenantDepots => Set<TenantDepot>();
 
+    // ═══ AUTH ═══
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

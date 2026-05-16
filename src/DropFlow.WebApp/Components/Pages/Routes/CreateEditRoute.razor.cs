@@ -10,6 +10,8 @@ public partial class CreateEditRoute
     [Parameter] public int? Id { get; set; }
     private string? Reference { get; set; }
 
+    [Inject] private ILogger<CreateEditRoute> Logger { get; set; } = default!;
+
     private int _activeIndex;
     private readonly RouteWizardState _wizardState = new();
     private bool _loading;
@@ -74,7 +76,7 @@ public partial class CreateEditRoute
                 return;
             }
 
-            Console.WriteLine($"📦 Loading existing route: {route.Reference}");
+            Logger.LogInformation("Loading existing route: {Reference}", route.Reference);
 
             Reference = route.Reference;
             // ✅ 1. Step 1 - Informations de base
@@ -86,7 +88,7 @@ public partial class CreateEditRoute
             _wizardState.DepartureLatitude = route.DepartureLatitude;
             _wizardState.DepartureLongitude = route.DepartureLongitude;
             
-            Console.WriteLine($"✅ Step 1 loaded - Date: {route.Date:dd/MM/yyyy}, Vehicle: {route.VehicleName}");
+            Logger.LogInformation("Step 1 loaded - Date: {Date}, Vehicle: {VehicleName}", route.Date.ToString("dd/MM/yyyy"), route.VehicleName);
 
             // ✅ 2. Step 2 - Équipe
             _wizardState.TeamMembers = route.TeamMembers.Select(tm => new TeamMemberState
@@ -96,7 +98,7 @@ public partial class CreateEditRoute
                 Role = tm.Role
             }).ToList();
 
-            Console.WriteLine($"✅ Step 2 loaded - {route.TeamMembers.Count} team members");
+            Logger.LogInformation("Step 2 loaded - {TeamMemberCount} team members", route.TeamMembers.Count);
 
             // ✅ 3. Step 3 - Livraisons (SelectedDeliveries)
             var deliveryIds = route.Deliveries.Select(d => d.DeliveryId).ToList();
@@ -111,7 +113,7 @@ public partial class CreateEditRoute
                     Address = rd.Address
                 }).ToList();
 
-                Console.WriteLine($"✅ Step 3 loaded - {deliveryIds.Count} deliveries");
+                Logger.LogInformation("Step 3 loaded - {DeliveryCount} deliveries", deliveryIds.Count);
             }
 
             // ✅ 4. Step 4 - Optimisation
@@ -145,7 +147,7 @@ public partial class CreateEditRoute
             _wizardState.TotalDurationWithService = route.TotalDuration;
             _wizardState.EndTime = route.StartTime.Add(TimeSpan.FromMinutes(route.TotalDuration));
 
-            Console.WriteLine($"✅ Step 4 loaded - Distance: {route.TotalDistance}km, Duration: {route.TotalDuration}min");
+            Logger.LogInformation("Step 4 loaded - Distance: {DistanceKm}km, Duration: {DurationMin}min", route.TotalDistance, route.TotalDuration);
 
             // ✅ Marquer les steps comme valides
             _step1Valid = true;
@@ -159,7 +161,7 @@ public partial class CreateEditRoute
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error loading route: {ex.Message}");
+            Logger.LogError(ex, "Error loading route {RouteId}", Id);
             Snackbar.Add($"Erreur lors du chargement: {ex.Message}", Severity.Error);
             NavigationManager.NavigateTo("/tournees");
         }
@@ -299,7 +301,7 @@ public partial class CreateEditRoute
     private void HandleStep5Validation(bool isValid)
     {
         _step5Valid = isValid;
-        Console.WriteLine($"📋 Step 5 validation changed: {isValid}");
+        Logger.LogInformation("Step 5 validation changed: {IsValid}", isValid);
         StateHasChanged();
     }
 
@@ -358,13 +360,13 @@ public partial class CreateEditRoute
                     }).ToList()
                 };
 
-                Console.WriteLine($"📝 Updating route {Id} with {updateDto.Deliveries.Count} deliveries");
+                Logger.LogInformation("Updating route {RouteId} with {DeliveryCount} deliveries", Id, updateDto.Deliveries.Count);
 
                 var result = await RouteService.UpdateRouteAsync(Id.Value, updateDto);
 
                 if (result.Succeeded)
                 {
-                    Console.WriteLine($"✅ Route {Id} updated successfully");
+                    Logger.LogInformation("Route {RouteId} updated successfully", Id);
                     Snackbar.Add("Tournée modifiée avec succès", Severity.Success);
                     
                     await Task.Delay(500);
@@ -381,13 +383,13 @@ public partial class CreateEditRoute
                 // ✅ MODE CREATE - Créer une nouvelle tournée
                 var dto = _wizardState.ToCreateDto();
                 
-                Console.WriteLine($"📝 Creating new route with {dto.Deliveries.Count} deliveries");
+                Logger.LogInformation("Creating new route with {DeliveryCount} deliveries", dto.Deliveries.Count);
                 
                 var result = await RouteService.CreateRouteAsync(dto);
 
                 if (result.Succeeded)
                 {
-                    Console.WriteLine($"✅ Route created successfully");
+                    Logger.LogInformation("Route created successfully");
                     Snackbar.Add("Tournée créée avec succès", Severity.Success);
         
                     await Task.Delay(500);
@@ -402,7 +404,7 @@ public partial class CreateEditRoute
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error submitting route: {ex.Message}");
+            Logger.LogError(ex, "Error submitting route {RouteId}", Id);
             Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
         }
         finally

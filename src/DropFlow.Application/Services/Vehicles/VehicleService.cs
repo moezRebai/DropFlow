@@ -1,4 +1,5 @@
-﻿using DropFlow.Application.Interfaces;
+﻿using DropFlow.Application.Common;
+using DropFlow.Application.Interfaces;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Domain.Entities;
 using DropFlow.Domain.Enums;
@@ -11,9 +12,20 @@ namespace DropFlow.Application.Services.Vehicles;
 
 public class VehicleService(
     IApplicationDbContext context,
+    ITenantService tenantService,
+    IAppCacheService cache,
     ILogger<VehicleService> logger)
     : IVehicleService
 {
+    private void InvalidateVehicleCache(DateTime? date = null)
+    {
+        var tenantId = tenantService.GetTenantId();
+        if (date.HasValue)
+            cache.Remove(CacheKeys.AvailableVehicles(tenantId, date.Value));
+        else
+            cache.Remove(CacheKeys.AvailableVehicles(tenantId, DateTime.UtcNow.Date));
+    }
+
     public async Task<PagedResult<VehicleDto>> GetAllAsync(VehicleFilterDto filter)
     {
         var query = context.Vehicles.AsQueryable();
@@ -107,6 +119,7 @@ public class VehicleService(
 
             context.Vehicles.Add(vehicle);
             await context.SaveChangesAsync();
+            InvalidateVehicleCache();
 
             logger.LogInformation("Vehicle created: {VehicleId}", vehicle.Id);
 
@@ -145,6 +158,7 @@ public class VehicleService(
             );
 
             await context.SaveChangesAsync();
+            InvalidateVehicleCache();
 
             logger.LogInformation("Vehicle updated: {VehicleId}", id);
 
@@ -182,14 +196,16 @@ public class VehicleService(
 
                 vehicle.Deactivate();
                 await context.SaveChangesAsync();
+                InvalidateVehicleCache();
 
                 logger.LogInformation("Vehicle deactivated: {VehicleId}", id);
                 return ResponseResult.Success("Vehicle deactivated successfully");
-
             }
 
             context.Vehicles.Remove(vehicle);
             await context.SaveChangesAsync();
+            InvalidateVehicleCache();
+
             logger.LogInformation("Vehicle deleted: {VehicleId}", id);
             return ResponseResult.Success("Vehicle deleted successfully");
         }
@@ -211,18 +227,25 @@ public class VehicleService(
         return ResponseResult<bool>.Success(!hasRouteSheet);
     }
 
-    public async Task<List<VehicleDto>> GetAvailableVehiclesAsync(DateTime date)
+    public Task<List<VehicleDto>> GetAvailableVehiclesAsync(DateTime date)
     {
-        var busyStatus = new List<RouteStatus>()
+        var tenantId = tenantService.GetTenantId();
+        return cache.GetOrSetAsync(
+            CacheKeys.AvailableVehicles(tenantId, date),
+            () => FetchAvailableVehiclesAsync(date),
+            TimeSpan.FromMinutes(10));
+    }
+
+    private async Task<List<VehicleDto>> FetchAvailableVehiclesAsync(DateTime date)
+    {
+        var busyStatus = new List<RouteStatus>
         {
-            RouteStatus.Completed,
-            RouteStatus.Completed,
+            RouteStatus.Confirmed,
             RouteStatus.InProgress
         };
-        
+
         var busyVehicleIds = await context.Routes
-            .Where(rs => rs.Date.Date == date.Date && 
-                         busyStatus.Contains(rs.Status))
+            .Where(rs => rs.Date.Date == date.Date && busyStatus.Contains(rs.Status))
             .Select(rs => rs.VehicleId)
             .ToListAsync();
 

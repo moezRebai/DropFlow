@@ -1,4 +1,6 @@
-﻿using DropFlow.Application.Interfaces.Users;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using DropFlow.Application.Interfaces.Users;
 using DropFlow.Shared.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -82,6 +84,35 @@ public class AuthController(IAuthService authService) : ControllerBase
         return Ok(new PasswordResetResponse{ Message = result.Message, Success = result.Succeeded});
     }
     
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenDto dto)
+    {
+        var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        var expiryClaim = User.FindFirstValue(JwtRegisteredClaimNames.Exp);
+
+        var expiry = DateTime.UtcNow.AddHours(1);
+        if (long.TryParse(expiryClaim, out var exp))
+            expiry = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
+
+        if (!string.IsNullOrEmpty(jti))
+            await authService.RevokeTokenAsync(jti, dto.RefreshToken, expiry);
+
+        return Ok();
+    }
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
+    {
+        var result = await authService.RefreshTokenAsync(dto.RefreshToken);
+
+        if (!result.Success)
+            return Unauthorized(new { message = result.Message });
+
+        return Ok(result);
+    }
+
     [HttpGet("tenants")]
     [AllowAnonymous]
     [EnableRateLimiting("auth")]

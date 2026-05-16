@@ -22,6 +22,7 @@ public interface IApplicationDbContext
     DbSet<Route> Routes { get; }
     DbSet<RouteTeam> RouteTeams { get; }
     DbSet<TimeSlot> TimeSlots { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

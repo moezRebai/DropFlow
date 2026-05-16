@@ -2,8 +2,7 @@
 
 public static class CorsExtensions
 {
-    public static IServiceCollection AddCorsConfiguration(
-        this IServiceCollection services,
+    public static void AddCorsConfiguration(this IServiceCollection services,
         IConfiguration configuration)
     {
         services.AddCors(options =>
@@ -11,7 +10,7 @@ public static class CorsExtensions
             options.AddPolicy("AllowBlazorClient", policy =>
             {
                 var allowedOrigins = configuration.GetSection("AllowedOrigins").Get<string[]>()
-                                     ?? new[] { "https://localhost:7002" };
+                                     ?? ["https://localhost:7002"];
 
                 policy.WithOrigins(allowedOrigins)
                     .AllowAnyMethod()
@@ -20,16 +19,16 @@ public static class CorsExtensions
                     .SetIsOriginAllowedToAllowWildcardSubdomains();
             });
 
-            // Politique plus restrictive pour la production
             options.AddPolicy("Production", policy =>
             {
-                policy.WithOrigins(configuration["ProductionUrl"] ?? "https://dropflow.com")
+                var allowedOrigins = configuration.GetSection("AllowedOrigins").Get<string[]>()
+                                     ?? [];
+
+                policy.WithOrigins(allowedOrigins)
                     .WithMethods("GET", "POST", "PUT", "DELETE")
                     .WithHeaders("Content-Type", "Authorization")
                     .AllowCredentials();
             });
         });
-
-        return services;
     }
 }

@@ -648,9 +648,13 @@ public partial class CreateDelivery : IAsyncDisposable
     {
         if (_googleMapsModule != null)
         {
-            await _googleMapsModule.DisposeAsync();
+            try
+            {
+                await _googleMapsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
         }
-        
+
         _dotNetRef?.Dispose();
     }
 }

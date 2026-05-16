@@ -1,6 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using DropFlow.Application.Interfaces;
 using DropFlow.Application.Interfaces.Emails;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Domain.Constants;
@@ -22,6 +24,7 @@ public class AuthService(
     IConfiguration configuration,
     IAuditService auditService,
     IEmailService emailService,
+    ITokenBlacklistService tokenBlacklist,
     ILogger<AuthService> logger)
     : IAuthService
 {
@@ -136,8 +139,10 @@ public class AuthService(
 
                 await transaction.CommitAsync();
 
-                // 5. Générer JWT
+                // 5. Générer JWT + refresh token
                 var token = GenerateJwtToken(user, Roles.Manager, tenant);
+                var refreshToken = await GenerateAndStoreRefreshTokenAsync(user.Id);
+                await context.SaveChangesAsync();
 
                 var userDto = new UserDto
                 {
@@ -158,7 +163,7 @@ public class AuthService(
 
                 logger.LogInformation("Tenant created successfully: {TenantId}", tenant.Id);
 
-                return new AuthResult(true, Token: token, User: userDto);
+                return new AuthResult(true, Token: token, RefreshToken: refreshToken, User: userDto);
             }
             catch (Exception ex)
             {
@@ -226,6 +231,9 @@ public class AuthService(
         }
         
         var token = GenerateJwtToken(user, role, tenant);
+        var refreshToken = await GenerateAndStoreRefreshTokenAsync(user.Id);
+        await context.SaveChangesAsync();
+
         var userDto = new UserDto
         {
             Id = user.Id,
@@ -240,8 +248,7 @@ public class AuthService(
             IsActive = user.IsActive
         };
 
-
-        return new AuthResult(true, Token: token, User: userDto);
+        return new AuthResult(true, Token: token, RefreshToken: refreshToken, User: userDto);
     }
     public async Task<AuthResult> AcceptInvitationAsync(AcceptInvitationDto dto)
     {
@@ -278,6 +285,7 @@ public class AuthService(
             await userManager.AddToRoleAsync(user, invitation.Role);
 
             invitation.MarkAsUsed();
+            var inviteRefreshToken = await GenerateAndStoreRefreshTokenAsync(user.Id);
             await context.SaveChangesAsync();
 
             await auditService.LogAsync(
@@ -304,7 +312,7 @@ public class AuthService(
                 IsActive = user.IsActive
             };
 
-            return new AuthResult(true, Token: token, User: userDto);
+            return new AuthResult(true, Token: token, RefreshToken: inviteRefreshToken, User: userDto);
         }
         catch (Exception ex)
         {
@@ -448,13 +456,13 @@ public class AuthService(
 
         var claims = new List<Claim>
         {
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email!),
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Role, role),
-            new Claim("TenantId", user.TenantId.ToString()), // ← 0 pour Admin
+            new Claim("TenantId", user.TenantId.ToString()),
             new Claim("IsActive", user.IsActive.ToString()),
-            // ✅ Ajouter TenantName seulement si tenant existe
             tenant != null
                 ? new Claim("TenantName", tenant.Name)
                 : new Claim("TenantName", "DropFlow Platform")
@@ -470,5 +478,97 @@ public class AuthService(
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private async Task<string> GenerateAndStoreRefreshTokenAsync(string userId)
+    {
+        var tokenBytes = new byte[64];
+        RandomNumberGenerator.Fill(tokenBytes);
+        var token = Convert.ToBase64String(tokenBytes);
+
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        var expirationDays = int.Parse(
+            jwtSettings["RefreshTokenExpirationDays"] ?? "30");
+
+        context.RefreshTokens.Add(new RefreshToken
+        {
+            Token = token,
+            UserId = userId,
+            ExpiresAt = DateTime.UtcNow.AddDays(expirationDays)
+        });
+
+        return token;
+    }
+
+    public async Task<AuthResult> RefreshTokenAsync(string refreshToken)
+    {
+        try
+        {
+            var stored = await context.RefreshTokens
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.Token == refreshToken);
+
+            if (stored == null || !stored.IsActive)
+                return new AuthResult(false, Message: "Refresh token invalide ou expiré");
+
+            var user = stored.User;
+            if (!user.IsActive)
+                return new AuthResult(false, Message: "Votre compte est désactivé");
+
+            var roles = await userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? Roles.Livreur;
+
+            Tenant? tenant = null;
+            if (user.TenantId != TenantIds.DropFlowAdmin)
+            {
+                tenant = await context.Tenants.FindAsync(user.TenantId);
+                if (tenant == null || !tenant.IsActive)
+                    return new AuthResult(false, Message: "Votre entreprise est désactivée");
+            }
+
+            stored.IsRevoked = true;
+            var newRefreshToken = await GenerateAndStoreRefreshTokenAsync(user.Id);
+            await context.SaveChangesAsync();
+
+            var newJwt = GenerateJwtToken(user, role, tenant);
+
+            var userDto = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email!,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Phone = user.PhoneNumber ?? string.Empty,
+                Address = user.Address ?? string.Empty,
+                Role = role,
+                TenantId = user.TenantId,
+                TenantName = tenant?.Name ?? "DropFlow Platform",
+                IsActive = user.IsActive
+            };
+
+            return new AuthResult(true, Token: newJwt, RefreshToken: newRefreshToken, User: userDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in RefreshTokenAsync");
+            return new AuthResult(false, Message: "Une erreur s'est produite");
+        }
+    }
+
+    public async Task RevokeTokenAsync(string jti, string? refreshToken, DateTime jwtExpiry)
+    {
+        tokenBlacklist.Revoke(jti, jwtExpiry);
+
+        if (!string.IsNullOrEmpty(refreshToken))
+        {
+            var stored = await context.RefreshTokens
+                .FirstOrDefaultAsync(r => r.Token == refreshToken);
+
+            if (stored != null)
+            {
+                stored.IsRevoked = true;
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }

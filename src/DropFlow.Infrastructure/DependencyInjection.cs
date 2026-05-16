@@ -5,13 +5,11 @@ using DropFlow.Application.Interfaces.Emails;
 using DropFlow.Application.Interfaces.Routes;
 using DropFlow.Application.Interfaces.Users;
 using DropFlow.Application.Services;
-using DropFlow.Application.Validators.Deliveries;
 using DropFlow.Domain.Configurations;
 using DropFlow.Infrastructure.Persistence;
 using DropFlow.Infrastructure.Services;
 using DropFlow.Infrastructure.Services.Email;
 using DropFlow.Infrastructure.Services.Email.Templates;
-using DropFlow.Infrastructure.Services.Geocoding;
 using DropFlow.Infrastructure.Services.Pdf;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -46,5 +44,8 @@ public static class DependencyInjection
         services.AddScoped<ITimeSlotService, TimeSlotService>();
         services.AddScoped<IRouteSheetPdfGenerator, RouteSheetPdfGenerator>(); 
         services.AddSingleton<IFileStorageService, FileStorageService>();
+        services.AddMemoryCache();
+        services.AddSingleton<ITokenBlacklistService, TokenBlacklistService>();
+        services.AddSingleton<IAppCacheService, AppCacheService>();
     }
 }

@@ -11,4 +11,6 @@ public interface IAuthService
     Task<ResponseResult> ForgotPasswordAsync(ForgotPasswordDto dto);
     Task<ResponseResult> ResetPasswordAsync(ResetPasswordDto dto);
     Task<List<UserTenantInfoDto>> GetUserTenantsAsync(string email);
+    Task<AuthResult> RefreshTokenAsync(string refreshToken);
+    Task RevokeTokenAsync(string jti, string? refreshToken, DateTime jwtExpiry);
 }
