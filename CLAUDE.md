@@ -12,9 +12,59 @@ Multi-tenant SaaS delivery management platform for logistics companies.
 **Stack:**
 - .NET Core 9 / ASP.NET Core
 - Blazor Server + MudBlazor
-- Entity Framework Core (SQL Server)
+- Entity Framework Core (PostgreSQL via Neon)
 - JWT Auth + LocalStorage
 - Google Maps API
+
+---
+
+## Skills Available (.claude/skills/)
+
+Claude Code has access to the following skills, located in `.claude/skills/`.
+Each skill encodes production-grade .NET patterns. Read the relevant SKILL.md
+**before** writing code for any task that matches its trigger.
+
+| Skill | Trigger / When to consult |
+|-------|---------------------------|
+| `modern-csharp-coding-standards` | Writing or refactoring C# code — records, pattern matching, nullable types, value objects |
+| `efcore-patterns` | Adding entities, configurations, migrations, query optimization |
+| `database-performance` | Slow queries, N+1 issues, AsNoTracking, read/write separation, indexing |
+| `csharp-concurrency-patterns` | Threading, async/await, race conditions, locks, channels |
+| `dependency-injection-patterns` | DI registration, scope management, keyed services, IServiceCollection extensions |
+| `microsoft-extensions-configuration` | IOptions pattern, appsettings, secrets, environment-specific config |
+| `testcontainers-integration-tests` | Integration tests with Docker (PostgreSQL, Redis, etc.) |
+| `playwright-blazor-testing` | E2E tests for Blazor pages, page objects, async assertions |
+| `dotnet-project-structure` | Solution layout, Directory.Build.props, layered architecture decisions |
+
+### Skills Routing — Quick Reference
+
+- **New entity / table / migration** → `efcore-patterns` + multi-tenant rules below
+- **List query is slow / pagination** → `database-performance`
+- **Race condition (e.g. reference number generation)** → `csharp-concurrency-patterns`
+- **New service registration in DI** → `dependency-injection-patterns`
+- **New appsettings key or secret** → `microsoft-extensions-configuration`
+- **Writing C# code in general** → `modern-csharp-coding-standards`
+- **Integration test against DB** → `testcontainers-integration-tests` (PostgreSQL container)
+- **E2E test of a Blazor page** → `playwright-blazor-testing`
+
+---
+
+## Skills Overrides — DropFlow Conventions Take Precedence
+
+The generic .NET skills come from a third-party library. Where they conflict
+with DropFlow's established architecture, **DropFlow rules win**:
+
+| Generic skill says | DropFlow rule (override) |
+|--------------------|--------------------------|
+| "Composition over inheritance, sealed by default" | Frontend services inherit from `BaseApiService` — keep this pattern |
+| "No abstract base classes" | `BaseApiService` is an accepted base class for API call abstraction |
+| "No AutoMapper" | ✅ Aligned — DropFlow does not use AutoMapper either |
+| (No mention of multi-tenancy) | **Always apply DropFlow multi-tenant rules** (see section below) |
+| (No mention of MediatR) | **Do NOT use MediatR / CQRS** — DropFlow uses direct services |
+| (No mention of i18n) | All UI labels in **French**; entity properties and code in English |
+
+When a skill suggests a pattern that conflicts with DropFlow conventions,
+note the conflict explicitly in your reasoning, then follow DropFlow.
 
 ---
 
@@ -29,12 +79,14 @@ Multi-tenant SaaS delivery management platform for logistics companies.
 - EF queries on lists always use `.AsNoTracking()` + server-side pagination
 - JS interop only in `OnAfterRenderAsync(firstRender)`, never in `OnInitializedAsync`
 - Components that subscribe to EventBus implement `IDisposable`
+- Prefer MudBlazor native components (`MudTablePager` / `ServerData`, `MudChart`) over custom or third-party
 
 **DO NOT use:**
 - MediatR or CQRS pattern (decision was made to use direct services)
 - Raw exceptions thrown to the UI (use ResponseResult error handling)
 - Hardcoded tenant IDs or user IDs anywhere
 - Blocking `.Result` or `.Wait()` on async calls in Blazor
+- ApexCharts when MudChart can do the job
 
 ---
 
@@ -50,7 +102,27 @@ public interface ITenantEntity
 
 EF Core global query filters are applied in `ApplicationDbContext.OnModelCreating`.
 `TenantId` is automatically set on `SaveChanges` via the `ApplyTenantId()` method.
-**Never accept TenantId from client input.** Always resolve from authenticated claims.
+
+**Critical rules:**
+- **Never accept TenantId from client input.** Always resolve from authenticated claims.
+- **Never disable global query filters** without explicit `TenantId` validation in the query.
+- **Super Admin uses TenantId = 0** — there is no FK between `ApplicationUser` and `Tenant` to support this. Don't try to "fix" this with a foreign key.
+- **All new entities with tenant scope MUST implement `ITenantEntity`.**
+- When writing a new query, verify in your mind: "Could this leak data across tenants?" If yes, stop and reconsider.
+
+---
+
+## PostgreSQL Specifics
+
+DropFlow uses PostgreSQL (hosted on Neon). Keep these in mind:
+
+- **Provider**: `Npgsql.EntityFrameworkCore.PostgreSQL`
+- **Identifier casing**: PostgreSQL folds unquoted identifiers to lowercase. EF Core configurations should rely on snake_case or explicit `[Table("...")]` / `[Column("...")]` if mixing with raw SQL.
+- **Decimal precision**: always specify `HasPrecision(18, 2)` on monetary fields — PostgreSQL is stricter than SQL Server about `decimal`/`numeric` precision.
+- **DateTime**: prefer `DateTime` with `Kind = Utc`. Npgsql v6+ throws on `Unspecified` kind by default.
+- **Full-text search**: use PostgreSQL's `tsvector` / `to_tsquery` via `EF.Functions.ToTsVector()` rather than `EF.Functions.Contains()` (SQL Server-only).
+- **Migrations on Neon**: Neon uses branched databases — test migrations on a branch before applying to main.
+- **Connection pooling**: Neon recommends the pooled connection string (`-pooler` suffix) for serverless workloads.
 
 ---
 
@@ -66,17 +138,59 @@ EF Core global query filters are applied in `ApplicationDbContext.OnModelCreatin
 
 ---
 
+## Solution Structure
+
+```
+DropFlow/
+├── backend/
+│   ├── DropFlow.Domain/          # Entities, AuditSeverity enum, interfaces
+│   ├── DropFlow.Application/     # Services, validators, business logic
+│   ├── DropFlow.Infrastructure/  # EF Core, repositories, external services
+│   └── DropFlow.Api/             # ASP.NET Core Web API entry point
+├── frontend/
+│   └── DropFlow.WebApp/          # Blazor Server + MudBlazor
+├── mobile/
+│   └── DropFlow.Mobile/          # Driver mobile app (MAUI)
+├── shared/
+│   └── DropFlow.Shared/          # DTOs + shared enums (no dependencies)
+├── .claude/
+│   └── skills/                   # .NET skills library (see Skills section)
+└── DropFlow.sln
+```
+
+### Dependency Graph
+
+```
+shared/DropFlow.Shared        (no dependencies)
+  ← backend/DropFlow.Domain   → Shared
+    ← DropFlow.Application    → Domain + Shared
+      ← DropFlow.Infrastructure → Application + Domain
+        ← DropFlow.Api        → Infrastructure + Shared
+frontend/DropFlow.WebApp      → Shared only
+mobile/DropFlow.Mobile        → Shared only
+```
+
+### Shared Enums (in DropFlow.Shared.Enums)
+`DeliveryStatus`, `DeliveryType`, `RouteStatus`, `TeamMemberRole`
+`AuditSeverity` stays in `DropFlow.Domain.Enums` (backend-only).
+
+---
+
 ## Key File Locations
 
 | What | Where |
 |------|-------|
-| DbContext | `src/DropFlow.Infrastructure/Data/ApplicationDbContext.cs` |
-| Tenant service | `src/DropFlow.Infrastructure/Services/TenantService.cs` |
-| Auth config | `src/DropFlow.Web/Program.cs` |
-| Base API service | `src/DropFlow.Web/Services/BaseApiService.cs` |
-| Blazor pages | `src/DropFlow.Web/Pages/` |
-| Domain entities | `src/DropFlow.Domain/Entities/` |
-| DTOs | `src/DropFlow.Application/DTOs/` |
+| DbContext | `backend/DropFlow.Infrastructure/Data/ApplicationDbContext.cs` |
+| Tenant service | `backend/DropFlow.Infrastructure/Services/TenantService.cs` |
+| API entry point | `backend/DropFlow.Api/Program.cs` |
+| Domain entities | `backend/DropFlow.Domain/Entities/` |
+| Application services | `backend/DropFlow.Application/Services/` |
+| Shared DTOs | `shared/DropFlow.Shared/` |
+| Shared enums | `shared/DropFlow.Shared/Enums/` |
+| Base API service | `frontend/DropFlow.WebApp/Services/BaseApiService.cs` |
+| Blazor pages | `frontend/DropFlow.WebApp/Components/Pages/` |
+| Mobile app | `mobile/DropFlow.Mobile/` |
+| Skills library | `.claude/skills/` |
 
 ---
 
@@ -112,8 +226,22 @@ EF Core global query filters are applied in `ApplicationDbContext.OnModelCreatin
 > Update this section as fixes are applied.
 
 - [ ] Reference number generation (DL-YYYYMMDD-NNN) may have race condition under concurrent load
+      → consult `csharp-concurrency-patterns` when fixing
 - [ ] Some components may be missing IDisposable for EventBus subscriptions
 - [ ] Dashboard stats may use multiple queries instead of single optimized query
+      → consult `database-performance` when fixing
+
+---
+
+## Route / Tournée Module — Specific Gotchas
+
+The route module has accumulated some non-obvious rules from past debugging:
+
+- **Google Directions API**: use `optimize:true` for the *initial* optimization; use `optimize:false` when recalculating after manual reordering (otherwise you lose user-chosen order).
+- **Single-delivery routes**: require a separate `GetDirectionsAsync` call path. Without it, Google Maps isn't called and metrics return zero.
+- **Driver availability filter**: exclude drivers only from `Confirmed`, `InProgress`, `Completed` routes — **not from `Draft`**. Drivers must remain selectable while editing draft routes.
+- **Delivery availability filter**: include deliveries that are either unassigned OR belong to a `Draft` route, to support both creation and editing.
+- **EventBus subscriptions**: cross-tab change detection uses a custom `IDeliveryEventBus` singleton. Components subscribing **must** unsubscribe in `Dispose()` to avoid memory leaks.
 
 ---
 
@@ -121,13 +249,25 @@ EF Core global query filters are applied in `ApplicationDbContext.OnModelCreatin
 
 When I ask you to generate new code for DropFlow, always:
 
-1. **Follow existing patterns** — look at a similar existing service/component before writing a new one
-2. **Use the correct layer** — business logic in Application services, not in Blazor components
-3. **Include tenant isolation** — new entities must implement `ITenantEntity`, new services must respect tenant scope
-4. **Use pagination** — any new list query must support `PageNumber` + `PageSize` parameters
-5. **Add validation** — new DTOs must have DataAnnotations or FluentValidation rules
-6. **Handle errors** — return `ResponseResult<T>`, catch and log exceptions, never swallow silently
-7. **Write tests** — at minimum, one test verifying tenant isolation for new entities
+1. **Read the relevant skill first** — for any task matching a skill trigger above, consult that SKILL.md before writing code
+2. **Follow existing patterns** — look at a similar existing service/component before writing a new one
+3. **Use the correct layer** — business logic in Application services, not in Blazor components
+4. **Include tenant isolation** — new entities must implement `ITenantEntity`, new services must respect tenant scope
+5. **Use pagination** — any new list query must support `PageNumber` + `PageSize` parameters
+6. **Add validation** — new DTOs must have DataAnnotations or FluentValidation rules
+7. **Handle errors** — return `ResponseResult<T>`, catch and log exceptions, never swallow silently
+8. **Audit critical actions** — call `IAuditService` for create / update / delete on sensitive entities
+9. **Write tests** — at minimum, one test verifying tenant isolation for new entities
+
+---
+
+## Communication Style — User Preference
+
+- Deliver **production-ready code** — minimize explanations unless asked
+- Match existing patterns exactly; do not introduce alternative architectures
+- Backend first, then frontend; specs before implementation for non-trivial features
+- Fix root causes, not symptoms ("stop bricolaging")
+- Multi-file solutions include a step-by-step installation guide and testing scenarios
 
 ---
 

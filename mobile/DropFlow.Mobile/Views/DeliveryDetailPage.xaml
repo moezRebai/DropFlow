@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DropFlow.Mobile.Views.DeliveryDetailPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DropFlow.Mobile.ViewModels"
+    xmlns:models="clr-namespace:DropFlow.Mobile.Models"
+    x:DataType="vm:DeliveryDetailViewModel"
+    BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="{StaticResource Primary}" Padding="16,44,16,16"
+              ColumnDefinitions="Auto,*,Auto">
+            <Button Grid.Column="0" Text="←" Command="{Binding GoBackCommand}"
+                    BackgroundColor="Transparent" TextColor="White" FontSize="22" Padding="0"
+                    WidthRequest="44" />
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="{Binding Delivery.Reference}" FontSize="16" FontAttributes="Bold" TextColor="White" />
+                <Label Text="{Binding Delivery.StatusDisplay}" FontSize="13" TextColor="#B3E5FC" />
+            </VerticalStackLayout>
+            <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               Color="White" />
+        </Grid>
+
+        <!-- Offline banner -->
+        <Frame Grid.Row="0" Style="{StaticResource OfflineBanner}" IsVisible="{Binding IsOffline}"
+               VerticalOptions="End" />
+
+        <!-- Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="8" IsVisible="{Binding Delivery, Converter={StaticResource NotNull}}">
+
+                <!-- Client card -->
+                <Frame Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8" Margin="0,8,0,4">
+                            <Path Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="18" HeightRequest="18"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Client" FontSize="16" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label Text="{Binding Delivery.ClientName}" FontSize="18" FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="{Binding Delivery.ClientEmail}" FontSize="14"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <!-- Phone tappable -->
+                        <Label Text="{Binding Delivery.ClientPhone}" FontSize="16"
+                               TextColor="{StaticResource Primary}" TextDecorations="Underline">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CallClientCommand}" />
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Address card -->
+                <Frame Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8" Margin="0,8,0,4">
+                            <Path Data="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="18" HeightRequest="18"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Adresse" FontSize="16" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label Text="{Binding Delivery.FullAddress}" FontSize="16"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="{Binding Delivery.AddressComplement}" FontSize="14"
+                               TextColor="{StaticResource Warning}" FontAttributes="Italic"
+                               IsVisible="{Binding Delivery.AddressComplement, Converter={StaticResource NotNull}}" />
+                        <Button Text="Naviguer vers le client"
+                                Command="{Binding NavigateToClientCommand}"
+                                Style="{StaticResource ActionButton}"
+                                Margin="0,4,0,0" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Details card -->
+                <Frame Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <HorizontalStackLayout Spacing="8" Margin="0,8,0,4">
+                            <Path Data="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M7,7H17V9H7V7M7,11H17V13H7V11M7,15H14V17H7V15Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="18" HeightRequest="18"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Détails" FontSize="16" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                              ColumnSpacing="8" RowSpacing="8">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Enseigne :" FontSize="14" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding Delivery.StoreName}" FontSize="14" TextColor="{StaticResource TextPrimary}" />
+
+                            <Label Grid.Row="1" Grid.Column="0" Text="Créneau :" FontSize="14" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding Delivery.TimeSlotName}" FontSize="14" TextColor="{StaticResource TextPrimary}" />
+
+                            <Label Grid.Row="2" Grid.Column="0" Text="Colis :" FontSize="14" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="{Binding Delivery.TotalPackages}" FontSize="14" TextColor="{StaticResource TextPrimary}" />
+
+                            <Label Grid.Row="3" Grid.Column="0" Text="Montage :" FontSize="14" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="{Binding Delivery.WithAssembly, Converter={StaticResource BoolToCheck}}" FontSize="14" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Payment card -->
+                <Frame Style="{StaticResource Card}" BackgroundColor="#FFFDE7"
+                       IsVisible="{Binding Delivery.HasPayment}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="À encaisser" FontSize="14" FontAttributes="Bold"
+                               TextColor="{StaticResource Warning}" />
+                        <Label Text="{Binding Delivery.ClientPaymentAmount, Converter={StaticResource Currency}}"
+                               FontSize="32" FontAttributes="Bold" TextColor="{StaticResource Warning}"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Items card -->
+                <Frame Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8" Margin="0,8,0,4">
+                            <Path Data="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L6.04,7.5L12,10.85L17.96,7.5L12,4.15M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V9.21L13,12.58V19.29L19,15.91Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="18" HeightRequest="18"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Produits" FontSize="16" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <CollectionView ItemsSource="{Binding Delivery.Items}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:DeliveryItemDto">
+                                    <VerticalStackLayout Spacing="2" Padding="0,4,0,4">
+                                        <Label FontSize="15" TextColor="{StaticResource TextPrimary}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{Binding Quantity}" FontAttributes="Bold" />
+                                                    <Span Text=" × " />
+                                                    <Span Text="{Binding Designation}" />
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                        <Label Text="{Binding Information}" FontSize="13"
+                                               TextColor="{StaticResource TextMuted}"
+                                               IsVisible="{Binding Information, Converter={StaticResource NotNull}}" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Notes card -->
+                <Frame Style="{StaticResource Card}" BackgroundColor="#E3F2FD"
+                       IsVisible="{Binding Delivery.DeliveryNotes, Converter={StaticResource NotNull}}">
+                    <VerticalStackLayout Spacing="4">
+                        <HorizontalStackLayout Spacing="8">
+                            <Path Data="M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2M15,18V16H6V18H15M18,14V12H6V14H18Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="16" HeightRequest="16"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Instructions chauffeur" FontSize="14" FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label Text="{Binding Delivery.DeliveryNotes}" FontSize="15"
+                               TextColor="{StaticResource TextPrimary}" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Already validated -->
+                <Frame Style="{StaticResource Card}" BackgroundColor="#E8F5E9"
+                       IsVisible="{Binding Delivery.IsValidated}">
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                        <Path Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+                              Fill="{StaticResource Success}" WidthRequest="20" HeightRequest="20"
+                              Aspect="Uniform" VerticalOptions="Center" />
+                        <Label Text="Livraison déjà validée" FontSize="16" FontAttributes="Bold"
+                               TextColor="{StaticResource Success}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Frame>
+
+                <BoxView HeightRequest="80" Color="Transparent" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom bar -->
+        <Frame Grid.Row="2" Padding="16,12" HasShadow="True" BorderColor="Transparent"
+               BackgroundColor="{StaticResource CardBackground}"
+               IsVisible="{Binding Delivery.CanValidate}">
+            <Button Text="Valider la livraison"
+                    Command="{Binding ValidateDeliveryCommand}"
+                    Style="{StaticResource SuccessButton}" />
+        </Frame>
+
+    </Grid>
+
+</ContentPage>

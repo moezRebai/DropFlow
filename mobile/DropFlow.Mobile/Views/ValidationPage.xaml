@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DropFlow.Mobile.Views.ValidationPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DropFlow.Mobile.ViewModels"
+    xmlns:controls="clr-namespace:DropFlow.Mobile.Controls"
+    x:DataType="vm:ValidationViewModel"
+    BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="{StaticResource Primary}" Padding="16,44,16,16"
+              ColumnDefinitions="Auto,*">
+            <Button Grid.Column="0" Text="←" Command="{Binding GoBackCommand}"
+                    BackgroundColor="Transparent" TextColor="White" FontSize="22" Padding="0"
+                    WidthRequest="44" />
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="Validation livraison" FontSize="16" FontAttributes="Bold" TextColor="White" />
+                <Label Text="{Binding ClientName}" FontSize="13" TextColor="#B3E5FC" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <!-- Payment reminder -->
+                <Frame Style="{StaticResource Card}" BackgroundColor="#FFFDE7" IsVisible="{Binding HasPayment}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Montant à encaisser" FontSize="14" FontAttributes="Bold"
+                               TextColor="{StaticResource Warning}" HorizontalOptions="Center" />
+                        <Label Text="{Binding PaymentAmount, Converter={StaticResource Currency}}"
+                               FontSize="36" FontAttributes="Bold" TextColor="{StaticResource Warning}"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Client absent toggle -->
+                <Frame Style="{StaticResource Card}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0" Text="Client absent" FontSize="16"
+                               TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        <Switch Grid.Column="1" IsToggled="{Binding IsClientAbsent}"
+                                OnColor="{StaticResource Warning}" />
+                    </Grid>
+                </Frame>
+
+                <!-- Signature pad -->
+                <Frame Style="{StaticResource Card}" IsVisible="{Binding IsClientAbsent, Converter={StaticResource InvertBool}}">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8" Margin="0,8,0,4">
+                            <Path Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="18" HeightRequest="18"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Signature client" FontSize="16" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <controls:SignaturePadView x:Name="SignaturePad" />
+                        <Button Text="Effacer" Clicked="OnClearSignatureTapped"
+                                Style="{StaticResource SecondaryButton}" HorizontalOptions="End"
+                                WidthRequest="100" HeightRequest="36" FontSize="14" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Absent message -->
+                <Frame Style="{StaticResource Card}" BackgroundColor="#FFF3E0"
+                       IsVisible="{Binding IsClientAbsent}">
+                    <Label Text="Pas de signature (client absent)" FontSize="15"
+                           TextColor="{StaticResource Warning}" HorizontalOptions="Center" />
+                </Frame>
+
+                <!-- Photo -->
+                <Frame Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8" Margin="0,8,0,4">
+                            <Path Data="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,0 20,20H4A2,2 0 0,1 2,18V6C2,4.89 2.89,4 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="18" HeightRequest="18"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Photo (optionnel)" FontSize="16" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Button Text="Prendre une photo" Command="{Binding TakePhotoCommand}"
+                                Style="{StaticResource SecondaryButton}"
+                                IsVisible="{Binding PhotoBase64, Converter={StaticResource InvertBool}}" />
+                        <Grid IsVisible="{Binding PhotoPreview, Converter={StaticResource NotNull}}"
+                              ColumnDefinitions="*,Auto">
+                            <Image Grid.Column="0" Source="{Binding PhotoPreview}" HeightRequest="120"
+                                   Aspect="AspectFit" HorizontalOptions="Start" />
+                            <Button Grid.Column="1" Text="✕" Command="{Binding RemovePhotoCommand}"
+                                    BackgroundColor="{StaticResource Error}" TextColor="White"
+                                    CornerRadius="16" WidthRequest="32" HeightRequest="32"
+                                    Padding="0" VerticalOptions="Start" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Comment -->
+                <Frame Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8" Margin="0,8,0,4">
+                            <Path Data="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2Z"
+                                  Fill="{StaticResource Primary}" WidthRequest="18" HeightRequest="18"
+                                  Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Commentaire (optionnel)" FontSize="16" FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Editor Text="{Binding Comment}" Placeholder="RAS, livraison effectuée..."
+                                HeightRequest="80" FontSize="16" BackgroundColor="Transparent" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Error -->
+                <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource Error}" FontSize="14"
+                       IsVisible="{Binding HasError}" HorizontalTextAlignment="Center" />
+
+                <BoxView HeightRequest="80" Color="Transparent" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom bar -->
+        <Frame Grid.Row="2" Padding="16,12" HasShadow="True" BorderColor="Transparent"
+               BackgroundColor="{StaticResource CardBackground}">
+            <Grid>
+                <Button Text="Confirmer la livraison"
+                        Command="{Binding SubmitCommand}"
+                        Style="{StaticResource SuccessButton}"
+                        IsEnabled="{Binding CanSubmit}"
+                        IsVisible="{Binding IsBusy, Converter={StaticResource InvertBool}}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                   Color="{StaticResource Primary}" HorizontalOptions="Center" />
+            </Grid>
+        </Frame>
+
+    </Grid>
+
+</ContentPage>
