@@ -1,7 +1,31 @@
+# Build outputs
 bin/
 obj/
 /packages/
+publish/
+
+# IDE
+.vs/
+.idea/
+*.user
 riderModule.iml
 /_ReSharper.Caches/
+
+# MAUI / Android — signing keys (NEVER commit these)
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.mobileprovision
+
+# MAUI / Android — build artifacts
+*.aab
+*.apk
+
+# Firebase / Google Services (contain API keys)
+google-services.json
+GoogleService-Info.plist
+
+# Secrets
 .env
-publish/
+*.env.local

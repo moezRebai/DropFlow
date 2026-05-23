@@ -1,0 +1,424 @@
+@using DropFlow.Shared.Enums
+@using DropFlow.Shared.Common
+@using DropFlow.Shared.Routes
+@using DropFlow.WebApp.Interfaces
+@using Humanizer
+@inject IRouteService RouteService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject ILogger<RouteStatusActions> Logger
+
+@if (Route != null)
+{
+    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Justify="Justify.Center">
+        @if (ShowStatusChip)
+        {
+            <MudChip Color="@GetStatusColor()"
+                     Size="Size.Small"
+                     T="string"
+                     Variant="Variant.Filled">
+                @GetStatusText()
+            </MudChip>
+        }
+
+        <!-- Menu Actions -->
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                 Color="Color.Default"
+                 Dense="true"
+                 Disabled="@_processing">
+
+            <!-- Voir (toujours disponible) -->
+            <MudMenuItem OnClick="ViewRoute">
+                <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Class="mr-2"/>
+                    <span>Voir</span>
+                </div>
+            </MudMenuItem>
+
+            <!-- ✅ NOUVEAU : Télécharger Feuille de Route (toujours disponible sauf Draft) -->
+            @if (Route.Status != RouteStatus.Draft && Route.TotalDeliveries > 0)
+            {
+                <MudMenuItem OnClick="DownloadRouteSheet" Disabled="@_downloading">
+                    @if (_downloading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        <span>Génération...</span>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Warning" Class="mr-2"/>
+                        <span>Télécharger Feuille de Route</span>
+                        </div>
+                    }
+                </MudMenuItem>
+            }
+
+            <MudDivider/>
+
+            <!-- Actions selon le statut -->
+            @switch (Route.Status)
+            {
+                case RouteStatus.Draft:
+                    @* Confirmer *@
+                    <MudMenuItem OnClick="ConfirmRoute">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                     Color="Color.Success"
+                                     Class="me-2" />
+                            <span>Confirmer</span>
+                        </div>
+                    </MudMenuItem>
+
+                    @* Modifier *@
+                    <MudMenuItem OnClick="EditRoute">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                     Color="Color.Warning"
+                                     Class="me-2" />
+                            <span>Modifier</span>
+                        </div>
+                    </MudMenuItem>
+
+                    @* Supprimer *@
+                    <MudMenuItem OnClick="DeleteRoute">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Delete"
+                                     Color="Color.Error"
+                                     Class="me-2" />
+                            <span>Supprimer</span>
+                        </div>
+                    </MudMenuItem>
+                    break;
+
+                case RouteStatus.Confirmed:
+                    @* Démarrer *@
+                    <MudMenuItem OnClick="StartRoute">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.PlayArrow"
+                                     Color="Color.Primary"
+                                     Class="me-2" />
+                            <span>Démarrer</span>
+                        </div>
+                    </MudMenuItem>
+
+                    @* Annuler *@
+                    <MudMenuItem OnClick="CancelRoute">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Cancel"
+                                     Color="Color.Error"
+                                     Class="me-2" />
+                            <span>Annuler</span>
+                        </div>
+                    </MudMenuItem>
+                    break;
+
+                case RouteStatus.InProgress:
+                    @* Terminer *@
+                    <MudMenuItem OnClick="CompleteRoute">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Done"
+                                     Color="Color.Success"
+                                     Class="me-2" />
+                            <span>Terminer</span>
+                        </div>
+                    </MudMenuItem>
+
+                    @* Annuler *@
+                    <MudMenuItem OnClick="CancelRoute">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Cancel"
+                                     Color="Color.Error"
+                                     Class="me-2" />
+                            <span>Annuler</span>
+                        </div>
+                    </MudMenuItem>
+                    break;
+
+                case RouteStatus.Completed:
+                case RouteStatus.Cancelled:
+                    @* Aucune action *@
+                    break;
+            }
+
+        </MudMenu>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public RouteViewDto? Route { get; set; }
+    [Parameter] public bool ShowStatusChip { get; set; } = true;
+    [Parameter] public EventCallback OnStatusChanged { get; set; }
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnView { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    private bool _processing = false;
+    private bool _downloading = false;
+
+    #region Download Route Sheet
+
+    private async Task DownloadRouteSheet()
+    {
+        if (Route == null) return;
+
+        _downloading = true;
+        StateHasChanged();
+
+        try
+        {
+            Snackbar.Add("Génération de la feuille de route en cours...", Severity.Info);
+
+            var (success, pdfBytes, errorMessage) = await RouteService.DownloadRouteSheetAsync(Route.Id);
+
+            if (!success || pdfBytes == null)
+            {
+                Snackbar.Add(errorMessage ?? "Erreur lors du téléchargement", Severity.Error);
+                return;
+            }
+
+            var fileName = $"Feuille-Route-{Route.Reference}-{DateTime.Now:yyyyMMdd-HHmmss}.pdf";
+
+            // ✅ INJECTION AUTOMATIQUE du script
+            await EnsureDownloadFunctionExists();
+
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, "application/pdf", pdfBytes);
+
+            Snackbar.Add($"Feuille de route {Route.Reference} téléchargée avec succès", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInformation($"❌ Error: {ex.Message}");
+            Snackbar.Add("Erreur lors du téléchargement", Severity.Error);
+        }
+        finally
+        {
+            _downloading = false;
+            StateHasChanged();
+        }
+    }
+
+// ✅ NOUVELLE MÉTHODE : Injecte le script si absent
+    private async Task EnsureDownloadFunctionExists()
+    {
+        var functionExists = await JSRuntime.InvokeAsync<bool>("eval",
+            "typeof window.downloadFileFromBytes !== 'undefined'");
+
+        if (!functionExists)
+        {
+            var script = @"
+            window.downloadFileFromBytes = (fileName, contentType, byteArray) => {
+                const blob = new Blob([new Uint8Array(byteArray)], { type: contentType });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            };
+        ";
+
+            await JSRuntime.InvokeVoidAsync("eval", script);
+        }
+    }
+
+    #endregion
+
+    #region Status Management
+
+    private async Task ConfirmRoute()
+    {
+        if (Route == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Confirmer la tournée",
+            new MarkupString($@"
+                <p>Êtes-vous sûr de vouloir <strong>confirmer</strong> la tournée <strong>{Route.Reference}</strong> ?</p>
+                <br/>
+                <p><strong>Effets de la confirmation :</strong></p>
+                <ul>
+                    <li>✅ Les {Route.TotalDeliveries} livraison(s) seront assignées définitivement</li>
+                    <li>✅ Le véhicule <strong>{Route.VehicleName}</strong> sera bloqué pour le {Route.Date:dd/MM/yyyy}</li>
+                    <li>✅ L'équipe sera notifiée</li>
+                    <li>✅ La tournée apparaîtra dans le planning chauffeur</li>
+                </ul>
+            "),
+            yesText: "Confirmer",
+            cancelText: "Annuler");
+
+        if (confirmed != true) return;
+
+        await ProcessStatusChange(
+            () => RouteService.ConfirmAsync(Route.Id),
+            $"Tournée {Route.Reference} confirmée avec succès",
+            "Erreur lors de la confirmation"
+        );
+    }
+
+    private async Task StartRoute()
+    {
+        if (Route == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Démarrer la tournée",
+            $"Confirmer le démarrage de la tournée {Route.Reference} ?",
+            yesText: "Démarrer",
+            cancelText: "Annuler");
+
+        if (confirmed != true) return;
+
+        await ProcessStatusChange(
+            () => RouteService.StartAsync(Route.Id),
+            $"Tournée {Route.Reference} démarrée avec succès",
+            "Erreur lors du démarrage"
+        );
+    }
+
+    private async Task CompleteRoute()
+    {
+        if (Route == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Terminer la tournée",
+            $"Confirmer la fin de la tournée {Route.Reference} ?",
+            yesText: "Terminer",
+            cancelText: "Annuler");
+
+        if (confirmed != true) return;
+
+        await ProcessStatusChange(
+            () => RouteService.CompleteAsync(Route.Id),
+            $"Tournée {Route.Reference} terminée avec succès",
+            "Erreur lors de la finalisation"
+        );
+    }
+
+    private async Task CancelRoute()
+    {
+        if (Route == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Annuler la tournée",
+            new MarkupString($@"
+                <p><strong>⚠️ Attention !</strong></p>
+                <p>Êtes-vous sûr de vouloir <strong>annuler</strong> la tournée <strong>{Route.Reference}</strong> ?</p>
+                <br/>
+                <p><strong>Conséquences :</strong></p>
+                <ul>
+                    <li>❌ Les {Route.TotalDeliveries} livraison(s) seront libérées</li>
+                    <li>❌ Le véhicule {Route.VehicleName} sera libéré</li>
+                    <li>❌ L'équipe sera notifiée</li>
+                </ul>
+            "),
+            yesText: "Confirmer l'annulation",
+            cancelText: "Retour");
+
+        if (confirmed != true) return;
+
+        await ProcessStatusChange(
+            () => RouteService.CancelAsync(Route.Id),
+            $"Tournée {Route.Reference} annulée avec succès",
+            "Erreur lors de l'annulation"
+        );
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private async Task ProcessStatusChange(
+        Func<Task<ResponseResult>> action,
+        string successMessage,
+        string errorMessage)
+    {
+        _processing = true;
+
+        try
+        {
+            var result = await action();
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add(successMessage, Severity.Success);
+                await OnStatusChanged.InvokeAsync();
+            }
+            else
+            {
+                var error = result.Errors.FirstOrDefault() ?? errorMessage;
+                Snackbar.Add(error, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInformation($"❌ Error: {ex.Message}");
+            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private Color GetStatusColor()
+    {
+        if (Route == null) return Color.Default;
+
+        return Route.Status switch
+        {
+            RouteStatus.Draft => Color.Default,
+            RouteStatus.Confirmed => Color.Info,
+            RouteStatus.InProgress => Color.Warning,
+            RouteStatus.Completed => Color.Success,
+            RouteStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusText()
+    {
+        if (Route == null) return string.Empty;
+
+        return Route.Status.Humanize();
+    }
+
+    #endregion
+
+    #region Navigation
+
+    private async Task EditRoute()
+    {
+        await OnEdit.InvokeAsync();
+    }
+
+    private async Task ViewRoute()
+    {
+        await OnView.InvokeAsync();
+    }
+
+    private async Task DeleteRoute()
+    {
+        if (Route == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Supprimer la tournée",
+            new MarkupString($@"
+                <p><strong>⚠️ Attention !</strong></p>
+                <p>Êtes-vous sûr de vouloir supprimer la tournée <strong>{Route.Reference}</strong> ?</p>
+                <br/>
+                <p>Cette action est <strong>irréversible</strong>.</p>
+            "),
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+
+        if (confirmed != true) return;
+
+        await OnDelete.InvokeAsync();
+    }
+
+    #endregion
+
+}

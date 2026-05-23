@@ -1,0 +1,512 @@
+@page "/register"
+@using System.Text.RegularExpressions
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@using DropFlow.WebApp.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<Register> Logger
+
+<PageTitle>Inscription - DropFlow</PageTitle>
+
+@if (!_isCheckingAuth)
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex align-center justify-center" Style="min-height: 100vh; padding: 20px 0;">
+        <MudPaper Elevation="4" Class="pa-8" Style="width: 100%; max-width: 650px; border-radius: 16px;">
+            <!-- Logo et titre -->
+            <div class="d-flex flex-column align-center mb-6">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping"
+                         Color="Color.Primary"
+                         Size="Size.Large"
+                         Style="font-size: 4rem;" />
+                <MudText Typo="Typo.h4" Class="mt-2" Style="font-weight: 600; background: linear-gradient(135deg, #1976d2 0%, #00bcd4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    Créer votre compte
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                    Commencez votre essai gratuit de 30 jours
+                </MudText>
+            </div>
+
+            <!-- Stepper MudBlazor 8.15 -->
+            <MudStepper @bind-ActiveIndex="_activeIndex"
+                        Color="Color.Primary"
+                        Variant="Variant.Filled"
+                        HeaderSize="Size.Large"
+                        Linear="true">
+
+                <ChildContent>
+                    <!-- Étape 1: Informations entreprise -->
+                    <MudStep Title="Entreprise" Icon="@Icons.Material.Filled.Business">
+                        <MudText Typo="Typo.h6" Class="mb-4">Informations de votre entreprise</MudText>
+
+                        <MudTextField @bind-Value="registerRequest.CompanyName"
+                                      Label="Nom de l'entreprise"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Le nom de l'entreprise est requis"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Business"
+                                      HelperText="Ex: LogiPro, TransExpress..."
+                                      Error="@(!string.IsNullOrEmpty(_step1Error))"
+                                      ErrorText="@_step1Error"
+                                      Class="mb-4" />
+
+                        @if (!string.IsNullOrEmpty(_step1Error))
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@_step1Error</MudAlert>
+                        }
+                    </MudStep>
+
+                    <!-- Étape 2: Informations Manager -->
+                    <MudStep Title="Manager" Icon="@Icons.Material.Filled.Person">
+                        <MudText Typo="Typo.h6" Class="mb-4">Vos informations</MudText>
+
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="registerRequest.FirstName"
+                                              Label="Prénom"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="Le prénom est requis"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Person"
+                                              Class="mb-4" />
+                            </MudItem>
+
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="registerRequest.LastName"
+                                              Label="Nom"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="Le nom est requis"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Person"
+                                              Class="mb-4" />
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudTextField @bind-Value="registerRequest.Email"
+                                      Label="Email professionnel"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Email"
+                                      Required="true"
+                                      RequiredError="L'email est requis"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Email"
+                                      HelperText="Vous utiliserez cet email pour vous connecter"
+                                      Error="@(!string.IsNullOrEmpty(_step2Error))"
+                                      ErrorText="@_step2Error"
+                                      Class="mb-4" />
+
+                        @if (!string.IsNullOrEmpty(_step2Error))
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@_step2Error</MudAlert>
+                        }
+                    </MudStep>
+
+                    <!-- Étape 3: Mot de passe -->
+                    <MudStep Title="Sécurité" Icon="@Icons.Material.Filled.Lock">
+                        <MudText Typo="Typo.h6" Class="mb-4">Sécurisez votre compte</MudText>
+
+                        <MudTextField @bind-Value="registerRequest.Password"
+                                      Label="Mot de passe"
+                                      Variant="Variant.Outlined"
+                                      InputType="@_passwordInputType"
+                                      Required="true"
+                                      RequiredError="Le mot de passe est requis"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@_passwordIcon"
+                                      OnAdornmentClick="TogglePasswordVisibility"
+                                      HelperText="Min. 8 caractères, 1 majuscule, 1 chiffre, 1 symbole"
+                                      Error="@(!string.IsNullOrEmpty(ValidatePassword(registerRequest.Password)))"
+                                      ErrorText="@ValidatePassword(registerRequest.Password)"
+                                      Class="mb-4" />
+
+                        <MudTextField @bind-Value="registerRequest.ConfirmPassword"
+                                      Label="Confirmer le mot de passe"
+                                      Variant="Variant.Outlined"
+                                      InputType="@_confirmPasswordInputType"
+                                      Required="true"
+                                      RequiredError="La confirmation est requise"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@_confirmPasswordIcon"
+                                      OnAdornmentClick="ToggleConfirmPasswordVisibility"
+                                      Error="@(!string.IsNullOrEmpty(ValidateConfirmPassword(registerRequest.ConfirmPassword)))"
+                                      ErrorText="@ValidateConfirmPassword(registerRequest.ConfirmPassword)"
+                                      Class="mb-4" />
+
+                        @if (!string.IsNullOrWhiteSpace(registerRequest.Password))
+                        {
+                            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="background-color: #f5f5f5; border-radius: 8px;">
+                                <MudText Typo="Typo.body2" Class="mb-2">Force du mot de passe:</MudText>
+                                <MudProgressLinear Color="@GetPasswordStrengthColor()"
+                                                   Value="@GetPasswordStrength()"
+                                                   Size="Size.Medium"
+                                                   Rounded="true" />
+                                <MudText Typo="Typo.caption" Class="mt-1">@GetPasswordStrengthText()</MudText>
+                            </MudPaper>
+                        }
+
+                        @if (!string.IsNullOrEmpty(_step3Error))
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@_step3Error</MudAlert>
+                        }
+                    </MudStep>
+                </ChildContent>
+
+                <ActionContent Context="stepper">
+                    <MudButton Variant="Variant.Text"
+                               OnClick="@(() => stepper.PreviousStepAsync())"
+                               Disabled="@(_activeIndex <= 0 || _isLoading)">
+                        Précédent
+                    </MudButton>
+
+                    <MudSpacer />
+
+                    @if (_activeIndex < 2)
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => NextStepAsync(stepper))"
+                                   Disabled="@(!IsCurrentStepValid())">
+                            Suivant
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="HandleRegister"
+                                   Disabled="@(!IsStep3Valid() || _isLoading)">
+                            @if (_isLoading)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                <span>Inscription en cours...</span>
+                            }
+                            else
+                            {
+                                <span>Créer mon compte</span>
+                            }
+                        </MudButton>
+                    }
+                </ActionContent>
+
+            </MudStepper>
+
+            <MudDivider Class="my-6" />
+
+            <div class="d-flex justify-center">
+                <MudText Typo="Typo.body2" Class="mr-1">Vous avez déjà un compte ?</MudText>
+                <MudLink Href="/login" Typo="Typo.body2" Style="font-weight: 600;">
+                    Se connecter
+                </MudLink>
+            </div>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <!-- Spinner pendant la vérification -->
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    </div>
+}
+
+@code {
+    private bool _isCheckingAuth = true;
+    private int _activeIndex = 0;
+    private RegisterRequest registerRequest = new();
+    private bool _isLoading = false;
+    private string _step1Error = string.Empty;
+    private string _step2Error = string.Empty;
+    private string _step3Error = string.Empty;
+
+    private bool _isPasswordVisible = false;
+    private bool _isConfirmPasswordVisible = false;
+
+    private InputType _passwordInputType => _isPasswordVisible ? InputType.Text : InputType.Password;
+    private string _passwordIcon => _isPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private InputType _confirmPasswordInputType => _isConfirmPasswordVisible ? InputType.Text : InputType.Password;
+    private string _confirmPasswordIcon => _isConfirmPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private void TogglePasswordVisibility() => _isPasswordVisible = !_isPasswordVisible;
+    private void ToggleConfirmPasswordVisibility() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Vérifier si l'utilisateur est déjà connecté
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                // Rediriger vers le dashboard selon le rôle
+                var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                           ?? user.FindFirst("role")?.Value;
+
+                var redirectUrl = role switch
+                {
+                    "Admin" => "/admin/dashboard",
+                    "Manager" => "/dashboard",
+                    "Livreur" => "/personal-deliveries",
+                    _ => "/dashboard"
+                };
+
+                Snackbar.Add("Vous êtes déjà connecté", Severity.Info);
+                Navigation.NavigateTo(redirectUrl, true);
+                return;
+            }
+
+            _isCheckingAuth = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInformation($"Erreur vérification auth: {ex.Message}");
+            _isCheckingAuth = false;
+        }
+    }
+
+    private async Task NextStepAsync(MudStepper stepper)
+    {
+        if (!ValidateCurrentStep())
+        {
+            Snackbar.Add("Veuillez corriger les erreurs avant de continuer", Severity.Warning);
+            return;
+        }
+
+        await stepper.NextStepAsync();
+    }
+
+    private bool ValidateCurrentStep()
+    {
+        return _activeIndex switch
+        {
+            0 => ValidateStep1(),
+            1 => ValidateStep2(),
+            2 => ValidateStep3(),
+            _ => false
+        };
+    }
+
+    private bool IsCurrentStepValid()
+    {
+        return _activeIndex switch
+        {
+            0 => IsStep1Valid(),
+            1 => IsStep2Valid(),
+            2 => IsStep3Valid(),
+            _ => false
+        };
+    }
+
+    #region Step Validations
+
+    private bool ValidateStep1()
+    {
+        _step1Error = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(registerRequest.CompanyName))
+        {
+            _step1Error = "Le nom de l'entreprise est requis";
+            return false;
+        }
+
+        if (registerRequest.CompanyName.Length < 2)
+        {
+            _step1Error = "Le nom doit contenir au moins 2 caractères";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ValidateStep2()
+    {
+        _step2Error = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(registerRequest.FirstName))
+        {
+            _step2Error = "Le prénom est requis";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerRequest.LastName))
+        {
+            _step2Error = "Le nom est requis";
+            return false;
+        }
+
+        var emailValidation = ValidateEmail(registerRequest.Email);
+        if (!string.IsNullOrEmpty(emailValidation))
+        {
+            _step2Error = emailValidation;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ValidateStep3()
+    {
+        _step3Error = string.Empty;
+
+        var passwordValidation = ValidatePassword(registerRequest.Password);
+        if (!string.IsNullOrEmpty(passwordValidation))
+        {
+            _step3Error = passwordValidation;
+            return false;
+        }
+
+        var confirmValidation = ValidateConfirmPassword(registerRequest.ConfirmPassword);
+        if (!string.IsNullOrEmpty(confirmValidation))
+        {
+            _step3Error = confirmValidation;
+            return false;
+        }
+
+        return true;
+    }
+
+    #endregion
+
+    #region Field Validations
+
+    private bool IsStep1Valid() =>
+        !string.IsNullOrWhiteSpace(registerRequest.CompanyName) &&
+        registerRequest.CompanyName.Length >= 2;
+
+    private bool IsStep2Valid() =>
+        !string.IsNullOrWhiteSpace(registerRequest.FirstName) &&
+        !string.IsNullOrWhiteSpace(registerRequest.LastName) &&
+        string.IsNullOrEmpty(ValidateEmail(registerRequest.Email));
+
+    private bool IsStep3Valid() =>
+        string.IsNullOrEmpty(ValidatePassword(registerRequest.Password)) &&
+        string.IsNullOrEmpty(ValidateConfirmPassword(registerRequest.ConfirmPassword));
+
+    private string ValidateEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return "L'email est requis";
+
+        var emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+        if (!Regex.IsMatch(email, emailPattern))
+            return "Format d'email invalide";
+
+        return string.Empty;
+    }
+
+    private string ValidatePassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+            return "Le mot de passe est requis";
+        if (password.Length < 8)
+            return "Minimum 8 caractères";
+        if (!Regex.IsMatch(password, @"[A-Z]"))
+            return "Doit contenir au moins 1 majuscule";
+        if (!Regex.IsMatch(password, @"[0-9]"))
+            return "Doit contenir au moins 1 chiffre";
+        if (!Regex.IsMatch(password, @"[!@#$%^&*(),.?""':{}|<>]"))
+            return "Doit contenir au moins 1 symbole (!@#$%...)";
+        return string.Empty;
+    }
+
+    private string ValidateConfirmPassword(string confirmPassword)
+    {
+        if (string.IsNullOrWhiteSpace(confirmPassword))
+            return "La confirmation est requise";
+        if (confirmPassword != registerRequest.Password)
+            return "Les mots de passe ne correspondent pas";
+        return string.Empty;
+    }
+
+    #endregion
+
+    #region Password Strength
+
+    private int GetPasswordStrength()
+    {
+        var password = registerRequest.Password;
+        if (string.IsNullOrWhiteSpace(password)) return 0;
+
+        var strength = 0;
+        if (password.Length >= 8) strength += 25;
+        if (Regex.IsMatch(password, @"[a-z]") && Regex.IsMatch(password, @"[A-Z]"))
+            strength += 25;
+        if (Regex.IsMatch(password, @"[0-9]"))
+            strength += 25;
+        if (Regex.IsMatch(password, @"[!@#$%^&*(),.?""':{}|<>]"))
+            strength += 25;
+
+        return strength;
+    }
+
+    private Color GetPasswordStrengthColor()
+    {
+        var strength = GetPasswordStrength();
+        if (strength < 50) return Color.Error;
+        if (strength < 75) return Color.Warning;
+        return Color.Success;
+    }
+
+    private string GetPasswordStrengthText()
+    {
+        var strength = GetPasswordStrength();
+        if (strength < 50) return "Faible";
+        if (strength < 75) return "Moyen";
+        return "Fort";
+    }
+
+    #endregion
+
+    private async Task HandleRegister()
+    {
+        if (!ValidateStep3())
+        {
+            return;
+        }
+
+        _isLoading = true;
+        _step3Error = string.Empty;
+
+        try
+        {
+            var response = await AuthService.RegisterAsync(registerRequest);
+
+            if (response.Success && response.User != null)
+            {
+                Snackbar.Add($"Compte créé avec succès ! Bienvenue {response.User.FullName}", Severity.Success);
+
+                var redirectUrl = response.User.Role switch
+                {
+                    "Admin" => "/admin/dashboard",
+                    "Manager" => "/dashboard",
+                    "Livreur" => "/personal-deliveries",
+                    _ => "/dashboard"
+                };
+
+                Navigation.NavigateTo(redirectUrl, true);
+            }
+            else
+            {
+                _step3Error = response.Message ?? "Échec de l'inscription.";
+                Snackbar.Add(_step3Error, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _step3Error = $"Une erreur s'est produite : {ex.Message}";
+            Snackbar.Add(_step3Error, Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

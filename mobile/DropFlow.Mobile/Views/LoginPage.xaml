@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DropFlow.Mobile.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DropFlow.Mobile.ViewModels"
+    x:DataType="vm:LoginViewModel"
+    BackgroundColor="{StaticResource PageBackground}">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="32"
+            Spacing="16"
+            VerticalOptions="Center">
+
+            <!-- Offline banner -->
+            <Frame Style="{StaticResource OfflineBanner}" IsVisible="{Binding IsOffline}">
+                <Label Text="Pas de connexion Internet" TextColor="White" FontAttributes="Bold" HorizontalOptions="Center" />
+            </Frame>
+
+            <!-- Logo -->
+            <VerticalStackLayout Spacing="8" Margin="0,32,0,32">
+                <Path Data="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"
+                      Fill="{StaticResource Primary}" WidthRequest="64" HeightRequest="64" Aspect="Uniform"
+                      HorizontalOptions="Center" />
+                <Label Text="DropFlow" FontSize="36" FontAttributes="Bold"
+                       TextColor="{StaticResource Primary}" HorizontalOptions="Center" />
+                <Label Text="Espace Livreur" FontSize="18" TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <!-- Email -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Email" Style="{StaticResource CaptionText}" />
+                <Entry
+                    Text="{Binding Email}"
+                    Placeholder="votre@email.com"
+                    Keyboard="Email"
+                    Style="{StaticResource FormEntry}" />
+            </VerticalStackLayout>
+
+            <!-- Password -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Mot de passe" Style="{StaticResource CaptionText}" />
+                <Grid ColumnDefinitions="*,56">
+                    <Entry
+                        Grid.Column="0"
+                        Text="{Binding Password}"
+                        Placeholder="••••••••"
+                        IsPassword="{Binding IsPasswordVisible, Converter={StaticResource InvertBool}}"
+                        Style="{StaticResource FormEntry}" />
+                    <Button
+                        Grid.Column="1"
+                        Text="{Binding IsPasswordVisible, Converter={StaticResource EyeIcon}}"
+                        Command="{Binding TogglePasswordVisibilityCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource TextSecondary}"
+                        FontSize="22"
+                        Padding="0" />
+                </Grid>
+            </VerticalStackLayout>
+
+            <!-- Remember Me -->
+            <HorizontalStackLayout Spacing="10" Margin="0,4,0,0">
+                <CheckBox IsChecked="{Binding RememberMe}" Color="{StaticResource Primary}" />
+                <Label Text="Se souvenir de moi (30 jours)"
+                       FontSize="15" TextColor="{StaticResource TextSecondary}"
+                       VerticalOptions="Center">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ToggleRememberMeCommand}" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </HorizontalStackLayout>
+
+            <!-- Error -->
+            <Label
+                Text="{Binding ErrorMessage}"
+                TextColor="{StaticResource Error}"
+                FontSize="14"
+                IsVisible="{Binding HasError}"
+                HorizontalTextAlignment="Center" />
+
+            <!-- Submit -->
+            <Button
+                Text="Se connecter"
+                Command="{Binding LoginCommand}"
+                Style="{StaticResource PrimaryButton}"
+                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}"
+                Margin="0,16,0,0" />
+
+            <ActivityIndicator
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource Primary}"
+                HorizontalOptions="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

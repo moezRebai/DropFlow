@@ -3,8 +3,8 @@
   "WorkspaceRootPath": "C:\\Solutions\\DropFlow\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{8DE6F92B-0BAC-458A-B635-311065417376}|src\\DropFlow.Client\\DropFlow.Client.csproj|c:\\solutions\\dropflow\\src\\dropflow.client\\dropflow.client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{8DE6F92B-0BAC-458A-B635-311065417376}|src\\DropFlow.Client\\DropFlow.Client.csproj|solutionrelative:src\\dropflow.client\\dropflow.client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Solutions\\DropFlow\\src\\DropFlow.Client\\DropFlow.Client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\DropFlow.Client\\DropFlow.Client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     }
   ],
   "DocumentGroupContainers": [
@@ -23,15 +23,13 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "DropFlow.Client",
+              "Title": "DropFlow.Client.csproj",
               "DocumentMoniker": "C:\\Solutions\\DropFlow\\src\\DropFlow.Client\\DropFlow.Client.csproj",
               "RelativeDocumentMoniker": "src\\DropFlow.Client\\DropFlow.Client.csproj",
               "ToolTip": "C:\\Solutions\\DropFlow\\src\\DropFlow.Client\\DropFlow.Client.csproj",
               "RelativeToolTip": "src\\DropFlow.Client\\DropFlow.Client.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-12-23T15:19:08.955Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-23T15:19:08.955Z"
             }
           ]
         }

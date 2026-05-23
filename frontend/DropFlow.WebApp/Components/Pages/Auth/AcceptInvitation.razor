@@ -1,0 +1,366 @@
+@page "/accept-invitation"
+@using DropFlow.Shared.Auth
+@using DropFlow.WebApp.Interfaces
+@using Microsoft.AspNetCore.WebUtilities
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject ILogger<AcceptInvitation> Logger
+
+<PageTitle>Accepter l'invitation - DropFlow</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="min-height: 100vh;">
+    <MudPaper Elevation="4" Class="pa-8" Style="width: 100%; max-width: 500px; border-radius: 16px;">
+        
+        @if (!_invitationAccepted)
+        {
+            <!-- Formulaire d'acceptation -->
+            <div>
+                <!-- Logo et titre -->
+                <div class="d-flex flex-column align-center mb-6">
+                    <MudIcon Icon="@Icons.Material.Filled.PersonAdd" 
+                             Color="Color.Primary" 
+                             Size="Size.Large" 
+                             Style="font-size: 4rem;" />
+                    <MudText Typo="Typo.h5" Class="mt-2" Style="font-weight: 600;">
+                        Bienvenue sur DropFlow !
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1 text-center">
+                        Complétez votre profil pour activer votre compte
+                    </MudText>
+                </div>
+
+                @if (!_isValidToken)
+                {
+                    <!-- Token invalide ou manquant -->
+                    <MudAlert Severity="Severity.Error" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            ⚠️ Le lien d'invitation est invalide ou a expiré.
+                        </MudText>
+                    </MudAlert>
+                    
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4 text-center">
+                        Veuillez contacter votre administrateur pour recevoir une nouvelle invitation.
+                    </MudText>
+                    
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               FullWidth="true"
+                               Href="/login"
+                               StartIcon="@Icons.Material.Filled.Login">
+                        Retour à la connexion
+                    </MudButton>
+                }
+                else
+                {
+                    <!-- Formulaire -->
+                    <MudForm @ref="_form" Model="@_model">
+                        
+                        <!-- Email (readonly, pré-rempli) -->
+                        <MudTextField @bind-Value="_acceptInvitationDto.Email"
+                                      Label="Email"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Email"
+                                      Class="mb-4" />
+
+                        <!-- Prénom -->
+                        <MudTextField @bind-Value="_model.FirstName"
+                                      Label="Prénom"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Le prénom est requis"
+                                      Immediate="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      Class="mb-4" />
+
+                        <!-- Nom -->
+                        <MudTextField @bind-Value="_model.LastName"
+                                      Label="Nom"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Le nom est requis"
+                                      Immediate="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      Class="mb-4" />
+
+                        <!-- Mot de passe -->
+                        <MudTextField @bind-Value="_model.Password"
+                                      Label="Mot de passe"
+                                      Variant="Variant.Outlined"
+                                      InputType="@PasswordInputType"
+                                      Required="true"
+                                      RequiredError="Le mot de passe est requis"
+                                      Validation="@(new Func<string, IEnumerable<string>>(ValidatePassword))"
+                                      Immediate="true"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@PasswordIcon"
+                                      OnAdornmentClick="TogglePasswordVisibility"
+                                      Class="mb-4" />
+
+                        <!-- Confirmation mot de passe -->
+                        <MudTextField @bind-Value="_model.ConfirmPassword"
+                                      Label="Confirmer le mot de passe"
+                                      Variant="Variant.Outlined"
+                                      InputType="@ConfirmPasswordInputType"
+                                      Required="true"
+                                      RequiredError="La confirmation est requise"
+                                      Validation="@(new Func<string, IEnumerable<string>>(ValidateConfirmPassword))"
+                                      Immediate="true"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@ConfirmPasswordIcon"
+                                      OnAdornmentClick="ToggleConfirmPasswordVisibility"
+                                      Class="mb-4" />
+
+                        <!-- Conseils mot de passe -->
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                            <MudText Typo="Typo.caption">
+                                <strong>Votre mot de passe doit contenir :</strong><br/>
+                                • Au moins 8 caractères<br/>
+                                • Une majuscule et une minuscule<br/>
+                                • Un chiffre<br/>
+                                • Un caractère spécial (!#$%^&*)
+                            </MudText>
+                        </MudAlert>
+
+                        <!-- Message d'erreur -->
+                        @if (!string.IsNullOrEmpty(_errorMessage))
+                        {
+                            <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="() => _errorMessage = string.Empty">
+                                @_errorMessage
+                            </MudAlert>
+                        }
+
+                        <!-- Bouton accepter -->
+                        <MudButton OnClick="HandleAcceptInvitation"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   FullWidth="true"
+                                   Size="Size.Large"
+                                   Disabled="@_isLoading"
+                                   Style="border-radius: 8px; text-transform: none; font-weight: 600; height: 48px;">
+                            @if (_isLoading)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                <span>Activation en cours...</span>
+                            }
+                            else
+                            {
+                                <span>Activer mon compte</span>
+                            }
+                        </MudButton>
+                    </MudForm>
+                }
+
+                <!-- Divider -->
+                <MudDivider Class="my-4" />
+
+                <!-- Lien connexion -->
+                <div class="d-flex justify-center">
+                    <MudText Typo="Typo.body2" Class="mr-1">Vous avez déjà un compte ?</MudText>
+                    <MudLink Href="/login" Typo="Typo.body2" Style="font-weight: 600;">
+                        Se connecter
+                    </MudLink>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Confirmation d'acceptation -->
+            <div class="d-flex flex-column align-center text-center">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" 
+                         Color="Color.Success" 
+                         Size="Size.Large" 
+                         Style="font-size: 5rem;" 
+                         Class="mb-4" />
+                
+                <MudText Typo="Typo.h5" Style="font-weight: 600;" Class="mb-2">
+                    Compte activé avec succès !
+                </MudText>
+                
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+                    Bienvenue <strong>@_acceptInvitationDto.FirstName @_acceptInvitationDto.LastName</strong> !<br/>
+                    Votre compte a été créé et vous êtes maintenant connecté.
+                </MudText>
+
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-4">
+                    <MudText Typo="Typo.body2">
+                        ✨ Vous allez être redirigé vers votre tableau de bord...
+                    </MudText>
+                </MudAlert>
+
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary"
+                           Size="Size.Large"
+                           OnClick="RedirectToDashboard"
+                           StartIcon="@Icons.Material.Filled.Dashboard"
+                           Style="border-radius: 8px; text-transform: none; font-weight: 600;">
+                    Accéder au tableau de bord
+                </MudButton>
+            </div>
+        }
+        
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private MudForm _form = null!;
+    private readonly AcceptInvitationDto _acceptInvitationDto = new();
+    private readonly InvitationModel _model = new();
+    private bool _isLoading;
+    private bool _invitationAccepted;
+    private bool _isValidToken;
+    private string _errorMessage = string.Empty;
+    private string _userRole = string.Empty;
+    
+    private bool _isPasswordVisible;
+    private bool _isConfirmPasswordVisible;
+
+    private InputType PasswordInputType => _isPasswordVisible ? InputType.Text : InputType.Password;
+    private string PasswordIcon => _isPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private InputType ConfirmPasswordInputType => _isConfirmPasswordVisible ? InputType.Text : InputType.Password;
+    private string ConfirmPasswordIcon => _isConfirmPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    // Classe modèle pour le formulaire avec validation
+    private class InvitationModel
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    protected override void OnInitialized()
+    {
+        var uri = new Uri(Navigation.Uri);
+        var queryParams = QueryHelpers.ParseQuery(uri.Query);
+
+        if (queryParams.TryGetValue("email", out var email) && 
+            queryParams.TryGetValue("token", out var token))
+        {
+            _acceptInvitationDto.Token = token.ToString();
+            _acceptInvitationDto.Email = email.ToString();
+            _isValidToken = true;
+        }
+        else
+        {
+            _isValidToken = false;
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        _isPasswordVisible = !_isPasswordVisible;
+    }
+
+    private void ToggleConfirmPasswordVisibility()
+    {
+        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+    }
+
+    private IEnumerable<string> ValidatePassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            yield return "Le mot de passe est requis";
+            yield break;
+        }
+
+        if (password.Length < 8)
+            yield return "Au moins 8 caractères requis";
+
+        if (!password.Any(char.IsUpper))
+            yield return "Au moins une majuscule requise";
+
+        if (!password.Any(char.IsLower))
+            yield return "Au moins une minuscule requise";
+
+        if (!password.Any(char.IsDigit))
+            yield return "Au moins un chiffre requis";
+
+        if (!password.Any(c => "!@#$%^&*()_+-=[]{}|;:,.<>?".Contains(c)))
+            yield return "Au moins un caractère spécial requis";
+    }
+
+    private IEnumerable<string> ValidateConfirmPassword(string confirmPassword)
+    {
+        if (string.IsNullOrWhiteSpace(confirmPassword))
+        {
+            yield return "La confirmation est requise";
+            yield break;
+        }
+
+        if (confirmPassword != _model.Password)
+            yield return "Les mots de passe ne correspondent pas";
+    }
+
+    private async Task HandleAcceptInvitation()
+    {
+        await _form.Validate();
+
+        if (!_form.IsValid)
+        {
+            Snackbar.Add("Veuillez corriger les erreurs de validation", Severity.Warning);
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = string.Empty;
+
+        try
+        {
+            _acceptInvitationDto.FirstName = _model.FirstName.Trim();
+            _acceptInvitationDto.LastName = _model.LastName.Trim();
+            _acceptInvitationDto.Password = _model.Password;
+            _acceptInvitationDto.ConfirmPassword = _model.ConfirmPassword;
+
+            var response = await AuthService.AcceptInvitationAsync(_acceptInvitationDto);
+
+            if (response.Success)
+            {
+                _invitationAccepted = true;
+                _userRole = response.User?.Role ?? "Manager";
+                
+                Snackbar.Add($"Bienvenue {_acceptInvitationDto.FirstName} !", Severity.Success);
+                
+                // Redirection automatique après 2 secondes
+                await Task.Delay(2000);
+                RedirectToDashboard();
+            }
+            else
+            {
+                _errorMessage = response?.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Une erreur s'est produite : {ex.Message}";
+            Logger.LogInformation($"Erreur accept invitation: {ex}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void RedirectToDashboard()
+    {
+        // Redirection selon le rôle
+        if (_userRole == "Manager")
+        {
+            Navigation.NavigateTo("/dashboard", forceLoad: true);
+        }
+        else if (_userRole == "Livreur")
+        {
+            Navigation.NavigateTo("/deliveries", forceLoad: true);
+        }
+        else
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+}

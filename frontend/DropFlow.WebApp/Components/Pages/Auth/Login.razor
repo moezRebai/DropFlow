@@ -1,0 +1,310 @@
+@page "/login"
+@using DropFlow.Shared.Auth
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ProtectedSessionStorage ProtectedSessionStorage
+@inject ISnackbar Snackbar
+@inject ILogger<Login> Logger
+<style>
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+<PageTitle>Connexion - DropFlow</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="min-height: 100vh;">
+    <MudPaper Elevation="4" Class="pa-8" Style="width: 100%; max-width: 450px; border-radius: 16px;">
+        <!-- Logo et titre -->
+        <div class="d-flex flex-column align-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.LocalShipping"
+                     Color="Color.Primary"
+                     Size="Size.Large"
+                     Style="font-size: 4rem;" />
+            <MudText Typo="Typo.h4" Class="mt-2" Style="font-weight: 600; background: linear-gradient(135deg, #1976d2 0%, #00bcd4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                DropFlow
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                Connectez-vous à votre compte
+            </MudText>
+        </div>
+
+        <!-- Formulaire de connexion -->
+        <EditForm Model="@_loginRequest" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <!-- Email -->
+            <MudTextField @bind-Value="_loginRequest.Email"
+                          Label="Email"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Email"
+                          Required="true"
+                          RequiredError="L'email est requis"
+                          Validation="@(new Func<string, string>(ValidateEmail))"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Email"
+                          OnBlur="OnEmailBlur"
+                          Disabled="@_isLoading"
+                          Class="mb-4" />
+
+            @* ? Loading Indicator (pendant chargement tenants) *@
+            @if (_loadingTenants)
+            {
+                <div class="d-flex align-center mb-4">
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Vérification du compte...
+                    </MudText>
+                </div>
+            }
+
+            @* ? Dropdown Tenant (visible si 2+ tenants) *@
+            @if (_tenantsLoaded && _tenants.Count > 1)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                    <MudText Typo="Typo.body2">
+                        Vous avez plusieurs comptes. Sélectionnez l'entreprise à laquelle vous souhaitez vous connecter.
+                    </MudText>
+                </MudAlert>
+                
+                <div style="animation: slideDown 0.3s ease-out;">
+                    <MudSelect T="int" @bind-Value="_loginRequest.TenantId"
+                               Label="Entreprise"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Business"
+                               Disabled="@_isLoading"
+                               Class="mb-4">
+                        @foreach (var tenant in _tenants)
+                        {
+                            <MudSelectItem T="int" Value="@tenant.TenantId">
+                                <div class="d-flex flex-column">
+                                    <MudText Typo="Typo.body1">@tenant.TenantName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@tenant.Role</MudText>
+                                </div>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+            }
+
+            <!-- Password -->
+            <MudTextField @bind-Value="_loginRequest.Password"
+                          Label="Mot de passe"
+                          Variant="Variant.Outlined"
+                          InputType="@PasswordInputType"
+                          Required="true"
+                          RequiredError="Le mot de passe est requis"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@PasswordIcon"
+                          OnAdornmentClick="TogglePasswordVisibility"
+                          AdornmentAriaLabel="Afficher le mot de passe"
+                          Disabled="@_isLoading"
+                          Class="mb-4" />
+
+            <div class="d-flex justify-end mb-4">
+                <MudLink Href="/forgot-password"
+                         Typo="Typo.body2"
+                         Style="font-weight: 500; color: var(--mud-palette-primary); text-decoration: none;">
+                    Mot de passe oublié ?
+                </MudLink>
+            </div>
+
+            <!-- Message d'erreur -->
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="() => _errorMessage = string.Empty">
+                    @_errorMessage
+                </MudAlert>
+            }
+
+            <!-- Bouton de connexion -->
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       Disabled="@(_isLoading || _loadingTenants)"
+                       Class="mb-4"
+                       Style="border-radius: 8px; text-transform: none; font-weight: 600; height: 48px;">
+                @if (_isLoading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Connexion en cours...</span>
+                }
+                else
+                {
+                    <span>Se connecter</span>
+                }
+            </MudButton>
+        </EditForm>
+
+        <!-- Divider -->
+        <MudDivider Class="my-4" />
+
+        <!-- Lien inscription -->
+        <div class="d-flex justify-center">
+            <MudText Typo="Typo.body2" Class="mr-1">Pas encore de compte ?</MudText>
+            <MudLink Href="/register" Typo="Typo.body2" Style="font-weight: 600;">
+                Créer un compte
+            </MudLink>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private readonly LoginRequest _loginRequest = new();
+    private bool _isLoading;
+    private string _errorMessage = string.Empty;
+    private bool _isPasswordVisible;
+
+    private bool _loadingTenants;
+    private bool _tenantsLoaded;
+    private List<UserTenantInfoDto> _tenants = new();
+
+    private InputType PasswordInputType => _isPasswordVisible ? InputType.Text : InputType.Password;
+    private string PasswordIcon => _isPasswordVisible ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility;
+
+    private void TogglePasswordVisibility()
+    {
+        _isPasswordVisible = !_isPasswordVisible;
+    }
+
+    private static string ValidateEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return "L'email est requis";
+
+        return !email.Contains("@") ? "Format d'email invalide" : string.Empty;
+    }
+
+    /// <summary>
+    /// ? APPROCHE 3 : Charger tenants quand user quitte le champ email
+    /// </summary>
+    private async Task OnEmailBlur(FocusEventArgs args)
+    {
+        // Validation email
+        if (string.IsNullOrWhiteSpace(_loginRequest.Email) || !IsValidEmail(_loginRequest.Email))
+            return;
+
+        // Déjà chargé ?
+        // if (_tenantsLoaded)
+        //     return;
+
+        _loadingTenants = true;
+        _errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            _tenants = await AuthService.GetUserTenantsAsync(_loginRequest.Email);
+            _tenantsLoaded = true;
+
+            // Si 1 seul tenant ? Auto-select (silencieux)
+            if (_tenants.Count == 1)
+            {
+                _loginRequest.TenantId = _tenants[0].TenantId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInformation($"Erreur chargement tenants: {ex.Message}");
+        }
+        finally
+        {
+            _loadingTenants = false;
+            StateHasChanged();
+        }
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _errorMessage = string.Empty;
+
+        try
+        {
+            // ? Si pas encore chargé tenants, le faire maintenant
+            if (!_tenantsLoaded)
+            {
+                await OnEmailBlur(new FocusEventArgs());
+            }
+
+            // ? Validation : Aucun tenant trouvé
+            if (_tenants.Count == 0)
+            {
+                _errorMessage = "Email ou mot de passe incorrect";
+                return;
+            }
+
+            // ? Validation : Multiple tenants mais aucun sélectionné
+            if (_tenants.Count > 1 && _loginRequest.TenantId == 0)
+            {
+                _errorMessage = "Veuillez sélectionner votre entreprise";
+                return;
+            }
+
+            // ? Appel login avec TenantId
+            var response = await AuthService.LoginAsync(_loginRequest);
+
+            if (response is { Success: true, User: not null })
+            {
+                Snackbar.Add($"Bienvenue {response.User.FullName} !", Severity.Success);
+
+                // Redirection selon le rôle
+                if (response.User.TenantId == 0) // Admin
+                {
+                    Navigation.NavigateTo("/admin/dashboard", forceLoad: true);
+                }
+                else if (response.User.Role == "Manager")
+                {
+                    Navigation.NavigateTo("/dashboard", forceLoad: true);
+                }
+                else if (response.User.Role == "Livreur")
+                {
+                    Navigation.NavigateTo("/personal-deliveries", forceLoad: true);
+                }
+                else
+                {
+                    Navigation.NavigateTo("/", forceLoad: true);
+                }
+            }
+            else
+            {
+                _errorMessage = response.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Une erreur s'est produite : {ex.Message}";
+            Logger.LogInformation($"Erreur login: {ex}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

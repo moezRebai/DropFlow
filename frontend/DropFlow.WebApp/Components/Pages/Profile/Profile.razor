@@ -1,0 +1,195 @@
+@page "/profile"
+@using DropFlow.Shared.Profil
+@using DropFlow.WebApp.Interfaces
+@using DropFlow.WebApp.Models.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IProfileService ProfileService
+@inject ISnackbar Snackbar
+@inject ILogger<Profile> Logger
+
+<PageTitle>Mon Profil - DropFlow</PageTitle>
+
+<AuthorizeView Roles="@Roles.All">
+    <Authorized>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 mb-8">
+
+            @if (_isLoading)
+            {
+                <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="mb-4"/>
+            }
+            else if (_profile == null)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">
+                    Impossible de charger les informations du profil
+                </MudAlert>
+            }
+            else
+            {
+                <!-- Header Profile -->
+                <MudPaper Elevation="2" Class="pa-6 mb-4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+                        <!-- Avatar avec initiales -->
+                        <MudAvatar Size="Size.Large"
+                                   Color="Color.Info"
+                                   Style="width: 100px; height: 100px; font-size: 2.5rem; font-weight: 600;">
+                            @GetUserInitials()
+                        </MudAvatar>
+
+                        <!-- Infos user -->
+                        <MudStack Spacing="1" Style="flex: 1;">
+                            <MudText Typo="Typo.h4" Style="font-weight: 600; color: #0f172a;">
+                                @_profile.FullName
+                            </MudText>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="string"
+                                         Color="@GetRoleColor()"
+                                         Variant="Variant.Filled"
+                                         Size="Size.Medium">
+                                    @GetRoleDisplayName()
+                                </MudChip>
+                                <MudText Typo="Typo.body2" Style="color: #64748b;">
+                                    @_profile.Email
+                                </MudText>
+                            </MudStack>
+                            @if (!string.IsNullOrWhiteSpace(_profile.TenantName))
+                            {
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small"
+                                             Style="color: #94a3b8;"/>
+                                    <MudText Typo="Typo.body2" Style="color: #64748b;">
+                                        @_profile.TenantName
+                                    </MudText>
+                                </MudStack>
+                            }
+                        </MudStack>
+
+                        <!-- Badge statut -->
+                        @if (_profile.IsActive)
+                        {
+                            <MudChip T="string"
+                                     Color="Color.Success"
+                                     Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.CheckCircle">
+                                Actif
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string"
+                                     Color="Color.Warning"
+                                     Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.Warning">
+                                Inactif
+                            </MudChip>
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Tabs -->
+                <MudPaper>
+                    <MudTabs Elevation="2"
+                             Rounded="true"
+                             Color="Color.Info"
+                             PanelClass="pa-6">
+
+                        <!-- Onglet Informations Générales -->
+                        <MudTabPanel Text="Informations générales" Icon="@Icons.Material.Filled.Person">
+                            <ProfileGeneralTab OnProfileUpdated="HandleProfileUpdated"/>
+                        </MudTabPanel>
+
+                        <!-- Onglet Sécurité -->
+                        <MudTabPanel Text="Sécurité" Icon="@Icons.Material.Filled.Lock">
+                            <ProfileSecurityTab/>
+                        </MudTabPanel>
+
+                    </MudTabs>
+                </MudPaper>
+                
+            }
+
+        </MudContainer>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToAccessDenied/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool _isLoading = true;
+    private UserProfileDto? _profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserProfile();
+    }
+
+    private async Task LoadUserProfile()
+    {
+        _isLoading = true;
+        try
+        {
+            _profile = await ProfileService.GetProfileAsync();
+
+            if (_profile == null)
+            {
+                Snackbar.Add("Erreur lors du chargement du profil", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInformation($"Erreur LoadUserProfile: {ex.Message}");
+            Snackbar.Add("Erreur lors du chargement du profil", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string GetUserInitials()
+    {
+        if (_profile == null || string.IsNullOrWhiteSpace(_profile.FullName))
+            return "U";
+
+        var parts = _profile.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+
+        return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+    }
+
+    private string GetRoleDisplayName()
+    {
+        if (_profile == null) return "";
+
+        return _profile.Role switch
+        {
+            "Admin" => "Administrateur",
+            "Manager" => "Manager",
+            "Livreur" => "Livreur",
+            _ => _profile.Role
+        };
+    }
+
+    private Color GetRoleColor()
+    {
+        if (_profile == null) return Color.Default;
+
+        return _profile.Role switch
+        {
+            "Admin" => Color.Secondary,
+            "Manager" => Color.Info,
+            "Livreur" => Color.Tertiary,
+            _ => Color.Default
+        };
+    }
+
+    private async Task HandleProfileUpdated()
+    {
+        // Recharger les infos utilisateur après modification du profil
+        await LoadUserProfile();
+        StateHasChanged();
+    }
+
+}

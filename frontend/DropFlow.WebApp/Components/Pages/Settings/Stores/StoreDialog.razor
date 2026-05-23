@@ -1,0 +1,352 @@
+@using System.ComponentModel.DataAnnotations
+@using DropFlow.Shared.Stores
+@inject ILogger<StoreDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_formValid">
+            <MudGrid>
+                
+                <!-- Nom (Obligatoire) -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Name"
+                                 Label="Nom de l'enseigne"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="Le nom est obligatoire"
+                                 MaxLength="100"
+                                 Counter="100"
+                                 Immediate="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Store"
+                                 Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Adresse (Obligatoire avec Autocomplete Google) -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Address"
+                                  For="@(() => _model.Address)"
+                                  @ref="_addressField"
+                                  UserAttributes="@(new Dictionary<string, object> { 
+                                      { "id", "address-field" },
+                                      { "autocomplete", "new-password" }
+                                  })"
+                                 Label="Adresse"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="L'adresse est obligatoire"
+                                 Immediate="true"
+                                 AdornmentIcon="@Icons.Material.Filled.LocationOn"
+                                 Adornment="Adornment.Start"
+                                 Placeholder="Commencez à saisir l'adresse..."
+                                 HelperText="Commencez à taper pour voir les suggestions" />
+                </MudItem>
+
+                <!-- Code Postal (Obligatoire) -->
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_model.ZipCode"
+                                 @ref="_zipCodeField"
+                                 Label="Code postal"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="Le code postal est obligatoire"
+                                 MaxLength="10"
+                                 Immediate="true" />
+                </MudItem>
+
+                <!-- Ville (Obligatoire) -->
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_model.City"
+                                 @ref="_cityField"
+                                 Label="Ville"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="La ville est obligatoire"
+                                 Immediate="true" />
+                </MudItem>
+
+                <!-- Nom du Contact (Optionnel) -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.ContactName"
+                                 Label="Nom du contact"
+                                 Variant="Variant.Outlined"
+                                 MaxLength="100"
+                                 AdornmentIcon="@Icons.Material.Filled.Person"
+                                 Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Téléphone (Obligatoire) -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Phone"
+                                 Label="Téléphone"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 RequiredError="Le téléphone est obligatoire"
+                                 Immediate="true"
+                                 MaxLength="20"
+                                 AdornmentIcon="@Icons.Material.Filled.Phone"
+                                 Adornment="Adornment.Start"
+                                 HelperText="Ex: 01 23 45 67 89" />
+                </MudItem>
+
+                <!-- Email (Optionnel) -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Email"
+                                 Label="Email"
+                                 Variant="Variant.Outlined"
+                                 InputType="InputType.Email"
+                                 Validation="@(new EmailAddressAttribute())"
+                                 MaxLength="100"
+                                 AdornmentIcon="@Icons.Material.Filled.Email"
+                                 Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- Notes (Optionnel) -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Notes"
+                                 Label="Notes"
+                                 Variant="Variant.Outlined"
+                                 Lines="3"
+                                 MaxLength="500"
+                                 Counter="500"
+                                 AdornmentIcon="@Icons.Material.Filled.Edit"
+                                 Adornment="Adornment.Start" />
+                </MudItem>
+
+                <!-- IsActive (Visible en mode Edit) -->
+                @if (IsEditMode)
+                {
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="_isActive"
+                                  Color="Color.Success"
+                                  Label="Enseigne active" />
+                    </MudItem>
+                }
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">
+            Annuler
+        </MudButton>
+        <MudButton OnClick="Submit"
+                  Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  Disabled="@(!_formValid || _saving)"
+                  StartIcon="@Icons.Material.Filled.Save">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <span class="ml-2">Enregistrement...</span>
+            }
+            else
+            {
+                <span>Enregistrer</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    [Parameter] public bool IsEditMode { get; set; } = false;
+    [Parameter] public int StoreId { get; set; }
+    [Parameter] public StoreDto? ExistingStore { get; set; }
+
+    private MudForm _form = default!;
+    private MudTextField<string> _addressField = default!;
+    private MudTextField<string> _zipCodeField = default!;
+    private MudTextField<string> _cityField = default!;
+    private IJSObjectReference? _googleMapsModule;
+    private DotNetObjectReference<StoreDialog>? _dotNetRef;
+    
+    private bool _formValid = false;
+    private bool _saving = false;
+    private bool _isActive = true;
+
+    // Model de formulaire
+    private CreateStoreDto _model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && ExistingStore != null)
+        {
+            _model = new CreateStoreDto
+            {
+                Name = ExistingStore.Name,
+                Address = ExistingStore.Address,
+                ZipCode = ExistingStore.ZipCode,
+                City = ExistingStore.City,
+                ContactName = ExistingStore.ContactName,
+                Phone = ExistingStore.Phone,
+                Email = ExistingStore.Email,
+                Notes = ExistingStore.Notes
+            };
+            _isActive = ExistingStore.IsActive;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // ✅ Fire and forget - ne pas attendre Google Maps
+            _ = InitializeGoogleMapsAutocompleteAsync();
+        }
+    }
+
+    private async Task InitializeGoogleMapsAutocompleteAsync()
+    {
+        try
+        {
+            Logger.LogInformation("🗺️ Initializing Google Maps...");
+
+            var retries = 0;
+            const int maxRetries = 10; // ✅ 10 × 200ms = 2 secondes max (au lieu de 10s)
+            var isGoogleMapsLoaded = false;
+        
+            while (retries < maxRetries)
+            {
+                try
+                {
+                    isGoogleMapsLoaded = await JSRuntime.InvokeAsync<bool>(
+                        "eval", 
+                        "!!(window.google && window.google.maps && window.google.maps.places)"
+                    );
+                
+                    if (isGoogleMapsLoaded)
+                    {
+                        Logger.LogInformation("✅ Google Maps loaded");
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogInformation($"⚠️ Error checking Google Maps: {ex.Message}");
+                }
+            
+                await Task.Delay(200); // ✅ 200ms au lieu de 500ms
+                retries++;
+            }
+        
+            if (!isGoogleMapsLoaded)
+            {
+                Logger.LogInformation("⚠️ Google Maps timeout - autocomplete disabled");
+                return;
+            }
+        
+            // Continuer initialisation
+            _dotNetRef = DotNetObjectReference.Create(this);
+            _googleMapsModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "/js/googleMapsAutocomplete.js");
+
+            await Task.Delay(100);
+
+            await _googleMapsModule.InvokeVoidAsync(
+                "initializeAutocomplete",
+                _dotNetRef,
+                "address-field"
+            );
+        
+            Logger.LogInformation("✅ Google Maps autocomplete ready");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInformation($"❌ Google Maps error: {ex.Message}");
+            // Ne pas bloquer l'application si Google Maps échoue
+        }
+    }
+
+    /// <summary>
+    /// Callback appelé depuis JS quand une adresse est sélectionnée
+    /// Reçoit un objet avec toutes les données d'adresse
+    /// </summary>
+    [JSInvokable]
+    public void OnAddressSelected(GooglePlaceResult result)
+    {
+        try
+        {
+            Logger.LogInformation($"✅ Adresse reçue: {result.FormattedAddress}");
+
+            _model.Address = result.StreetAddress ?? result.FormattedAddress ?? string.Empty;
+            _model.ZipCode = result.PostalCode ?? string.Empty;
+            _model.City = result.City ?? string.Empty;
+        
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Logger.LogInformation(e, "Error processing address selection");
+        }
+    }
+    
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+
+        if (!_formValid)
+        {
+            return;
+        }
+
+        _saving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (IsEditMode)
+            {
+                var updateDto = new UpdateStoreDto
+                {
+                    Name = _model.Name,
+                    Address = _model.Address,
+                    ZipCode = _model.ZipCode,
+                    City = _model.City,
+                    ContactName = _model.ContactName,
+                    Phone = _model.Phone,
+                    Email = _model.Email,
+                    Notes = _model.Notes,
+                    IsActive = _isActive
+                };
+                MudDialog.Close(DialogResult.Ok(updateDto));
+            }
+            else
+            {
+                MudDialog.Close(DialogResult.Ok(_model));
+            }
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+    
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+        _googleMapsModule?.DisposeAsync();
+    }
+    
+    /// <summary>
+    /// Classe pour recevoir le résultat de l'autocomplete JS
+    /// Doit matcher exactement la structure envoyée par googleMapsAutocomplete.js
+    /// Les noms des propriétés doivent correspondre (camelCase → PascalCase)
+    /// </summary>
+    public class GooglePlaceResult
+    {
+        public string FormattedAddress { get; set; } = string.Empty;
+        public string StreetAddress { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string PostalCode { get; set; } = string.Empty;
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+}

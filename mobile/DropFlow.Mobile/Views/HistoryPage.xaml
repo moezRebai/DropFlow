@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DropFlow.Mobile.Views.HistoryPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DropFlow.Mobile.ViewModels"
+    xmlns:models="clr-namespace:DropFlow.Mobile.Models"
+    x:DataType="vm:HistoryViewModel"
+    BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="{StaticResource Primary}" Padding="16,44,16,16"
+              ColumnDefinitions="Auto,*">
+            <Button Grid.Column="0" Text="←" Command="{Binding GoBackCommand}"
+                    BackgroundColor="Transparent" TextColor="White" FontSize="22" Padding="0"
+                    WidthRequest="44" />
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="Historique des livraisons" FontSize="16" FontAttributes="Bold" TextColor="White" />
+                <Label Text="{Binding TotalCount, StringFormat='{0} livraison(s) au total'}"
+                       FontSize="13" TextColor="#B3E5FC" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="8">
+
+                <!-- Loading -->
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                   Color="{StaticResource Primary}" HorizontalOptions="Center"
+                                   Margin="0,32,0,0" />
+
+                <!-- Error -->
+                <Frame IsVisible="{Binding HasError}" BackgroundColor="#FFEBEE"
+                       BorderColor="#EF9A9A" CornerRadius="8" Padding="12">
+                    <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource Error}" FontSize="14" />
+                </Frame>
+
+                <!-- Empty state -->
+                <VerticalStackLayout
+                    IsVisible="{Binding IsBusy, Converter={StaticResource InvertBool}}"
+                    Spacing="8">
+                    <VerticalStackLayout HorizontalOptions="Center" Spacing="12" Margin="0,32,0,0"
+                                         IsVisible="{Binding Deliveries.Count, Converter={StaticResource InvertBool}}">
+                        <Path Data="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"
+                              Fill="{StaticResource TextMuted}" WidthRequest="56" HeightRequest="56" Aspect="Uniform"
+                              HorizontalOptions="Center" />
+                        <Label Text="Aucune livraison dans l'historique"
+                               FontSize="16" TextColor="{StaticResource TextSecondary}"
+                               HorizontalOptions="Center" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+
+                    <!-- List -->
+                    <CollectionView ItemsSource="{Binding Deliveries}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:DeliveryHistoryItem">
+                                <Frame Style="{StaticResource Card}" Margin="0,0,0,6">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
+
+                                        <!-- Reference + date -->
+                                        <Label Grid.Column="0" Grid.Row="0"
+                                               Text="{Binding Reference}"
+                                               FontSize="15" FontAttributes="Bold"
+                                               TextColor="{StaticResource TextPrimary}" />
+                                        <Label Grid.Column="1" Grid.Row="0"
+                                               Text="{Binding DateDisplay}"
+                                               FontSize="13" TextColor="{StaticResource TextMuted}"
+                                               VerticalOptions="Center" />
+
+                                        <!-- Client + ville -->
+                                        <Label Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2"
+                                               TextColor="{StaticResource TextSecondary}" FontSize="14">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{Binding ClientName}" />
+                                                    <Span Text=" · " />
+                                                    <Span Text="{Binding City}" />
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+
+                                        <!-- Status badge + absent flag -->
+                                        <HorizontalStackLayout Grid.Column="0" Grid.Row="2" Spacing="8">
+                                            <Frame Padding="8,4" CornerRadius="12" HasShadow="False"
+                                                   BackgroundColor="{Binding Status, Converter={StaticResource StatusBackground}}">
+                                                <Label Text="{Binding StatusDisplay}"
+                                                       TextColor="{Binding Status, Converter={StaticResource StatusColor}}"
+                                                       FontSize="12" FontAttributes="Bold" />
+                                            </Frame>
+                                            <Label Text="Absent" FontSize="12"
+                                                   TextColor="{StaticResource Warning}"
+                                                   IsVisible="{Binding IsClientAbsent}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+
+                                        <!-- Route reference -->
+                                        <Label Grid.Column="1" Grid.Row="2"
+                                               Text="{Binding RouteReference}"
+                                               FontSize="11" TextColor="{StaticResource TextMuted}"
+                                               VerticalOptions="End" />
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <!-- Load more -->
+                    <Button Text="Charger plus..." Command="{Binding LoadMoreCommand}"
+                            Style="{StaticResource SecondaryButton}"
+                            IsVisible="{Binding HasMore}"
+                            Margin="0,8,0,24" />
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+
+</ContentPage>

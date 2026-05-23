@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application
+    x:Class="DropFlow.Mobile.App"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:DropFlow.Mobile.Converters">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:InvertBoolConverter x:Key="InvertBool" />
+            <converters:EyeIconConverter x:Key="EyeIcon" />
+            <converters:StatusColorConverter x:Key="StatusColor" />
+            <converters:StatusBackgroundConverter x:Key="StatusBackground" />
+            <converters:BoolToCheckConverter x:Key="BoolToCheck" />
+            <converters:CurrencyConverter x:Key="Currency" />
+            <converters:TimeSpanFormatConverter x:Key="TimeSpanFormat" />
+            <converters:NotNullConverter x:Key="NotNull" />
+            <converters:BoolToOpacityConverter x:Key="BoolToOpacity" />
+        </ResourceDictionary>
+    </Application.Resources>
+
+</Application>
