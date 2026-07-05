@@ -13,6 +13,8 @@ public class DeliveryViewDto
     public string FullAddress { get; set; }
     public string StoreName { get; set; }
     
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public string? InternalNotes { get; set; }
     public int? EstimatedDurationMinutes { get; set; }
     public decimal Price { get; set; }

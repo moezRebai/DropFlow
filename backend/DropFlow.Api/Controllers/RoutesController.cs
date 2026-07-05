@@ -24,7 +24,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.GetByIdAsync(id);
         if (!result.Succeeded)
-            return NotFound(result.Errors);
+            return NotFound(result);
         return Ok(result);
     }
 
@@ -42,8 +42,8 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.CreateAsync(dto);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
-        return CreatedAtAction(nameof(GetById), new { id = result.Data }, result.Data);
+            return BadRequest(result);
+        return StatusCode(201, result);
     }
 
     [HttpPut("{id}")]
@@ -52,7 +52,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.UpdateAsync(id, dto);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return NoContent();
     }
 
@@ -62,7 +62,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.DeleteAsync(id);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -72,7 +72,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.AddTeamMemberAsync(id, dto);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -82,7 +82,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.RemoveTeamMemberAsync(id, driverId);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -92,7 +92,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.AddDeliveryAsync(id, deliveryId);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -102,7 +102,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.RemoveDeliveryAsync(id, deliveryId);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -112,7 +112,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.UpdateSequenceAsync(id, sequences);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -122,7 +122,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.ConfirmAsync(id);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -131,7 +131,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.StartAsync(id);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -140,7 +140,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.CompleteAsync(id);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -150,7 +150,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
     {
         var result = await routeService.CancelAsync(id);
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
         return Ok(result);
     }
 
@@ -175,7 +175,7 @@ public class RoutesController(IRouteService routeService) : ControllerBase
         var result = await routeService.RecalculateRouteMetricsAsync(request);
     
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+            return BadRequest(result);
     
         return Ok(result);
     }

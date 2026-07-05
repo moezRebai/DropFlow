@@ -15,4 +15,6 @@ public class RouteViewDto
     public int TotalDuration { get; set; }
     public string MainDriverName { get; set; }
     public int TeamCount { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public string CreatedBy { get; set; }
 }

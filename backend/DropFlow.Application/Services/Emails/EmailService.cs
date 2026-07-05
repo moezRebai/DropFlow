@@ -21,7 +21,7 @@ public class EmailService(
             var encodedToken = Uri.EscapeDataString(token);
             var encodedEmail = Uri.EscapeDataString(email);
             
-            var inviteUrl = $"{configuration["AppUrl"]}/accept-invitation?token={encodedToken}&&email={encodedEmail}";
+            var inviteUrl = $"{configuration["AppUrl"]}/accept-invitation?token={encodedToken}&email={encodedEmail}";
             var subject = $"Invitation à rejoindre {companyName} sur DropFlow";
             
             // ✅ Utiliser le template professionnel
@@ -92,7 +92,7 @@ public class EmailService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to send welcome email to {Email}", email);
+            logger.LogWarning(ex, "Failed to send welcome email to {Email}", email);
             throw;
         }
     }

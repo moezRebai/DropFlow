@@ -166,6 +166,9 @@ public class ClientService(
                     Id = a.Id,
                     Label = a.Label,
                     FullAddress = $"{a.Address}, {a.ZipCode} {a.City}",
+                    Address = a.Address,
+                    ZipCode = a.ZipCode,
+                    City = a.City,
                     IsDefault = a.IsDefault
                 }).ToList()
             }).ToList();

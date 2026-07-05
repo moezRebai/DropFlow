@@ -71,7 +71,9 @@ public class RouteService(
                     .Where(c => c.Role == TeamMemberRole.MainDriver)
                     .Select(c => c.Driver.User.FullName)
                     .FirstOrDefault() ?? "Non assign�",
-                TeamCount = rs.Team.Count
+                TeamCount = rs.Team.Count,
+                CreatedDate = rs.CreatedDate,
+                CreatedBy = rs.CreatedBy
             })
             .ToListAsync();
 
@@ -144,7 +146,7 @@ public class RouteService(
                     DeliveryId = d.Id,
                     Reference = d.Reference,
                     ClientName = d.Client.DisplayName,
-                    Address = $"{d.ClientAddress.Address}, {d.ClientAddress.City}",
+                    Address = d.ClientAddress.FullAddress,
                     SequenceOrder = d.SequenceOrder,
                     EstimatedArrivalTime = d.EstimatedArrivalTime,
                     TimeSlotId = d.TimeSlotId,
@@ -178,9 +180,9 @@ public class RouteService(
             // ? 1. Validate vehicle
             var vehicle = await context.Vehicles.FindAsync(dto.VehicleId);
             if (vehicle == null)
-                return ResponseResult<int>.Failure("V�hicule introuvable");
+                return ResponseResult<int>.Failure("Véhicule introuvable");
             if (!vehicle.IsActive)
-                return ResponseResult<int>.Failure("V�hicule inactif");
+                return ResponseResult<int>.Failure("Véhicule inactif");
 
             var isAvailable = await context.Routes
                 .AllAsync(rs => rs.VehicleId != dto.VehicleId ||
@@ -188,7 +190,7 @@ public class RouteService(
                                 rs.Status == RouteStatus.Cancelled);
 
             if (!isAvailable)
-                return ResponseResult<int>.Failure("Ce v�hicule a d�j� une tourn�e pr�vue ce jour-l�");
+                return ResponseResult<int>.Failure("Ce véhicule a déjà une tournée prévue ce jour-là");
 
             // ? 2. Generate reference
             var date = dto.Date.Date;
@@ -204,12 +206,14 @@ public class RouteService(
                 departureLatitude: dto.DepartureLatitude,
                 departureLongitude: dto.DepartureLongitude);
 
-            // Set totals & status
+            // Set totals, status & audit
             route.TotalDistance = dto.TotalDistance;
             route.TotalDuration = dto.TotalDuration;
             route.TotalDeliveries = dto.Deliveries.Count;
             route.EstimatedEndTime = dto.StartTime.Add(TimeSpan.FromMinutes(dto.TotalDuration));
             route.Status = RouteStatus.Draft;
+            route.CreatedDate = DateTime.UtcNow;
+            route.CreatedBy = currentUser.FullName;
 
             if (dto.WasOptimizedByGoogle)
                 route.MarkAsOptimizedByGoogle();
@@ -233,16 +237,22 @@ public class RouteService(
                     throw new Exception($"Livraison {deliveryDto.DeliveryId} introuvable");
 
                 if (delivery.RouteId.HasValue)
-                    throw new Exception($"Livraison {delivery.Reference} d�j� assign�e");
-
-                // Find or create TimeSlot based on estimated arrival time
-                var timeSlot = await FindOrCreateTimeSlotAsync(deliveryDto.EstimatedArrivalTime);
+                    throw new Exception($"Livraison {delivery.Reference} déjà assignée");
 
                 // ? ROUTE ASSIGNMENT
                 delivery.RouteId = route.Id;
                 delivery.SequenceOrder = deliveryDto.SequenceOrder;
-                delivery.EstimatedArrivalTime = deliveryDto.EstimatedArrivalTime;
-                delivery.TimeSlotId = timeSlot?.Id;
+                delivery.EstimatedArrivalTime = deliveryDto.EstimatedArrivalTime != default
+                    ? deliveryDto.EstimatedArrivalTime
+                    : null;
+
+                // Assign time slot only if a real arrival time was computed (Option B)
+                // Preserves the manually set time slot if no arrival time from optimization
+                if (deliveryDto.EstimatedArrivalTime != default)
+                {
+                    var timeSlot = await FindOrCreateTimeSlotAsync(deliveryDto.EstimatedArrivalTime);
+                    delivery.TimeSlotId = timeSlot.Id;
+                }
 
                 // ? ? NOUVEAUX CHAMPS - OPTIMISATION
                 delivery.DepartureAddress = deliveryDto.DepartureAddress;
@@ -284,13 +294,13 @@ public class RouteService(
             // ? V�rifier que la feuille n'est pas termin�e ou annul�e
             if (route.Status is RouteStatus.Completed or RouteStatus.Cancelled)
             {
-                return ResponseResult.Failure("Impossible de modifier une feuille de route termin�e ou annul�e");
+                return ResponseResult.Failure("Impossible de modifier une feuille de route terminée ou annulée");
             }
 
             // ? Seules les tourn�es Draft et Scheduled peuvent �tre modifi�es
             if (route.Status != RouteStatus.Draft && route.Status != RouteStatus.Confirmed)
             {
-                return ResponseResult.Failure("Cette tourn�e ne peut plus �tre modifi�e");
+                return ResponseResult.Failure("Cette tournée ne peut plus être modifiée");
             }
 
             logger.LogInformation("Updating route {RouteId} - Current status: {Status}", id, route.Status);
@@ -300,7 +310,7 @@ public class RouteService(
             {
                 var vehicle = await context.Vehicles.FirstOrDefaultAsync(v => v.Id == dto.VehicleId);
                 if (vehicle == null || !vehicle.IsActive)
-                    return ResponseResult.Failure("V�hicule introuvable ou inactif");
+                    return ResponseResult.Failure("Véhicule introuvable ou inactif");
 
                 // V�rifier disponibilit� du nouveau v�hicule
                 var isAvailable = await context.Routes
@@ -310,7 +320,7 @@ public class RouteService(
                                     rs.Status == RouteStatus.Cancelled);
 
                 if (!isAvailable)
-                    return ResponseResult.Failure("Ce v�hicule a d�j� une tourn�e pr�vue ce jour-l�");
+                    return ResponseResult.Failure("Ce véhicule a déjà une tournée prévue ce jour-là");
 
                 route.VehicleId = dto.VehicleId;
             }
@@ -376,18 +386,20 @@ public class RouteService(
                 if (delivery.RouteId.HasValue && delivery.RouteId != route.Id)
                 {
                     await transaction.RollbackAsync();
-                    return ResponseResult.Failure($"Livraison {delivery.Reference} d�j� assign�e � une autre tourn�e");
+                    return ResponseResult.Failure($"Livraison {delivery.Reference} déjà assignée à une autre tournée");
                 }
-
-                // Find or create TimeSlot based on estimated arrival time
-                var timeSlot = deliveryDto.EstimatedArrivalTime.HasValue
-                    ? await FindOrCreateTimeSlotAsync(deliveryDto.EstimatedArrivalTime.Value)
-                    : null;
 
                 delivery.RouteId = route.Id;
                 delivery.SequenceOrder = deliveryDto.SequenceOrder;
                 delivery.EstimatedArrivalTime = deliveryDto.EstimatedArrivalTime;
-                delivery.TimeSlotId = timeSlot?.Id;
+
+                // Assign time slot only if a real arrival time was computed (Option B)
+                // Preserves the manually set time slot if no arrival time from optimization
+                if (deliveryDto.EstimatedArrivalTime.HasValue)
+                {
+                    var timeSlot = await FindOrCreateTimeSlotAsync(deliveryDto.EstimatedArrivalTime.Value);
+                    delivery.TimeSlotId = timeSlot.Id;
+                }
 
                 // ? ? NOUVEAUX CHAMPS - OPTIMISATION
                 delivery.DepartureAddress = deliveryDto.DepartureAddress;
@@ -406,7 +418,7 @@ public class RouteService(
                 "Route {RouteId} updated successfully - Vehicle: {VehicleId}, Team: {TeamCount}, Deliveries: {DeliveryCount}",
                 route.Id, route.VehicleId, dto.Team.Count, dto.Deliveries.Count);
 
-            return ResponseResult.Success("Tourn�e mise � jour avec succ�s");
+            return ResponseResult.Success("Tournée mise à jour avec succès");
         }
         catch (Exception ex)
         {
@@ -430,7 +442,7 @@ public class RouteService(
 
             // ? CORRECTION: Seules les tourn�es Draft peuvent �tre supprim�es
             if (route.Status != RouteStatus.Draft)
-                return ResponseResult.Failure("Seules les tourn�es en brouillon peuvent �tre supprim�es");
+                return ResponseResult.Failure("Seules les tournées en brouillon peuvent être supprimées");
 
             // ? CORRECTION: Lib�rer les livraisons
             foreach (var delivery in route.Deliveries)
@@ -455,7 +467,7 @@ public class RouteService(
 
             logger.LogInformation("RouteSheet {Reference} deleted and resources freed", route.Reference);
 
-            return ResponseResult.Success("Tourn�e supprim�e avec succ�s");
+            return ResponseResult.Success("Tournée supprimée avec succès");
         }
         catch (Exception ex)
         {
@@ -476,7 +488,7 @@ public class RouteService(
                 return ResponseResult.Failure("Feuille de route introuvable");
 
             if (route.Status != RouteStatus.Draft)
-                return ResponseResult.Failure("Impossible de modifier l'�quipage d'une tourn�e confirm�e");
+                return ResponseResult.Failure("Impossible de modifier l'équipage d'une tournée confirmée");
 
             // Check driver exists
             var driver = await context.Drivers.FirstOrDefaultAsync(dr => dr.Id == dto.DriverId);
@@ -485,11 +497,11 @@ public class RouteService(
 
             // Check already in team
             if (route.Team.Any(c => c.DriverId == dto.DriverId))
-                return ResponseResult.Failure("Ce livreur est d�j� dans l'�quipage");
+                return ResponseResult.Failure("Ce livreur est déjà dans l'équipage");
 
             // Validate team size
             if (route.Team.Count >= 3)
-                return ResponseResult.Failure("L'�quipage ne peut pas d�passer 3 personnes");
+                return ResponseResult.Failure("L'équipage ne peut pas dépasser 3 personnes");
 
             // Validate main driver uniqueness
             if (dto.Role == TeamMemberRole.MainDriver && route.Team.Any(c => c.Role == TeamMemberRole.MainDriver))
@@ -504,7 +516,7 @@ public class RouteService(
             context.RouteTeams.Add(team);
             await context.SaveChangesAsync();
 
-            return ResponseResult.Success("Livreur ajout� � l'�quipage");
+            return ResponseResult.Success("Livreur ajouté à l'équipage");
         }
         catch (Exception ex)
         {
@@ -521,16 +533,16 @@ public class RouteService(
                 .FirstOrDefaultAsync(c => c.RouteId == routeId && c.DriverId == driverId);
 
             if (team == null)
-                return ResponseResult.Failure("Membre d'�quipage introuvable");
+                return ResponseResult.Failure("Membre d'équipage introuvable");
 
             var route = await context.Routes.FirstOrDefaultAsync(r => r.Id == routeId);
             if (route?.Status != RouteStatus.Draft)
-                return ResponseResult.Failure("Impossible de modifier l'�quipage d'une tourn�e confirm�e");
+                return ResponseResult.Failure("Impossible de modifier l'équipage d'une tournée confirmée");
 
             context.RouteTeams.Remove(team);
             await context.SaveChangesAsync();
 
-            return ResponseResult.Success("Livreur retir� de l'�quipage");
+            return ResponseResult.Success("Livreur retiré de l'équipage");
         }
         catch (Exception ex)
         {
@@ -552,22 +564,22 @@ public class RouteService(
                 return ResponseResult.Failure("Feuille de route introuvable");
 
             if (route.Status != RouteStatus.Draft)
-                return ResponseResult.Failure("Impossible d'ajouter des livraisons � une tourn�e confirm�e");
+                return ResponseResult.Failure("Impossible d'ajouter des livraisons à une tournée confirmée");
 
             var delivery = await context.Deliveries.FirstOrDefaultAsync(d => d.Id == deliveryId);
             if (delivery == null)
                 return ResponseResult.Failure("Livraison introuvable");
 
             if (delivery.Type == DeliveryType.Urgent)
-                return ResponseResult.Failure("Les livraisons urgentes ne peuvent pas �tre ajout�es � une tourn�e");
+                return ResponseResult.Failure("Les livraisons urgentes ne peuvent pas être ajoutées à une tournée");
 
             if (delivery.RouteId.HasValue)
-                return ResponseResult.Failure("Cette livraison est d�j� dans une tourn�e");
+                return ResponseResult.Failure("Cette livraison est déjà dans une tournée");
 
             // Check vehicle capacity
             if (route.Deliveries.Count >= route.Vehicle.MaxDeliveries)
                 return ResponseResult.Failure(
-                    $"Capacit� maximale du v�hicule atteinte ({route.Vehicle.MaxDeliveries} livraisons)");
+                    $"Capacité maximale du véhicule atteinte ({route.Vehicle.MaxDeliveries} livraisons)");
 
             delivery.RouteId = routeId;
             delivery.SequenceOrder = route.Deliveries.Count + 1;
@@ -575,7 +587,7 @@ public class RouteService(
             await context.SaveChangesAsync();
             await RecalculateMetricsInternalAsync(routeId);
 
-            return ResponseResult.Success("Livraison ajout�e � la tourn�e");
+            return ResponseResult.Success("Livraison ajoutée à la tournée");
         }
         catch (Exception ex)
         {
@@ -592,11 +604,11 @@ public class RouteService(
                 .FirstOrDefaultAsync(d => d.Id == deliveryId && d.RouteId == routeId);
 
             if (delivery == null)
-                return ResponseResult.Failure("Livraison introuvable dans cette tourn�e");
+                return ResponseResult.Failure("Livraison introuvable dans cette tournée");
 
             var route = await context.Routes.FirstOrDefaultAsync(r => r.Id == routeId);
             if (route?.Status != RouteStatus.Draft)
-                return ResponseResult.Failure("Impossible de retirer des livraisons d'une tourn�e confirm�e");
+                return ResponseResult.Failure("Impossible de retirer des livraisons d'une tournée confirmée");
 
             delivery.RouteId = null;
             delivery.SequenceOrder = null;
@@ -605,7 +617,7 @@ public class RouteService(
             await context.SaveChangesAsync();
             await RecalculateMetricsInternalAsync(routeId);
 
-            return ResponseResult.Success("Livraison retir�e de la tourn�e");
+            return ResponseResult.Success("Livraison retirée de la tournée");
         }
         catch (Exception ex)
         {
@@ -626,7 +638,7 @@ public class RouteService(
                 return ResponseResult.Failure("Feuille de route introuvable");
 
             if (route.Status != RouteStatus.Draft)
-                return ResponseResult.Failure("Impossible de r�ordonner une tourn�e confirm�e");
+                return ResponseResult.Failure("Impossible de réordonner une tournée confirmée");
 
             foreach (var seq in sequences)
             {
@@ -637,12 +649,12 @@ public class RouteService(
 
             await context.SaveChangesAsync();
 
-            return ResponseResult.Success("Ordre des livraisons mis � jour");
+            return ResponseResult.Success("Ordre des livraisons mis à jour");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error updating sequence");
-            return ResponseResult.Failure("Erreur lors de la mise � jour de l'ordre");
+            return ResponseResult.Failure("Erreur lors de la mise à jour de l'ordre");
         }
     }
 
@@ -660,7 +672,7 @@ public class RouteService(
 
             // ? CORRECTION: V�rifier le statut actuel
             if (route.Status != RouteStatus.Draft)
-                return ResponseResult.Failure("Seules les tourn�es en brouillon peuvent �tre confirm�es");
+                return ResponseResult.Failure("Seules les tournées en brouillon peuvent être confirmées");
 
             // Validations
             if (route.Team.All(c => c.Role != TeamMemberRole.MainDriver))
@@ -685,7 +697,7 @@ public class RouteService(
 
             logger.LogInformation("Route {Reference} confirmed and set to Scheduled status", route.Reference);
 
-            return ResponseResult.Success("Tourn�e confirm�e");
+            return ResponseResult.Success("Tournée confirmée");
         }
         catch (Exception ex)
         {
@@ -704,14 +716,14 @@ public class RouteService(
 
             // ? CORRECTION: V�rifier le statut actuel
             if (route.Status != RouteStatus.Confirmed)
-                return ResponseResult.Failure("Seules les tourn�es planifi�es peuvent �tre d�marr�es");
+                return ResponseResult.Failure("Seules les tournées planifiées peuvent être démarrées");
 
             route.Start();
             await context.SaveChangesAsync();
 
             logger.LogInformation("Route {Id} started", id);
 
-            return ResponseResult.Success("Tourn�e d�marr�e");
+            return ResponseResult.Success("Tournée démarrée");
         }
         catch (InvalidOperationException ex)
         {
@@ -720,7 +732,7 @@ public class RouteService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error starting route {Id}", id);
-            return ResponseResult.Failure("Erreur lors du d�marrage");
+            return ResponseResult.Failure("Erreur lors du démarrage");
         }
     }
 
@@ -734,14 +746,14 @@ public class RouteService(
 
             // ? CORRECTION: V�rifier le statut actuel
             if (route.Status != RouteStatus.InProgress)
-                return ResponseResult.Failure("Seules les tourn�es en cours peuvent �tre termin�es");
+                return ResponseResult.Failure("Seules les tournées en cours peuvent être terminées");
 
             route.Complete();
             await context.SaveChangesAsync();
 
             logger.LogInformation("Route {Id} completed", id);
 
-            return ResponseResult.Success("Tourn�e termin�e");
+            return ResponseResult.Success("Tournée terminée");
         }
         catch (InvalidOperationException ex)
         {
@@ -768,7 +780,7 @@ public class RouteService(
 
             // ? CORRECTION: Interdire annulation si termin�e
             if (route.Status == RouteStatus.Completed)
-                return ResponseResult.Failure("Impossible d'annuler une tourn�e termin�e");
+                return ResponseResult.Failure("Impossible d'annuler une tournée terminée");
 
             // ? AJOUT: Sauvegarder le statut pr�c�dent pour les logs
             var previousStatus = route.Status;
@@ -807,7 +819,7 @@ public class RouteService(
                 route.Deliveries.Count,
                 route.Team.Count);
 
-            return ResponseResult.Success("Tourn�e annul�e et ressources lib�r�es");
+            return ResponseResult.Success("Tournée annulée et ressources libérées");
         }
         catch (InvalidOperationException ex)
         {
@@ -826,10 +838,10 @@ public class RouteService(
         {
             // ? 1. Validation des param�tres
             if (string.IsNullOrWhiteSpace(request.DepartureAddress))
-                return ResponseResult<OptimizePathResponseDto>.Failure("L'adresse de d�part est obligatoire");
+                return ResponseResult<OptimizePathResponseDto>.Failure("L'adresse de départ est obligatoire");
 
             if (request.DeliveryIds.Count == 0)
-                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison � optimiser");
+                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison à optimiser");
 
             // ? 2. Charger les livraisons avec leurs adresses
             var deliveries = await context.Deliveries
@@ -838,7 +850,7 @@ public class RouteService(
                 .ToListAsync();
 
             if (deliveries.Count == 0)
-                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison trouv�e");
+                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison trouvée");
 
             // ? 3. V�rifier que toutes les livraisons ont des coordonn�es GPS
             var deliveriesWithoutCoords = deliveries
@@ -849,7 +861,7 @@ public class RouteService(
             {
                 var references = string.Join(", ", deliveriesWithoutCoords.Select(d => d.Reference));
                 return ResponseResult<OptimizePathResponseDto>.Failure(
-                    $"Certaines livraisons n'ont pas de coordonn�es GPS: {references}");
+                    $"Certaines livraisons n'ont pas de coordonnées GPS: {references}");
             }
 
             // ? 4. CAS SP�CIAL : Une seule livraison
@@ -880,7 +892,7 @@ public class RouteService(
                 {
                     logger.LogWarning("No routes found for single delivery");
                     return ResponseResult<OptimizePathResponseDto>.Failure(
-                        "Aucun itin�raire trouv�. V�rifiez les adresses.");
+                        "Aucun itinéraire trouvé. V�rifiez les adresses.");
                 }
 
                 var route = singleRouteResponse.Routes[0];
@@ -889,7 +901,7 @@ public class RouteService(
                 {
                     logger.LogWarning("No legs found in route for single delivery");
                     return ResponseResult<OptimizePathResponseDto>.Failure(
-                        "Impossible de calculer la distance. V�rifiez les adresses.");
+                        "Impossible de calculer la distance. Vérifiez les adresses.");
                 }
 
                 // R�cup�rer les donn�es du leg (segment de route)
@@ -953,7 +965,7 @@ public class RouteService(
             if (googleDirectionsResponse.Routes == null || !googleDirectionsResponse.Routes.Any())
             {
                 return ResponseResult<OptimizePathResponseDto>.Failure(
-                    "Aucun itin�raire trouv�. V�rifiez les adresses.");
+                    "Aucun itinéraire trouvé. V�rifiez les adresses.");
             }
 
             var optimizedRoute = googleDirectionsResponse.Routes[0];
@@ -961,13 +973,13 @@ public class RouteService(
             if (optimizedRoute.WaypointOrder == null)
             {
                 return ResponseResult<OptimizePathResponseDto>.Failure(
-                    "Erreur dans l'ordre des points. R�essayez.");
+                    "Erreur dans l'ordre des points. Réessayez.");
             }
 
             if (optimizedRoute.Legs == null || !optimizedRoute.Legs.Any())
             {
                 return ResponseResult<OptimizePathResponseDto>.Failure(
-                    "Erreur dans les segments de route. R�essayez.");
+                    "Erreur dans les segments de route. Réessayez.");
             }
 
             if (optimizedRoute.WaypointOrder.Length != deliveries.Count)
@@ -975,7 +987,7 @@ public class RouteService(
                 logger.LogError("Waypoint order length mismatch: {Expected} expected, {Actual} received",
                     deliveries.Count, optimizedRoute.WaypointOrder.Length);
                 return ResponseResult<OptimizePathResponseDto>.Failure(
-                    "Erreur dans l'ordre optimis�. R�essayez.");
+                    "Erreur dans l'ordre optimisé. Réessayez.");
             }
 
             // ? 7. Construire la liste des livraisons optimis�es
@@ -990,7 +1002,7 @@ public class RouteService(
                 {
                     logger.LogError("Invalid waypoint order index: {Index}", originalIndex);
                     return ResponseResult<OptimizePathResponseDto>.Failure(
-                        "Erreur dans l'ordre des points. R�essayez.");
+                        "Erreur dans l'ordre des points. Réessayez.");
                 }
 
                 var delivery = deliveries[originalIndex];
@@ -1000,7 +1012,7 @@ public class RouteService(
                 {
                     logger.LogError("Leg index out of bounds: {Index}", i);
                     return ResponseResult<OptimizePathResponseDto>.Failure(
-                        "Erreur dans les segments de route. R�essayez.");
+                        "Erreur dans les segments de route. Réessayez.");
                 }
 
                 var leg = optimizedRoute.Legs[i];
@@ -1043,7 +1055,7 @@ public class RouteService(
         {
             logger.LogError(ex, "Error optimizing route");
             return ResponseResult<OptimizePathResponseDto>.Failure(
-                "Erreur inattendue lors de l'optimisation. R�essayez.");
+                "Erreur inattendue lors de l'optimisation. Réessayez.");
         }
     }
 
@@ -1062,12 +1074,12 @@ public class RouteService(
             // --- 1. VALIDATION ---
             if (request.DeliveryIds == null || !request.DeliveryIds.Any())
             {
-                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison s�lectionn�e");
+                return ResponseResult<OptimizePathResponseDto>.Failure("Aucune livraison sélectionnée");
             }
 
             if (string.IsNullOrWhiteSpace(request.DepartureAddress))
             {
-                return ResponseResult<OptimizePathResponseDto>.Failure("Adresse de d�part requise");
+                return ResponseResult<OptimizePathResponseDto>.Failure("Adresse de départ requise");
             }
 
             // --- 2. R�CUP�RER LES LIVRAISONS DANS L'ORDRE DONN� ---
@@ -1094,10 +1106,9 @@ public class RouteService(
                 .Select(id => deliveries.First(d => d.Id == id))
                 .ToList();
 
-            logger.LogInformation("Ordre manuel pr�serv�: {Order}", 
+            logger.LogInformation("Ordre manuel préservé: {Order}", 
                 string.Join(" ? ", orderedDeliveries.Select(d => d.Reference)));
 
-            // --- 3. V�RIFIER LES COORDONN�ES GPS ---
             var missingCoordinates = deliveries
                 .Where(d => !d.ClientAddress.Latitude.HasValue || !d.ClientAddress.Longitude.HasValue)
                 .Select(d => d.Reference)
@@ -1106,7 +1117,7 @@ public class RouteService(
             if (missingCoordinates.Any())
             {
                 return ResponseResult<OptimizePathResponseDto>.Failure(
-                    $"Coordonn�es GPS manquantes pour: {string.Join(", ", missingCoordinates)}");
+                    $"Coordonnées GPS manquantes pour: {string.Join(", ", missingCoordinates)}");
             }
 
             // --- 4. CONSTRUIRE LES WAYPOINTS (dans l'ordre donn�) ---
@@ -1147,7 +1158,7 @@ public class RouteService(
                     "Nombre de legs ({LegsCount}) insuffisant pour {DeliveriesCount} livraisons",
                     legs?.Count ?? 0, orderedDeliveries.Count);
                 return ResponseResult<OptimizePathResponseDto>.Failure(
-                    "Erreur de calcul d'itin�raire");
+                    "Erreur de calcul d'itinéraire");
             }
 
             // --- 6. CONSTRUIRE LE R�SULTAT (DANS L'ORDRE DONN�) ---
@@ -1173,13 +1184,14 @@ public class RouteService(
 
             // --- 7. CALCULER LES TOTAUX (premiers n legs seulement) ---
             var totalDistanceMeters = legs.Take(orderedDeliveries.Count).Sum(leg => leg.Distance?.Value ?? 0);
-            var totalDurationSeconds = legs.Take(orderedDeliveries.Count).Sum(leg => leg.Duration?.Value ?? 0);
+            var totalTravelSeconds = legs.Take(orderedDeliveries.Count).Sum(leg => leg.Duration?.Value ?? 0);
+            var totalServiceMinutes = orderedDeliveries.Sum(d => d.EstimatedDurationMinutes ?? 15);
 
             var response = new OptimizePathResponseDto
             {
                 Deliveries = optimizedDeliveries,
                 TotalDistanceKm = totalDistanceMeters / 1000m,
-                TotalDurationMinutes = totalDurationSeconds / 60
+                TotalDurationMinutes = totalTravelSeconds / 60 + totalServiceMinutes
             };
 
             logger.LogInformation(
@@ -1190,7 +1202,7 @@ public class RouteService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Erreur lors du recalcul des m�triques");
+            logger.LogError(ex, "Erreur lors du recalcul des métriques");
             return ResponseResult<OptimizePathResponseDto>.Failure(
                 $"Erreur lors du recalcul: {ex.Message}");
         }
@@ -1217,14 +1229,14 @@ public class RouteService(
                 .FirstOrDefaultAsync(r => r.Id == routeId);
 
             if (route == null)
-                return ResponseResult<byte[]>.Failure("Route non trouv�e");
+                return ResponseResult<byte[]>.Failure("Route non trouvée");
 
             // 2. R�cup�rer les informations de l'entreprise (tenant)
             var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantService.GetTenantId());
 
             if (tenant == null)
-                return ResponseResult<byte[]>.Failure("Informations entreprise non trouv�es");
+                return ResponseResult<byte[]>.Failure("Informations entreprise non trouvées");
 
             // 3. Cr�er l'acronyme de l'entreprise pour le PDF
             var companyAcronym = GetCompanyAcronym(tenant.CompanyName ?? tenant.Name);
@@ -1323,7 +1335,7 @@ public class RouteService(
                 "Erreur lors de la g�n�ration de la feuille de route PDF pour la route {RouteId}",
                 routeId);
 
-            return ResponseResult<byte[]>.Failure($"Erreur lors de la g�n�ration du PDF: {ex.Message}");
+            return ResponseResult<byte[]>.Failure($"Erreur lors de la génération du PDF: {ex.Message}");
         }
     }
 

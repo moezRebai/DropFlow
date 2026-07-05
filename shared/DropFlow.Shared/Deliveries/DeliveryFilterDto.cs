@@ -17,4 +17,5 @@ public class DeliveryFilterDto : PaginatedFilter
     public string? GlobalSearch { get; set; }
     public string SortBy { get; set; } = "SequentialNumber";
     public bool SortDescending { get; set; } = true;
+    public bool? WithIssues { get; set; }
 }

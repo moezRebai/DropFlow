@@ -13,12 +13,12 @@ public class CreateDeliveryValidator : AbstractValidator<CreateDeliveryDto>
         {
            
             RuleFor(x => x.ClientPhone)
-                .NotEmpty().WithMessage("Le tÈlÈphone est obligatoire")
+                .NotEmpty().WithMessage("Le tÔøΩlÔøΩphone est obligatoire")
                 .Matches(@"^0[1-9]\d{8}$")
                 .WithMessage("Format invalide (ex: 0612345678)");
             
             RuleFor(x => x.ClientFirstName)
-                .NotEmpty().WithMessage("Le prÈnom est obligatoire");
+                .NotEmpty().WithMessage("Le prÔøΩnom est obligatoire");
             RuleFor(x => x.ClientLastName)
                 .NotEmpty().WithMessage("Le nom est obligatoire");
         });
@@ -44,13 +44,13 @@ public class CreateDeliveryValidator : AbstractValidator<CreateDeliveryDto>
         
         // Price
         RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("Le prix doit Ítre > 0");
+            .GreaterThan(0).WithMessage("Le prix doit ÔøΩtre > 0");
         
         // Scheduled Date
         RuleFor(x => x.ScheduledDate)
             .NotNull()
             .When(x => x.Status != DeliveryStatus.ToBePlanned)
-            .WithMessage("La date est obligatoire si statut ? '¿ Planifier'");
+            .WithMessage("La date est obligatoire si statut ? 'ÔøΩ Planifier'");
         
         // Items
         RuleFor(x => x.Items)
@@ -60,48 +60,52 @@ public class CreateDeliveryValidator : AbstractValidator<CreateDeliveryDto>
         {
             item.RuleFor(x => x.Designation)
                 .NotEmpty()
-                .WithMessage("La dÈsignation de l'article est obligatoire")
+                .WithMessage("La dÔøΩsignation de l'article est obligatoire")
                 .MaximumLength(200)
-                .WithMessage("La dÈsignation ne peut pas dÈpasser 200 caractËres");
+                .WithMessage("La dÔøΩsignation ne peut pas dÔøΩpasser 200 caractÔøΩres");
 
             item.RuleFor(x => x.Quantity)
                 .GreaterThan(0)
-                .WithMessage("La quantitÈ doit Ítre supÈrieure ‡ 0")
+                .WithMessage("La quantitÔøΩ doit ÔøΩtre supÔøΩrieure ÔøΩ 0")
                 .LessThan(10000)
-                .WithMessage("La quantitÈ ne peut pas dÈpasser 10 000");
+                .WithMessage("La quantitÔøΩ ne peut pas dÔøΩpasser 10 000");
 
             item.When(x => !string.IsNullOrEmpty(x.Reference), () =>
             {
                 item.RuleFor(x => x.Reference)
                     .MaximumLength(100)
-                    .WithMessage("La rÈfÈrence ne peut pas dÈpasser 100 caractËres");
+                    .WithMessage("La rÔøΩfÔøΩrence ne peut pas dÔøΩpasser 100 caractÔøΩres");
             });
 
             item.When(x => !string.IsNullOrEmpty(x.Information), () =>
             {
                 item.RuleFor(x => x.Information)
                     .MaximumLength(500)
-                    .WithMessage("Les informations ne peuvent pas dÈpasser 500 caractËres");
+                    .WithMessage("Les informations ne peuvent pas dÔøΩpasser 500 caractÔøΩres");
             });
         });
         
-        When(x => x.ScheduledDate.HasValue, () =>
+        When(x => x.EstimatedDurationMinutes.HasValue, () =>
         {
             RuleFor(x => x.EstimatedDurationMinutes)
-                .NotNull()
-                .WithMessage("La durÈe estimÈe de prestation est obligatoire lorsque la date de livraison est dÈfinie")
                 .GreaterThan(0)
-                .WithMessage("La durÈe doit Ítre supÈrieure ‡ 0")
+                .WithMessage("La dur√©e doit √™tre sup√©rieure √† 0")
                 .LessThanOrEqualTo(480)
-                .WithMessage("La durÈe ne peut pas dÈpasser 8 heures (480 minutes)");
+                .WithMessage("La dur√©e ne peut pas d√©passer 8 heures (480 minutes)");
         });
 
-        // ? Si Confirmed ou InProgress, date OBLIGATOIRE (et donc durÈe aussi via rËgle prÈcÈdente)
         When(x => x.Status is DeliveryStatus.Confirmed or DeliveryStatus.InProgress, () =>
         {
             RuleFor(x => x.ScheduledDate)
                 .NotNull()
-                .WithMessage("La date de livraison est obligatoire pour une livraison confirmÈe ou en cours");
+                .WithMessage("La date de livraison est obligatoire pour une livraison confirm√©e ou en cours");
+        });
+
+        When(x => x.ScheduledDate.HasValue, () =>
+        {
+            RuleFor(x => x.Status)
+                .NotEqual(DeliveryStatus.ToBePlanned)
+                .WithMessage("Une livraison avec une date planifi√©e ne peut pas avoir le statut '√Ä planifier'");
         });
     }
 }

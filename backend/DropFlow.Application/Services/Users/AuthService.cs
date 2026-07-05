@@ -159,8 +159,15 @@ public class AuthService(
                     IsActive = user.IsActive
                 };
 
-                // 6. Email de bienvenue
-                await emailService.SendWelcomeEmailAsync(user.Email!, user.FirstName);
+                // 6. Email de bienvenue (non-bloquant — l'inscription réussit même si l'email échoue)
+                try
+                {
+                    await emailService.SendWelcomeEmailAsync(user.Email!, user.FirstName);
+                }
+                catch (Exception emailEx)
+                {
+                    logger.LogWarning(emailEx, "Welcome email failed for {Email}, registration still succeeded", user.Email);
+                }
 
                 logger.LogInformation("Tenant created successfully: {TenantId}", tenant.Id);
 

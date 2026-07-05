@@ -63,7 +63,7 @@ public class TimeSlotService(
         // Validation : EndTime > StartTime
         if (dto.EndTime <= dto.StartTime)
         {
-            return ResponseResult<int>.Failure("L'heure de fin doit être après l'heure de début");
+            return ResponseResult<int>.Failure("L'heure de fin doit ï¿½tre aprï¿½s l'heure de dï¿½but");
         }
 
         var timeSlot = new TimeSlot
@@ -112,13 +112,13 @@ public class TimeSlotService(
 
         if (timeSlot == null)
         {
-            return ResponseResult.Failure("Créneau introuvable");
+            return ResponseResult.Failure("CrÃ©neau introuvable");
         }
 
         // Validation
         if (dto.EndTime <= dto.StartTime)
         {
-            return ResponseResult.Failure("L'heure de fin doit être après l'heure de début");
+            return ResponseResult.Failure("L'heure de fin doit ï¿½tre aprï¿½s l'heure de dï¿½but");
         }
 
         timeSlot.StartTime = dto.StartTime;
@@ -139,18 +139,17 @@ public class TimeSlotService(
 
         if (timeSlot == null)
         {
-            return ResponseResult.Failure("Créneau introuvable");
+            return ResponseResult.Failure("CrÃ©neau introuvable");
         }
 
-        // Vérifier si utilisé dans des livraisons
         var usedInDeliveries = await context.Deliveries
             .AnyAsync(d => d.TimeSlotId == id);
 
         if (usedInDeliveries)
         {
             return ResponseResult.Failure(
-                "Impossible de supprimer ce créneau car il est utilisé dans des livraisons. " +
-                "Vous pouvez le désactiver à la place.");
+                "Impossible de supprimer ce crÃ©neau car il est utilisÃ© dans des livraisons. " +
+                "Vous pouvez le dÃ©sactiver ï¿½ la place.");
         }
 
         context.TimeSlots.Remove(timeSlot);

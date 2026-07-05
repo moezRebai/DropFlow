@@ -66,7 +66,7 @@ public class TimeSlotsController(ITimeSlotService timeSlotService) : ControllerB
     /// Supprime un créneau
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await timeSlotService.DeleteAsync(id);

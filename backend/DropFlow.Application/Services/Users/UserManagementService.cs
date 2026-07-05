@@ -29,10 +29,13 @@ public class UserManagementService(
             var tenantId = tenantService.GetTenantId();
 
             if (dto.Role == Roles.Admin)
-                return ResponseResult.Failure("Vous ne pouvez pas créer d'administrateur");
+                return ResponseResult.Failure("Vous ne pouvez pas crï¿½er d'administrateur");
+
+            // Accept "Driver" as frontend alias for "Livreur"
+            if (dto.Role == "Driver") dto.Role = Roles.Livreur;
 
             if (!Roles.IsValid(dto.Role))
-                return ResponseResult.Failure("Rôle invalide");
+                return ResponseResult.Failure("Rï¿½le invalide");
 
             var existingUser = await context.Users
                 .FirstOrDefaultAsync(u =>
@@ -41,7 +44,7 @@ public class UserManagementService(
                     u.DeletedDate == null);
 
             if (existingUser != null)
-                return ResponseResult.Failure("Un utilisateur avec cet email existe déjà");
+                return ResponseResult.Failure("Un utilisateur avec cet email existe dï¿½jï¿½");
 
             var pendingInvitation = await context.UserInvitations
                 .AnyAsync(i => i.Email == dto.Email &&
@@ -50,7 +53,7 @@ public class UserManagementService(
                                i.ExpiresAt > DateTime.UtcNow);
 
             if (pendingInvitation)
-                return ResponseResult.Failure("Une invitation est déjà en cours pour cet email");
+                return ResponseResult.Failure("Une invitation est dï¿½jï¿½ en cours pour cet email");
 
             var invitation = UserInvitation.Create(
                 tenantId,
@@ -77,7 +80,7 @@ public class UserManagementService(
 
             logger.LogInformation("User invited: {Email}", dto.Email);
 
-            return ResponseResult.Success("Invitation envoyée avec succès");
+            return ResponseResult.Success("Invitation envoyï¿½e avec succï¿½s");
         }
         catch (Exception ex)
         {
@@ -94,7 +97,7 @@ public class UserManagementService(
                 return ResponseResult.Failure("Utilisateur introuvable");
 
             if (user.Id == deactivatedBy)
-                return ResponseResult.Failure("Vous ne pouvez pas désactiver votre propre compte");
+                return ResponseResult.Failure("Vous ne pouvez pas dï¿½sactiver votre propre compte");
 
             var roles = await userManager.GetRolesAsync(user);
             if (roles.Contains(Roles.Manager))
@@ -114,7 +117,7 @@ public class UserManagementService(
                 }
 
                 if (managerCount == 0)
-                    return ResponseResult.Failure("Vous ne pouvez pas désactiver le dernier Manager");
+                    return ResponseResult.Failure("Vous ne pouvez pas dï¿½sactiver le dernier Manager");
             }
 
             user.Deactivate();
@@ -130,7 +133,7 @@ public class UserManagementService(
 
             logger.LogInformation("User deactivated: {UserId}", userId);
 
-            return ResponseResult.Success("Utilisateur désactivé avec succès");
+            return ResponseResult.Success("Utilisateur dï¿½sactivï¿½ avec succï¿½s");
         }
         catch (Exception ex)
         {
@@ -159,7 +162,7 @@ public class UserManagementService(
 
             logger.LogInformation("User reactivated: {UserId}", userId);
 
-            return ResponseResult.Success("Utilisateur réactivé avec succès");
+            return ResponseResult.Success("Utilisateur rï¿½activï¿½ avec succï¿½s");
         }
         catch (Exception ex)
         {
@@ -228,40 +231,34 @@ public class UserManagementService(
             if (currentUser == null)
                 return ResponseResult.Failure("User not found");
 
-            // Récupérer l'utilisateur cible
             var targetUser = await userManager.FindByIdAsync(userId);
             if (targetUser == null)
                 return ResponseResult.Failure("Target user not found");
 
-            // Vérification : Manager ne peut modifier que les users de son tenant
-            // Admin peut modifier tous les users (sauf Admin DropFlow)
             if (currentUser.TenantId != TenantIds.DropFlowAdmin)
             {
-                // Manager : vérifier même tenant
                 if (targetUser.TenantId != currentUser.TenantId)
                     return ResponseResult.Failure("You can only manage users from your tenant");
             }
             else
             {
-                // Admin DropFlow : ne peut pas modifier Admin DropFlow
                 if (targetUser.TenantId == TenantIds.DropFlowAdmin)
                     return ResponseResult.Failure("Cannot modify DropFlow Admin user");
             }
 
-            // Validation du rôle
-            var validRoles = new[] { Roles.Manager, Roles.Livreur };
+            // Accept both "Livreur" (backend constant) and "Driver" (frontend alias)
+            if (newRole == "Driver") newRole = Roles.Livreur;
+
+            var validRoles = new[] { Roles.Manager, Roles.Livreur, Roles.Accountant, Roles.ReadOnly };
             if (!validRoles.Contains(newRole))
                 return ResponseResult.Failure($"Invalid role. Valid roles: {string.Join(", ", validRoles)}");
 
-            // Récupérer le rôle actuel
             var currentRoles = await userManager.GetRolesAsync(targetUser);
             var oldRole = currentRoles.FirstOrDefault() ?? "None";
 
-            // Si même rôle, rien à faire
             if (oldRole == newRole)
                 return ResponseResult.Failure("User already has this role");
 
-            // Supprimer tous les rôles actuels
             if (currentRoles.Any())
             {
                 var removeResult = await userManager.RemoveFromRolesAsync(targetUser, currentRoles);
@@ -269,12 +266,22 @@ public class UserManagementService(
                     return ResponseResult.Failure("Failed to remove old roles");
             }
 
-            // Ajouter le nouveau rôle
             var addResult = await userManager.AddToRoleAsync(targetUser, newRole);
             if (!addResult.Succeeded)
                 return ResponseResult.Failure(string.Join(", ", addResult.Errors.Select(e => e.Description)));
 
-            // Audit
+            // When a driver is promoted to another role, remove the Driver entity
+            // so they no longer appear in the drivers list
+            if (oldRole == Roles.Livreur && newRole != Roles.Livreur)
+            {
+                var driver = await context.Drivers.FirstOrDefaultAsync(d => d.UserId == userId);
+                if (driver != null)
+                {
+                    context.Drivers.Remove(driver);
+                    await context.SaveChangesAsync();
+                }
+            }
+
             await auditService.LogAsync(
                 tenantId: currentUser.TenantId,
                 userId: currentUser.Id,
@@ -315,18 +322,18 @@ public class UserManagementService(
             if (user == null)
                 return ResponseResult.Failure("Target user not found");
 
-            // Vérifier même tenant
+            // Vï¿½rifier mï¿½me tenant
             if (user.TenantId != currentUser.TenantId &&
                 currentUser.TenantId != TenantIds.DropFlowAdmin)
             {
                 return ResponseResult.Failure("You can only delete users from your tenant");
             }
 
-            // Ne pas supprimer soi-même
+            // Ne pas supprimer soi-mï¿½me
             if (user.Id == currentUser.Id)
                 return ResponseResult.Failure("You cannot delete yourself");
 
-            // ? Vérifier livraisons en cours
+            // ? Vï¿½rifier livraisons en cours
             // var activeDeliveries = await context.Deliveries
             //     .Where(d => d.DriverId == userId && 
             //                 d.Status != DeliveryStatus.Done &&
@@ -377,7 +384,7 @@ public class UserManagementService(
             if (currentUser == null)
                 return ResponseResult.Failure("User not found");
 
-            // ? IMPORTANT : IgnoreQueryFilters pour voir les supprimés
+            // ? IMPORTANT : IgnoreQueryFilters pour voir les supprimï¿½s
             var user = await context.Users
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(u => u.Id == userId);
@@ -388,7 +395,7 @@ public class UserManagementService(
             if (user.DeletedDate == null)
                 return ResponseResult.Failure("User is not deleted");
 
-            // Vérifier permissions
+            // Vï¿½rifier permissions
             if (user.TenantId != currentUser.TenantId && 
                 currentUser.TenantId != TenantIds.DropFlowAdmin)
             {

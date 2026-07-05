@@ -111,7 +111,6 @@ public class Program
                 app.UseHsts();
             }
 
-            // HTTPS Redirection — désactivé en prod (Fly.io gère HTTPS au niveau proxy)
             if (app.Environment.IsDevelopment())
             {
                 app.UseHttpsRedirection();

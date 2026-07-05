@@ -27,7 +27,7 @@ public static class DatabaseExtensions
             // 1. Seed Roles
             await SeedRolesAsync(services, logger);
 
-            // 2. ? SEED SUPER ADMIN
+            // 2. SEED SUPER ADMIN
             await SeedSuperAdminAsync(services, logger);
 
             // 3. Seed Dev Data
@@ -43,7 +43,6 @@ public static class DatabaseExtensions
         }
     }
 
-    // ? NOUVEAU
     private static async Task SeedSuperAdminAsync(
         IServiceProvider services,
         ILogger logger)
@@ -66,7 +65,7 @@ public static class DatabaseExtensions
 
         logger.LogInformation("Creating DropFlow Super Admin...");
 
-        // ? Créer avec TenantId = 0
+        // CrÃ©er avec TenantId = 0
         var admin = ApplicationUser.Create(
             tenantId: TenantIds.DropFlowAdmin, // 0
             email: adminEmail,
@@ -83,11 +82,11 @@ public static class DatabaseExtensions
             return;
         }
 
-        // Assigner rôle Admin
+        // Assigner rÃ´le Admin
         await userManager.AddToRoleAsync(admin, Roles.Admin);
 
-        logger.LogInformation("? Super Admin created successfully: {Email}", adminEmail);
-        logger.LogWarning("??  CHANGE DEFAULT PASSWORD IN PRODUCTION!");
+        logger.LogInformation("Super Admin created successfully: {Email}", adminEmail);
+        logger.LogWarning("CHANGE DEFAULT PASSWORD IN PRODUCTION!");
     }
 
     private static async Task SeedRolesAsync(IServiceProvider services, ILogger logger)
@@ -95,7 +94,7 @@ public static class DatabaseExtensions
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
         logger.LogInformation("Seeding roles...");
-        
+
         foreach (var role in Roles.All)
         {
             if (!await roleManager.RoleExistsAsync(role))
@@ -116,26 +115,71 @@ public static class DatabaseExtensions
         logger.LogInformation("Roles seeding completed");
     }
 
+    private static async Task CleanDevelopmentDataAsync(ApplicationDbContext context, ILogger logger)
+    {
+        logger.LogInformation("Cleaning all development data...");
+
+        // Delete in FK-safe order (children before parents)
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""DeliveryItems""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""RouteTeam""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""TimeSlots""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Deliveries""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Routes""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""ClientAddresses""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Clients""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Drivers""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Vehicles""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Stores""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""TenantDepots""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""AuditLogs""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""UserInvitations""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""UserPreferences""");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""RefreshTokens""");
+        await context.Database.ExecuteSqlRawAsync(@"
+            DELETE FROM ""AspNetUserRoles""
+            WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""TenantId"" != 0)");
+        await context.Database.ExecuteSqlRawAsync(@"
+            DELETE FROM ""AspNetUserClaims""
+            WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""TenantId"" != 0)");
+        await context.Database.ExecuteSqlRawAsync(@"
+            DELETE FROM ""AspNetUserLogins""
+            WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""TenantId"" != 0)");
+        await context.Database.ExecuteSqlRawAsync(@"
+            DELETE FROM ""AspNetUserTokens""
+            WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""TenantId"" != 0)");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""AspNetUsers"" WHERE ""TenantId"" != 0");
+        await context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Tenants""");
+
+        logger.LogInformation("Development data cleaned successfully");
+    }
+
     private static async Task SeedDevelopmentDataAsync(IServiceProvider services, ILogger logger)
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var configuration = services.GetRequiredService<IConfiguration>();
 
-        // Vérifier si des données existent déjà
+        var forceReseed = configuration.GetValue("DevData:ForceReseed", false);
+
         if (await context.Tenants.AnyAsync())
         {
-            logger.LogInformation("Development data already exists, skipping seed");
-            return;
+            if (!forceReseed)
+            {
+                logger.LogInformation("Development data already exists, skipping seed");
+                return;
+            }
+
+            logger.LogInformation("DevData:ForceReseed=true â€” cleaning existing data before re-seeding...");
+            await CleanDevelopmentDataAsync(context, logger);
         }
 
         logger.LogInformation("Seeding development data...");
 
-        // 1. Créer un tenant de test
+        // 1. CrÃ©er un tenant de test
         var testTenant = Tenant.Create("Test Company");
         context.Tenants.Add(testTenant);
         await context.SaveChangesAsync();
 
-        // ? AJOUTER ICI - Initialiser les infos entreprise
         testTenant.UpdateCompanyInfo(
             companyName: "Test Company SARL",
             address: "123 Avenue des Tests",
@@ -145,34 +189,34 @@ public static class DatabaseExtensions
             email: "contact@testcompany.fr",
             website: "https://testcompany.fr"
         );
-        
+
         testTenant.UpdateLegalInfo(
             siret: "12345678901234",
             vatNumber: "FR12345678901",
             legalForm: "SARL",
-            legalMentions: "SARL au capital de 10 000€ - RCS Paris",
+            legalMentions: "SARL au capital de 10 000â‚¬ - RCS Paris",
             bankDetails: "FR76 1234 5678 9012 3456 7890 123"
         );
-    
+
         await context.SaveChangesAsync();
 
-        // ? AJOUTER ICI - Seed des dépôts
+        // Seed des dÃ©pÃ´ts
         await SeedDepotsAsync(context, testTenant.Id, "system", logger);
-        
-        // 2. Créer un utilisateur Manager de test
+
+        // 2. CrÃ©er un utilisateur Manager de test
         var testUser = ApplicationUser.Create(
             tenantId: testTenant.Id,
-            email: "manager@test.com",
-            firstName: "Test",
-            lastName: "Manager"
+            email: "defaultManager@test.com",
+            firstName: "John",
+            lastName: "Dupont"
         );
 
         await userManager.CreateAsync(testUser, "Test@123");
         await userManager.AddToRoleAsync(testUser, Roles.Manager);
 
         await SeedVehiclesAndDriversAsync(context, testTenant.Id, testUser.Id, logger);
-        
-        // 3. ? SEED STORES
+
+        // 3. SEED STORES
         var stores = new[]
         {
             new Store
@@ -206,10 +250,10 @@ public static class DatabaseExtensions
             new Store
             {
                 TenantId = testTenant.Id,
-                Name = "IKEA Vélizy",
+                Name = "IKEA VÃ©lizy",
                 Address = "789 Avenue de l'Europe",
                 ZipCode = "78140",
-                City = "Vélizy-Villacoublay",
+                City = "VÃ©lizy-Villacoublay",
                 ContactName = "Sophie Leroux",
                 Phone = "0139456789",
                 Email = "velizy@ikea.fr",
@@ -222,15 +266,15 @@ public static class DatabaseExtensions
         context.Stores.AddRange(stores);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("? Seeded 3 test stores");
+        logger.LogInformation("Seeded 3 test stores");
 
-        // 4. ? SEED CLIENTS avec Bogus
+        // 4. SEED CLIENTS avec Bogus
         await SeedClientsAsync(context, testTenant.Id, testUser.Id, logger);
 
-        // 5. ? SEED DELIVERIES avec Bogus
+        // 5. SEED DELIVERIES avec Bogus
         await SeedDeliveriesAsync(context, testTenant.Id, testUser.Id, stores, logger);
 
-        // 6. ? SEED AUDIT LOGS pour les notifications du dashboard
+        // 6. SEED AUDIT LOGS pour les notifications du dashboard
         await SeedAuditLogsAsync(context, testTenant.Id, testUser.Id, logger);
 
         logger.LogInformation("Development data seeded successfully");
@@ -248,7 +292,7 @@ public static class DatabaseExtensions
     {
         logger.LogInformation("Seeding clients with Bogus...");
 
-        Randomizer.Seed = new Random(123); // Seed fixe pour reproductibilité
+        Randomizer.Seed = new Random(123);
 
         var clientFaker = new Faker<Client>("fr")
             .RuleFor(c => c.TenantId, _ => tenantId)
@@ -267,27 +311,27 @@ public static class DatabaseExtensions
         context.Clients.AddRange(clients);
         await context.SaveChangesAsync();
 
-        // Ajouter des adresses pour chaque client
         var addressFaker = new Faker<ClientAddress>("fr")
-            .RuleFor(ca => ca.Label, f => f.PickRandom("Domicile", "Bureau", "Entrepôt", "Résidence secondaire"))
+            .RuleFor(ca => ca.Label, f => f.PickRandom(
+                "Domicile", "Bureau", "EntrepÃ´t", "RÃ©sidence secondaire"))
             .RuleFor(ca => ca.Address, f => f.Address.StreetAddress())
             .RuleFor(ca => ca.ZipCode, f => f.Address.ZipCode("7####"))
             .RuleFor(ca => ca.City, f => f.PickRandom(
-                "Paris", "Reims", "Épernay", "Châlons-en-Champagne", "Troyes",
-                "Vitry-le-François", "Saint-Dizier", "Romilly-sur-Seine", "Sainte-Savine", "La Chapelle-Saint-Luc"
+                "Paris", "Reims", "Ã‰pernay", "ChÃ¢lons-en-Champagne", "Troyes",
+                "Vitry-le-FranÃ§ois", "Saint-Dizier", "Romilly-sur-Seine",
+                "Sainte-Savine", "La Chapelle-Saint-Luc"
             ))
             .RuleFor(ca => ca.Latitude, f => f.Address.Latitude())
             .RuleFor(ca => ca.Longitude, f => f.Address.Longitude())
             .RuleFor(ca => ca.Complement, f => f.Random.Bool(0.3f) ? f.Address.SecondaryAddress() : null)
-            .RuleFor(ca => ca.IsDefault, (f, ca) => true); // La première sera par défaut
+            .RuleFor(ca => ca.IsDefault, (f, ca) => true);
 
         foreach (var client in clients)
         {
             var addresses = addressFaker
                 .RuleFor(ca => ca.ClientId, _ => client.Id)
-                .Generate(new Faker().Random.Int(1, 2)); // 1 ou 2 adresses par client
+                .Generate(new Faker().Random.Int(1, 2));
 
-            // Assurer qu'une seule adresse est par défaut
             if (addresses.Count > 1)
             {
                 addresses[1].IsDefault = false;
@@ -298,7 +342,7 @@ public static class DatabaseExtensions
 
         await context.SaveChangesAsync();
 
-        logger.LogInformation("? Seeded 20 clients with addresses");
+        logger.LogInformation("Seeded 20 clients with addresses");
     }
 
     // ----------------------------------------------------------------
@@ -328,22 +372,20 @@ public static class DatabaseExtensions
         Randomizer.Seed = new Random(456);
         var faker = new Faker("fr");
 
-        // Pick 10 distinct clients — shuffle and take first 10
         var selectedClients = allClients.OrderBy(_ => faker.Random.Int()).Take(10).ToList();
 
-        // (status, scheduledDaysOffset) — null means no scheduled date
         var configs = new (DeliveryStatus Status, int? DaysOffset)[]
         {
             (DeliveryStatus.ToBePlanned, null),
             (DeliveryStatus.ToBePlanned, null),
-            (DeliveryStatus.Confirmed,   7),
-            (DeliveryStatus.Confirmed,   14),
-            (DeliveryStatus.Confirmed,   21),
-            (DeliveryStatus.InProgress,  0),
-            (DeliveryStatus.InProgress,  0),
-            (DeliveryStatus.Delivered,  -7),
-            (DeliveryStatus.Delivered,  -14),
-            (DeliveryStatus.Canceled,    null),
+            (DeliveryStatus.ToBePlanned, null),
+            (DeliveryStatus.ToBePlanned, 3),
+            (DeliveryStatus.ToBePlanned, 7),
+            (DeliveryStatus.ToBePlanned, 14),
+            (DeliveryStatus.ToBePlanned, 21),
+            (DeliveryStatus.ToBePlanned, 30),
+            (DeliveryStatus.InProgress,  1),
+            (DeliveryStatus.InProgress,  2),
         };
 
         var sequentialNumber = 5000;
@@ -382,10 +424,10 @@ public static class DatabaseExtensions
                 DeliveryNotes = faker.Random.Bool(0.4f)
                     ? faker.PickRandom(
                         "Sonner 2 fois",
-                        "Livrer à l'arrière du bâtiment",
+                        "Livrer Ã  l'arriÃ¨re du bÃ¢timent",
                         "Code portail: 1234",
                         "Appeler avant",
-                        "Déposer devant la porte")
+                        "DÃ©poser devant la porte")
                     : null,
                 InternalNotes = faker.Random.Bool(0.2f)
                     ? faker.PickRandom(
@@ -408,7 +450,7 @@ public static class DatabaseExtensions
 
         await SeedDeliveryItemsAsync(context, deliveries, logger);
 
-        logger.LogInformation("? Seeded {Count} deliveries", deliveries.Count);
+        logger.LogInformation("Seeded {Count} deliveries", deliveries.Count);
     }
 
     private static async Task SeedDeliveryItemsAsync(
@@ -421,26 +463,26 @@ public static class DatabaseExtensions
 
         var furnitureItems = new[]
         {
-            "Canapé 3 places",
+            "CanapÃ© 3 places",
             "Table basse",
-            "Bibliothèque",
+            "BibliothÃ¨que",
             "Lit 160x200",
             "Matelas",
             "Armoire 3 portes",
             "Commode",
             "Bureau",
             "Chaise de bureau",
-            "Table à manger",
+            "Table Ã  manger",
             "Chaise",
             "Meuble TV",
-            "Étagère murale",
+            "Ã‰tagÃ¨re murale",
             "Buffet",
             "Fauteuil"
         };
 
         foreach (var delivery in deliveries)
         {
-            var itemCount = faker.Random.Int(1, 4); // 1 à 4 articles par livraison
+            var itemCount = faker.Random.Int(1, 4);
 
             for (int i = 0; i < itemCount; i++)
             {
@@ -455,7 +497,7 @@ public static class DatabaseExtensions
                     Information = faker.Random.Bool(0.3f)
                         ? faker.PickRandom(
                             "Coloris: Gris anthracite",
-                            "Matière: Tissu",
+                            "MatiÃ¨re: Tissu",
                             "Dimensions: 200x90x80",
                             "Avec garantie 2 ans"
                         )
@@ -469,12 +511,12 @@ public static class DatabaseExtensions
         context.DeliveryItems.AddRange(items);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("? Seeded {Count} delivery items", items.Count);
+        logger.LogInformation("Seeded {Count} delivery items", items.Count);
     }
 
     // ----------------------------------------------------------------
-// SEED VEHICLES, DRIVERS, ROUTESHEETS
-// ----------------------------------------------------------------
+    // SEED VEHICLES, DRIVERS
+    // ----------------------------------------------------------------
 
     private static async Task SeedVehiclesAndDriversAsync(
         ApplicationDbContext context,
@@ -486,7 +528,6 @@ public static class DatabaseExtensions
 
         var faker = new Faker("fr");
 
-        // Créer 3 véhicules
         var vehicles = new[]
         {
             Vehicle.Create(
@@ -504,7 +545,7 @@ public static class DatabaseExtensions
                 maxVolume: 10
             ),
             Vehicle.Create(
-                brand: "Citroën",
+                brand: "CitroÃ«n",
                 model: "Jumper L4H3",
                 plateNumber: "IJ-789-KL",
                 maxDeliveries: 18,
@@ -512,7 +553,6 @@ public static class DatabaseExtensions
             )
         };
 
-        // Affecter TenantId via réflexion (setters privés)
         foreach (var vehicle in vehicles)
         {
             typeof(Vehicle).GetProperty("TenantId")!
@@ -522,9 +562,8 @@ public static class DatabaseExtensions
         context.Vehicles.AddRange(vehicles);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("? Seeded {Count} vehicles", vehicles.Length);
+        logger.LogInformation("Seeded {Count} vehicles", vehicles.Length);
 
-        // Créer utilisateurs pour drivers
         var userManager = context.GetService<UserManager<ApplicationUser>>();
 
         var driverUsers = new[]
@@ -552,7 +591,6 @@ public static class DatabaseExtensions
             createdDriverUsers.Add(user);
         }
 
-        // Créer drivers
         var drivers = new List<Driver>();
 
         for (int i = 0; i < createdDriverUsers.Count; i++)
@@ -572,11 +610,11 @@ public static class DatabaseExtensions
         context.Drivers.AddRange(drivers);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("? Seeded {Count} drivers", drivers.Count);
+        logger.LogInformation("Seeded {Count} drivers", drivers.Count);
     }
-    
+
     /// <summary>
-    /// Seed les dépôts de test pour le tenant
+    /// Seed les dÃ©pÃ´ts de test pour le tenant
     /// </summary>
     private static async Task SeedDepotsAsync(
         ApplicationDbContext context,
@@ -586,7 +624,6 @@ public static class DatabaseExtensions
     {
         logger.LogInformation("Seeding tenant depots...");
 
-        // Vérifier si des dépôts existent déjà pour ce tenant
         if (await context.TenantDepots.AnyAsync(d => d.TenantId == tenantId))
         {
             logger.LogInformation("Depots already exist for tenant, skipping");
@@ -597,29 +634,29 @@ public static class DatabaseExtensions
         {
             TenantDepot.Create(
                 tenantId: tenantId,
-                name: "Dépôt Principal Paris 15",
-                fullAddress: "123 Rue de l'Entrepôt, 75015 Paris",
+                name: "DÃ©pÃ´t Principal Paris 15",
+                fullAddress: "123 Rue de l'EntrepÃ´t, 75015 Paris",
                 city: "Paris",
                 zipCode: "75015",
                 latitude: 48.8566,
                 longitude: 2.3522,
-                isDefault: true  // Premier dépôt = par défaut
+                isDefault: true
             ),
-        
+
             TenantDepot.Create(
                 tenantId: tenantId,
-                name: "Dépôt Vélizy",
-                fullAddress: "789 Avenue de l'Europe, 78140 Vélizy-Villacoublay",
-                city: "Vélizy-Villacoublay",
+                name: "DÃ©pÃ´t VÃ©lizy",
+                fullAddress: "789 Avenue de l'Europe, 78140 VÃ©lizy-Villacoublay",
+                city: "VÃ©lizy-Villacoublay",
                 zipCode: "78140",
                 latitude: 48.7834,
                 longitude: 2.1848,
                 isDefault: false
             ),
-        
+
             TenantDepot.Create(
                 tenantId: tenantId,
-                name: "Dépôt Nanterre",
+                name: "DÃ©pÃ´t Nanterre",
                 fullAddress: "456 Avenue Georges Clemenceau, 92000 Nanterre",
                 city: "Nanterre",
                 zipCode: "92000",
@@ -632,7 +669,7 @@ public static class DatabaseExtensions
         context.TenantDepots.AddRange(depots);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("? Seeded {Count} tenant depots", depots.Length);
+        logger.LogInformation("Seeded {Count} tenant depots", depots.Length);
     }
 
     private static async Task SeedAuditLogsAsync(
@@ -647,16 +684,15 @@ public static class DatabaseExtensions
 
         var logs = new[]
         {
-            AuditLog.Create(tenantId, userId, "Created",       "Delivery", changes: "Nouvelle livraison créée pour Jean Martin"),
-            AuditLog.Create(tenantId, userId, "Completed",     "Route",    changes: "Tournée du jour démarrée avec succès"),
-            AuditLog.Create(tenantId, userId, "StatusUpdated", "Delivery", changes: "Livraison marquée comme Livrée"),
-            AuditLog.Create(tenantId, userId, "Warning",       "Delivery", changes: "3 livraisons non planifiées depuis plus de 14 jours"),
-            AuditLog.Create(tenantId, userId, "Created",       "Route",    changes: "Nouvelle tournée planifiée pour demain"),
+            AuditLog.Create(tenantId, userId, "Created",       "Delivery", changes: "Nouvelle livraison crÃ©Ã©e pour Jean Martin"),
+            AuditLog.Create(tenantId, userId, "Completed",     "Route",    changes: "TournÃ©e du jour dÃ©marrÃ©e avec succÃ¨s"),
+            AuditLog.Create(tenantId, userId, "StatusUpdated", "Delivery", changes: "Livraison marquÃ©e comme LivrÃ©e"),
+            AuditLog.Create(tenantId, userId, "Warning",       "Delivery", changes: "3 livraisons non planifiÃ©es depuis plus de 14 jours"),
+            AuditLog.Create(tenantId, userId, "Created",       "Route",    changes: "Nouvelle tournÃ©e planifiÃ©e pour demain"),
             AuditLog.Create(tenantId, userId, "StatusUpdated", "Delivery", changes: "Livraison en cours de livraison"),
-            AuditLog.Create(tenantId, userId, "Created",       "Client",   changes: "Nouveau client ajouté : Dupont"),
+            AuditLog.Create(tenantId, userId, "Created",       "Client",   changes: "Nouveau client ajoutÃ© : Dupont"),
         };
 
-        // Étaler les timestamps sur les dernières heures via réflexion
         var timestampProp = typeof(AuditLog).GetProperty("Timestamp")!;
         for (int i = 0; i < logs.Length; i++)
         {
@@ -666,6 +702,6 @@ public static class DatabaseExtensions
         context.AuditLogs.AddRange(logs);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("? Seeded {Count} audit logs", logs.Length);
+        logger.LogInformation("Seeded {Count} audit logs", logs.Length);
     }
 }

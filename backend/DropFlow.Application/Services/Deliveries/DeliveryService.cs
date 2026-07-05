@@ -303,6 +303,19 @@ public class DeliveryService(
             if (filter.WithAssembly.HasValue)
                 query = query.Where(d => d.WithAssembly == filter.WithAssembly.Value);
 
+            if (filter.WithIssues == true)
+            {
+                query = query.Where(d =>
+                    !d.ClientAddress.Latitude.HasValue ||
+                    !d.ClientAddress.Longitude.HasValue ||
+                    !(d.ClientAddress.Latitude >= 41.3 && d.ClientAddress.Latitude <= 51.2 &&
+                      d.ClientAddress.Longitude >= -5.2 && d.ClientAddress.Longitude <= 9.6) ||
+                    !d.EstimatedDurationMinutes.HasValue ||
+                    (d.Status != DeliveryStatus.ToBePlanned && !d.ScheduledDate.HasValue) ||
+                    (d.ScheduledDate.HasValue && d.Status == DeliveryStatus.ToBePlanned)
+                );
+            }
+
             if (!string.IsNullOrEmpty(filter.GlobalSearch))
             {
                 var gs = filter.GlobalSearch.ToLower();
@@ -333,6 +346,8 @@ public class DeliveryService(
                     ClientName = d.Client.DisplayName,
                     City = d.ClientAddress.City,
                     FullAddress = d.ClientAddress.FullAddress,
+                    Latitude = d.ClientAddress.Latitude,
+                    Longitude = d.ClientAddress.Longitude,
                     StoreName = d.Store.Name,
                     Price = d.Price,
                     ScheduledDate = d.ScheduledDate,
@@ -340,6 +355,7 @@ public class DeliveryService(
                     RouteId = d.RouteId, // ? AJOUT�
                     RouteReference = d.Route != null ? d.Route.Reference : null, // ? AJOUT�
                     UrgentDriverName = d.UrgentDriver != null ? d.UrgentDriver.User.FullName : null, // ? AJOUT�
+                    EstimatedDurationMinutes = d.EstimatedDurationMinutes,
                     WithAssembly = d.WithAssembly,
                     TotalPackages = d.Items.Sum(i => (int)i.Quantity)
                 })

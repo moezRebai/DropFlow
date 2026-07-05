@@ -20,36 +20,36 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
         // CLIENT (conditionnel si nouveau client)
         // ----------------------------------------------------------------
         
-        // Si ClientId est null, on doit créer un nouveau client
+        // Si ClientId est null, on doit crï¿½er un nouveau client
         When(x => x.ClientId == null, () =>
         {
             RuleFor(x => x.ClientFirstName)
                 .NotEmpty()
-                .WithMessage("Le prénom est obligatoire pour un particulier")
+                .WithMessage("Le prï¿½nom est obligatoire pour un particulier")
                 .MaximumLength(100)
-                .WithMessage("Le prénom ne peut pas dépasser 100 caractères");
+                .WithMessage("Le prï¿½nom ne peut pas dï¿½passer 100 caractï¿½res");
 
             RuleFor(x => x.ClientLastName)
                 .NotEmpty()
                 .WithMessage("Le nom est obligatoire pour un particulier")
                 .MaximumLength(100)
-                .WithMessage("Le nom ne peut pas dépasser 100 caractères");
+                .WithMessage("Le nom ne peut pas dï¿½passer 100 caractï¿½res");
 
             // Phone obligatoire si nouveau client
             RuleFor(x => x.ClientPhone)
                 .NotEmpty()
-                .WithMessage("Le téléphone est obligatoire pour un nouveau client")
+                .WithMessage("Le tï¿½lï¿½phone est obligatoire pour un nouveau client")
                 .Matches(@"^0[1-9]\d{8}$")
-                .WithMessage("Le téléphone doit être au format français (ex: 0612345678)");
+                .WithMessage("Le tï¿½lï¿½phone doit ï¿½tre au format franï¿½ais (ex: 0612345678)");
 
-            // Email optionnel mais validé si présent
+            // Email optionnel mais validï¿½ si prï¿½sent
             When(x => !string.IsNullOrEmpty(x.ClientEmail), () =>
             {
                 RuleFor(x => x.ClientEmail)
                     .EmailAddress()
                     .WithMessage("L'email n'est pas valide")
                     .MaximumLength(100)
-                    .WithMessage("L'email ne peut pas dépasser 100 caractères");
+                    .WithMessage("L'email ne peut pas dï¿½passer 100 caractï¿½res");
             });
         });
 
@@ -57,14 +57,14 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
         // ADRESSE (conditionnel si nouvelle adresse)
         // ----------------------------------------------------------------
         
-        // Si ClientAddressId est null, on doit créer une nouvelle adresse
+        // Si ClientAddressId est null, on doit crï¿½er une nouvelle adresse
         When(x => x.ClientAddressId == null, () =>
         {
             RuleFor(x => x.Address)
                 .NotEmpty()
                 .WithMessage("L'adresse est obligatoire")
                 .MaximumLength(500)
-                .WithMessage("L'adresse ne peut pas dépasser 500 caractères");
+                .WithMessage("L'adresse ne peut pas dï¿½passer 500 caractï¿½res");
 
             RuleFor(x => x.ZipCode)
                 .NotEmpty()
@@ -76,13 +76,13 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
                 .NotEmpty()
                 .WithMessage("La ville est obligatoire")
                 .MaximumLength(100)
-                .WithMessage("La ville ne peut pas dépasser 100 caractères");
+                .WithMessage("La ville ne peut pas dï¿½passer 100 caractï¿½res");
 
             When(x => !string.IsNullOrEmpty(x.AddressComplement), () =>
             {
                 RuleFor(x => x.AddressComplement)
                     .MaximumLength(200)
-                    .WithMessage("Le complément d'adresse ne peut pas dépasser 200 caractères");
+                    .WithMessage("Le complï¿½ment d'adresse ne peut pas dï¿½passer 200 caractï¿½res");
             });
         });
 
@@ -92,29 +92,29 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
         
         RuleFor(x => x.Price)
             .GreaterThan(0)
-            .WithMessage("Le prix doit être supérieur à 0")
+            .WithMessage("Le prix doit ï¿½tre supï¿½rieur ï¿½ 0")
             .LessThan(1000000)
-            .WithMessage("Le prix ne peut pas dépasser 1 000 000€");
+            .WithMessage("Le prix ne peut pas dï¿½passer 1 000 000ï¿½");
 
         When(x => x.ClientPaymentAmount.HasValue, () =>
         {
             RuleFor(x => x.ClientPaymentAmount!.Value)
                 .GreaterThanOrEqualTo(0)
-                .WithMessage("Le montant payé par le client ne peut pas être négatif")
+                .WithMessage("Le montant payï¿½ par le client ne peut pas ï¿½tre nï¿½gatif")
                 .LessThanOrEqualTo(x => x.Price)
-                .WithMessage("Le montant payé par le client ne peut pas dépasser le prix total");
+                .WithMessage("Le montant payï¿½ par le client ne peut pas dï¿½passer le prix total");
         });
 
         When(x => x.StorePaymentAmount.HasValue, () =>
         {
             RuleFor(x => x.StorePaymentAmount!.Value)
                 .GreaterThanOrEqualTo(0)
-                .WithMessage("Le montant payé par le magasin ne peut pas être négatif")
+                .WithMessage("Le montant payï¿½ par le magasin ne peut pas ï¿½tre nï¿½gatif")
                 .LessThanOrEqualTo(x => x.Price)
-                .WithMessage("Le montant payé par le magasin ne peut pas dépasser le prix total");
+                .WithMessage("Le montant payï¿½ par le magasin ne peut pas dï¿½passer le prix total");
         });
 
-        // Vérification: ClientPayment + StorePayment <= Price
+        // Vï¿½rification: ClientPayment + StorePayment <= Price
         RuleFor(x => x)
             .Must(dto => 
             {
@@ -122,14 +122,14 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
                 var storePayment = dto.StorePaymentAmount ?? 0;
                 return clientPayment + storePayment <= dto.Price;
             })
-            .WithMessage("La somme des paiements client et magasin ne peut pas dépasser le prix total")
+            .WithMessage("La somme des paiements client et magasin ne peut pas dï¿½passer le prix total")
             .When(x => x.ClientPaymentAmount.HasValue || x.StorePaymentAmount.HasValue);
 
         // ----------------------------------------------------------------
         // DATE
         // ----------------------------------------------------------------
         
-        // Date obligatoire si statut n'est pas "À planifier"
+        // Date obligatoire si statut n'est pas "ï¿½ planifier"
         When(x => x.Status != DeliveryStatus.ToBePlanned, () =>
         {
             RuleFor(x => x.ScheduledDate)
@@ -145,23 +145,27 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
             .IsInEnum()
             .WithMessage("Le statut n'est pas valide");
 
-        When(x => x.ScheduledDate.HasValue, () =>
+        When(x => x.EstimatedDurationMinutes.HasValue, () =>
         {
             RuleFor(x => x.EstimatedDurationMinutes)
-                .NotNull()
-                .WithMessage("La durée estimée de prestation est obligatoire lorsque la date de livraison est définie")
                 .GreaterThan(0)
-                .WithMessage("La durée doit être supérieure à 0")
+                .WithMessage("La durÃ©e doit Ãªtre supÃ©rieure Ã  0")
                 .LessThanOrEqualTo(480)
-                .WithMessage("La durée ne peut pas dépasser 8 heures (480 minutes)");
+                .WithMessage("La durÃ©e ne peut pas dÃ©passer 8 heures (480 minutes)");
         });
 
-        // ? Si Confirmed ou InProgress, date OBLIGATOIRE (et donc durée aussi via règle précédente)
         When(x => x.Status is DeliveryStatus.Confirmed or DeliveryStatus.InProgress, () =>
         {
             RuleFor(x => x.ScheduledDate)
                 .NotNull()
-                .WithMessage("La date de livraison est obligatoire pour une livraison confirmée ou en cours");
+                .WithMessage("La date de livraison est obligatoire pour une livraison confirmÃ©e ou en cours");
+        });
+
+        When(x => x.ScheduledDate.HasValue, () =>
+        {
+            RuleFor(x => x.Status)
+                .NotEqual(DeliveryStatus.ToBePlanned)
+                .WithMessage("Une livraison avec une date planifiÃ©e ne peut pas avoir le statut 'Ã€ planifier'");
         });
         
         // ----------------------------------------------------------------
@@ -176,28 +180,28 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
         {
             item.RuleFor(x => x.Designation)
                 .NotEmpty()
-                .WithMessage("La désignation de l'article est obligatoire")
+                .WithMessage("La dï¿½signation de l'article est obligatoire")
                 .MaximumLength(200)
-                .WithMessage("La désignation ne peut pas dépasser 200 caractères");
+                .WithMessage("La dï¿½signation ne peut pas dï¿½passer 200 caractï¿½res");
 
             item.RuleFor(x => x.Quantity)
                 .GreaterThan(0)
-                .WithMessage("La quantité doit être supérieure à 0")
+                .WithMessage("La quantitï¿½ doit ï¿½tre supï¿½rieure ï¿½ 0")
                 .LessThan(10000)
-                .WithMessage("La quantité ne peut pas dépasser 10 000");
+                .WithMessage("La quantitï¿½ ne peut pas dï¿½passer 10 000");
 
             item.When(x => !string.IsNullOrEmpty(x.Reference), () =>
             {
                 item.RuleFor(x => x.Reference)
                     .MaximumLength(100)
-                    .WithMessage("La référence ne peut pas dépasser 100 caractères");
+                    .WithMessage("La rï¿½fï¿½rence ne peut pas dï¿½passer 100 caractï¿½res");
             });
 
             item.When(x => !string.IsNullOrEmpty(x.Information), () =>
             {
                 item.RuleFor(x => x.Information)
                     .MaximumLength(500)
-                    .WithMessage("Les informations ne peuvent pas dépasser 500 caractères");
+                    .WithMessage("Les informations ne peuvent pas dï¿½passer 500 caractï¿½res");
             });
         });
 
@@ -209,21 +213,21 @@ public class UpdateDeliveryValidator : AbstractValidator<UpdateDeliveryDto>
         {
             RuleFor(x => x.DeliveryNotes)
                 .MaximumLength(2000)
-                .WithMessage("Les notes de livraison ne peuvent pas dépasser 2000 caractères");
+                .WithMessage("Les notes de livraison ne peuvent pas dï¿½passer 2000 caractï¿½res");
         });
 
         When(x => !string.IsNullOrEmpty(x.InternalNotes), () =>
         {
             RuleFor(x => x.InternalNotes)
                 .MaximumLength(2000)
-                .WithMessage("Les notes internes ne peuvent pas dépasser 2000 caractères");
+                .WithMessage("Les notes internes ne peuvent pas dï¿½passer 2000 caractï¿½res");
         });
 
         When(x => !string.IsNullOrEmpty(x.FileNumber), () =>
         {
             RuleFor(x => x.FileNumber)
                 .MaximumLength(50)
-                .WithMessage("Le numéro de dossier ne peut pas dépasser 50 caractères");
+                .WithMessage("Le numï¿½ro de dossier ne peut pas dï¿½passer 50 caractï¿½res");
         });
     }
 }
