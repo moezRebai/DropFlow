@@ -136,7 +136,7 @@ export function Step1Info() {
         {/* Date */}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="date" className="flex items-center gap-1.5 text-sm font-medium">
-            <Clock className="h-3.5 w-3.5 text-slate-400" />Date de la tournée
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />Date de la tournée
           </Label>
           <Input id="date" type="date" {...register('date')} />
           {errors.date && <p className="text-xs text-red-500">{errors.date.message}</p>}
@@ -144,12 +144,12 @@ export function Step1Info() {
             checkingDeliveries ? (
               <Skeleton className="h-7 w-48 rounded-lg" />
             ) : availableCount === 0 ? (
-              <div className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600">
+              <div className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 Aucune livraison disponible pour cette date
               </div>
             ) : availableCount !== null ? (
-              <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+              <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                 <Package className="h-3.5 w-3.5 shrink-0" />
                 {availableCount} livraison{availableCount > 1 ? 's' : ''} disponible{availableCount > 1 ? 's' : ''} pour cette date
               </div>
@@ -160,7 +160,7 @@ export function Step1Info() {
         {/* Start time */}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="startTime" className="flex items-center gap-1.5 text-sm font-medium">
-            <Clock className="h-3.5 w-3.5 text-slate-400" />Heure de départ
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />Heure de départ
           </Label>
           <Input id="startTime" type="time" {...register('startTime')} />
           {errors.startTime && <p className="text-xs text-red-500">{errors.startTime.message}</p>}
@@ -169,14 +169,14 @@ export function Step1Info() {
         {/* Vehicle */}
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <Label htmlFor="vehicleId" className="flex items-center gap-1.5 text-sm font-medium">
-            <Truck className="h-3.5 w-3.5 text-slate-400" />Véhicule
+            <Truck className="h-3.5 w-3.5 text-muted-foreground" />Véhicule
           </Label>
           <div className="relative">
             <select
               id="vehicleId"
               {...register('vehicleId')}
               className={cn(
-                'w-full appearance-none rounded-md border bg-white px-3 py-2 text-sm pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500',
+                'w-full appearance-none rounded-md border bg-background px-3 py-2 text-sm pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500',
                 errors.vehicleId && 'border-red-500'
               )}
             >
@@ -188,7 +188,7 @@ export function Step1Info() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
           {errors.vehicleId && <p className="text-xs text-red-500">{errors.vehicleId.message}</p>}
         </div>
@@ -196,7 +196,7 @@ export function Step1Info() {
         {/* Departure address */}
         <div className="flex flex-col gap-3 sm:col-span-2">
           <Label className="flex items-center gap-1.5 text-sm font-medium">
-            <MapPin className="h-3.5 w-3.5 text-slate-400" />Adresse de départ
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />Adresse de départ
           </Label>
 
           {/* Mode toggle */}
@@ -204,11 +204,12 @@ export function Step1Info() {
             <button
               type="button"
               onClick={() => setValue('departureMode', 'depot')}
+              aria-pressed={departureMode === 'depot'}
               className={cn(
                 'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                 departureMode === 'depot'
-                  ? 'border-sky-500 bg-sky-50 text-sky-700'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400'
+                  : 'border-border bg-background text-muted-foreground hover:bg-muted'
               )}
             >
               <Building2 className="h-3.5 w-3.5" />Depuis un dépôt
@@ -216,11 +217,12 @@ export function Step1Info() {
             <button
               type="button"
               onClick={() => setValue('departureMode', 'free')}
+              aria-pressed={departureMode === 'free'}
               className={cn(
                 'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                 departureMode === 'free'
-                  ? 'border-sky-500 bg-sky-50 text-sky-700'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400'
+                  : 'border-border bg-background text-muted-foreground hover:bg-muted'
               )}
             >
               <MapPin className="h-3.5 w-3.5" />Adresse libre
@@ -231,7 +233,7 @@ export function Step1Info() {
             <div className="relative">
               <select
                 {...register('depotId')}
-                className="w-full appearance-none rounded-md border bg-white px-3 py-2 text-sm pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full appearance-none rounded-md border bg-background px-3 py-2 text-sm pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 <option value="">Sélectionner un dépôt…</option>
                 {activeDepots.map(d => (
@@ -240,7 +242,7 @@ export function Step1Info() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
           ) : (
             <Input

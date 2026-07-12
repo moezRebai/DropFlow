@@ -43,13 +43,13 @@ function DeleteModal({ tenant, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Supprimer cette entreprise ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Supprimer cette entreprise ?</h3>
+          <p className="text-sm text-muted-foreground">
             <strong>{tenant.name}</strong> sera désactivée et archivée. Cette action est réversible côté serveur mais retire l'accès immédiatement.
           </p>
         </div>
@@ -143,18 +143,19 @@ export default function TenantsPage() {
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une entreprise…" className="pl-9" />
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          <div className="flex gap-1 rounded-xl bg-muted p-1">
             {(['all', 'active', 'inactive'] as StatusFilter[]).map(s => (
               <button
                 key={s}
                 onClick={() => setStatus(s)}
+                aria-pressed={status === s}
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
-                  status === s ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
+                  status === s ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {s === 'all' ? 'Toutes' : s === 'active' ? 'Actives' : 'Inactives'}
@@ -166,15 +167,15 @@ export default function TenantsPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Entreprise</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Plan</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Utilisateurs</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Créée le</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Statut</TableHead>
+              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entreprise</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Plan</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Utilisateurs</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Créée le</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</TableHead>
               <TableHead className="w-32 pr-6" />
             </TableRow>
           </TableHeader>
@@ -194,10 +195,10 @@ export default function TenantsPage() {
               <TableRow>
                 <TableCell colSpan={6}>
                   <div className="flex flex-col items-center gap-3 py-16">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <Building2 className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Aucune entreprise trouvée</p>
+                    <p className="text-sm font-medium text-muted-foreground">Aucune entreprise trouvée</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -205,7 +206,7 @@ export default function TenantsPage() {
               filtered.map(t => (
                 <TableRow
                   key={t.id}
-                  className={cn('cursor-pointer hover:bg-violet-50/40', !t.isActive && 'opacity-60')}
+                  className={cn('cursor-pointer hover:bg-violet-50/40 dark:hover:bg-violet-500/5', !t.isActive && 'opacity-60')}
                   onClick={() => navigate(`/admin/tenants/${t.id}`)}
                 >
                   <TableCell className="py-3 pl-6">
@@ -214,27 +215,27 @@ export default function TenantsPage() {
                         {t.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-800">{t.name}</p>
-                        {t.subDomain && <p className="text-xs text-slate-400">{t.subDomain}</p>}
+                        <p className="font-semibold text-foreground">{t.name}</p>
+                        {t.subDomain && <p className="text-xs text-muted-foreground">{t.subDomain}</p>}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', PLAN_COLORS[t.planType] ?? 'bg-slate-100 text-slate-600')}>
+                    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', PLAN_COLORS[t.planType] ?? 'bg-muted text-muted-foreground')}>
                       {PLAN_LABELS[t.planType] ?? t.planType}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center gap-1 text-sm text-slate-600">
-                      <Users className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
                       {t.activeUserCount}/{t.userCount}
                     </span>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500">{formatDate(t.createdDate)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDate(t.createdDate)}</TableCell>
                   <TableCell>
                     <span className={cn(
                       'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
-                      t.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
+                      t.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
                     )}>
                       {t.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -243,7 +244,8 @@ export default function TenantsPage() {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => navigate(`/admin/tenants/${t.id}`)}
-                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                        aria-label="Détails"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         title="Détails"
                       >
                         <Eye className="h-4 w-4" />
@@ -251,7 +253,8 @@ export default function TenantsPage() {
                       {t.isActive ? (
                         <button
                           onClick={() => deactivateMutation.mutate(t.id)}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                          aria-label="Désactiver"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                           title="Désactiver"
                           disabled={deactivateMutation.isPending}
                         >
@@ -260,7 +263,8 @@ export default function TenantsPage() {
                       ) : (
                         <button
                           onClick={() => activateMutation.mutate(t.id)}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                          aria-label="Activer"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                           title="Activer"
                           disabled={activateMutation.isPending}
                         >
@@ -269,7 +273,8 @@ export default function TenantsPage() {
                       )}
                       <button
                         onClick={() => setToDelete(t)}
-                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                        aria-label="Supprimer"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                         title="Supprimer"
                       >
                         <Trash2 className="h-4 w-4" />

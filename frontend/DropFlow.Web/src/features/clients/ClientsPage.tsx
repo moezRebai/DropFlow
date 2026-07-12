@@ -58,17 +58,17 @@ function DeleteConfirmModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Supprimer ce client ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Supprimer ce client ?</h3>
+          <p className="text-sm text-muted-foreground">
             <strong>{client.displayName}</strong> sera définitivement supprimé. Cette action est irréversible.
           </p>
           {client.totalDeliveries > 0 && (
-            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
               Ce client a {client.totalDeliveries} livraison(s) associée(s). La suppression peut échouer.
             </p>
           )}
@@ -196,7 +196,7 @@ export default function ClientsPage() {
       {/* ── Toolbar ───────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9 pr-9"
             placeholder="Rechercher un client, email, téléphone…"
@@ -206,7 +206,8 @@ export default function ClientsPage() {
           {searchInput && (
             <button
               onClick={() => setSearchInput('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label="Effacer la recherche"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -223,15 +224,15 @@ export default function ClientsPage() {
       </div>
 
       {/* ── Table ─────────────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50 hover:bg-slate-50">
-              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Client</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Téléphone</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ville</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Livraisons</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">CA total</TableHead>
+            <TableRow className="bg-muted hover:bg-muted">
+              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Téléphone</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ville</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Livraisons</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">CA total</TableHead>
               <TableHead className="w-24 pr-6" />
             </TableRow>
           </TableHeader>
@@ -251,10 +252,10 @@ export default function ClientsPage() {
               <TableRow>
                 <TableCell colSpan={6} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <Users className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {debouncedSearch ? 'Aucun client ne correspond à votre recherche' : 'Aucun client'}
                     </p>
                     {!debouncedSearch && (
@@ -274,7 +275,7 @@ export default function ClientsPage() {
                   <TableRow
                     key={client.id}
                     className={cn(
-                      'cursor-pointer transition-colors hover:bg-sky-50/40',
+                      'cursor-pointer transition-colors hover:bg-sky-50/40 dark:hover:bg-sky-500/5',
                       !client.isActive && 'opacity-60',
                     )}
                     onClick={() => setDialog({ type: 'detail', client })}
@@ -287,20 +288,20 @@ export default function ClientsPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <p className="truncate font-semibold text-slate-800">{client.displayName}</p>
+                            <p className="truncate font-semibold text-foreground">{client.displayName}</p>
                             {isVip && (
                               <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-1.5 py-0.5 text-xs font-bold text-white shadow-sm">
                                 <Star className="h-2.5 w-2.5 fill-current" /> VIP
                               </span>
                             )}
                             {!client.isActive && (
-                              <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-xs text-slate-400">
+                              <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                                 Inactif
                               </span>
                             )}
                           </div>
                           {client.email && (
-                            <p className="flex items-center gap-1 truncate text-xs text-slate-400">
+                            <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                               <Mail className="h-3 w-3 shrink-0" />
                               {client.email}
                             </p>
@@ -311,8 +312,8 @@ export default function ClientsPage() {
 
                     {/* Téléphone */}
                     <TableCell>
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         {client.phone}
                       </div>
                     </TableCell>
@@ -320,26 +321,26 @@ export default function ClientsPage() {
                     {/* Ville */}
                     <TableCell>
                       {defaultAddr ? (
-                        <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {defaultAddr.city}
                         </div>
                       ) : (
-                        <span className="text-sm text-slate-400">—</span>
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </TableCell>
 
                     {/* Livraisons */}
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <Package className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                        <span className="text-sm font-medium text-slate-700">{client.totalDeliveries}</span>
+                        <Package className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">{client.totalDeliveries}</span>
                       </div>
                     </TableCell>
 
                     {/* CA */}
                     <TableCell>
-                      <span className="text-sm font-semibold text-slate-800">
+                      <span className="text-sm font-semibold text-foreground">
                         {formatRevenue(client.totalRevenue)}
                       </span>
                     </TableCell>
@@ -349,21 +350,24 @@ export default function ClientsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setDialog({ type: 'detail', client })}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                          aria-label="Voir le détail"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           title="Voir le détail"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setDialog({ type: 'edit', client })}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                          aria-label="Modifier"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           title="Modifier"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setDialog({ type: 'delete', client })}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                          aria-label="Supprimer"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                           title="Supprimer"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -381,7 +385,7 @@ export default function ClientsPage() {
       {/* ── Pagination ────────────────────────────────────────────────── */}
       {totalCount > 0 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Affichage de <strong>{from}</strong> à <strong>{to}</strong> sur{' '}
             <strong>{totalCount}</strong> client{totalCount > 1 ? 's' : ''}
           </p>
@@ -395,7 +399,7 @@ export default function ClientsPage() {
               <ChevronLeft className="h-4 w-4" />
               Précédent
             </Button>
-            <span className="rounded-lg border bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
+            <span className="rounded-lg border bg-card px-3 py-1.5 text-sm font-medium text-foreground">
               {page} / {totalPages}
             </span>
             <Button

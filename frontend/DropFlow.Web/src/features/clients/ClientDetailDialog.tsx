@@ -133,6 +133,7 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
               </div>
               <button
                 onClick={onClose}
+                aria-label="Fermer"
                 className="rounded-lg p-1.5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
               >
                 <X className="h-5 w-5" />
@@ -174,8 +175,8 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
             <span className={cn(
               'ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold',
               client.isActive
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-slate-100 text-slate-500',
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
+                : 'bg-muted text-muted-foreground',
             )}>
               {client.isActive ? 'Actif' : 'Inactif'}
             </span>
@@ -187,11 +188,12 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
               <button
                 key={t}
                 onClick={() => setTab(t)}
+                aria-pressed={tab === t}
                 className={cn(
                   'flex items-center gap-1.5 border-b-2 px-1 py-3 text-sm font-medium transition-colors mr-6',
                   tab === t
-                    ? 'border-sky-600 text-sky-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700',
+                    ? 'border-sky-600 text-sky-600 dark:text-sky-400'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
                 )}
               >
                 {t === 'addresses' ? (
@@ -225,10 +227,10 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
                   </div>
                 ) : addresses.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-10 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <MapPin className="h-5 w-5" />
                     </div>
-                    <p className="text-sm text-slate-500">Aucune adresse</p>
+                    <p className="text-sm text-muted-foreground">Aucune adresse</p>
                   </div>
                 ) : (
                   addresses.map(addr => (
@@ -236,39 +238,40 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
                       key={addr.id}
                       className={cn(
                         'group rounded-xl border p-4 transition-colors',
-                        addr.isDefault ? 'border-sky-200 bg-sky-50' : 'border-slate-200 bg-white hover:border-slate-300',
+                        addr.isDefault ? 'border-sky-200 bg-sky-50 dark:border-sky-500/30 dark:bg-sky-500/10' : 'border-border bg-card hover:border-foreground/20',
                       )}
                     >
                       <div className="flex items-start gap-3">
                         <div className={cn(
                           'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
-                          addr.isDefault ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500',
+                          addr.isDefault ? 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400' : 'bg-muted text-muted-foreground',
                         )}>
                           <MapPin className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             {addr.label && (
-                              <span className="text-sm font-semibold text-slate-800">{addr.label}</span>
+                              <span className="text-sm font-semibold text-foreground">{addr.label}</span>
                             )}
                             {addr.isDefault && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-600">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-600 dark:bg-sky-500/15 dark:text-sky-400">
                                 <CheckCircle className="h-3 w-3" /> Par défaut
                               </span>
                             )}
                           </div>
-                          <p className="mt-0.5 text-sm text-slate-600">{addr.address}</p>
-                          <p className="text-sm text-slate-500">{addr.zipCode} {addr.city}</p>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{addr.address}</p>
+                          <p className="text-sm text-muted-foreground">{addr.zipCode} {addr.city}</p>
                           {addr.complement && (
-                            <p className="text-xs text-slate-400">{addr.complement}</p>
+                            <p className="text-xs text-muted-foreground">{addr.complement}</p>
                           )}
                         </div>
-                        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                           {!addr.isDefault && (
                             <button
                               onClick={() => setDefaultMutation.mutate(addr.id)}
                               disabled={setDefaultMutation.isPending}
-                              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-sky-600"
+                              aria-label="Définir par défaut"
+                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-sky-600 dark:hover:text-sky-400"
                               title="Définir par défaut"
                             >
                               <CheckCircle className="h-3.5 w-3.5" />
@@ -276,7 +279,8 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
                           )}
                           <button
                             onClick={() => setAddrDialog({ type: 'edit', address: addr })}
-                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                            aria-label="Modifier"
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                             title="Modifier"
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -285,7 +289,8 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
                             <button
                               onClick={() => deleteAddrMutation.mutate(addr.id)}
                               disabled={deleteAddrMutation.isPending}
-                              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                              aria-label="Supprimer"
+                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                               title="Supprimer"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -308,37 +313,37 @@ export function ClientDetailDialog({ open, onClose, client, onEdit }: ClientDeta
                   </div>
                 ) : deliveries.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-10 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <Truck className="h-5 w-5" />
                     </div>
-                    <p className="text-sm text-slate-500">Aucune livraison</p>
+                    <p className="text-sm text-muted-foreground">Aucune livraison</p>
                   </div>
                 ) : (
                   deliveries.map(d => (
-                    <div key={d.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                    <div key={d.id} className="flex items-center gap-3 rounded-xl border bg-card p-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                         <Package className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-800">{d.reference}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">{d.reference}</p>
                         <div className="flex items-center gap-2">
-                          <p className="flex items-center gap-1 text-xs text-slate-400">
+                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             {formatDate(d.scheduledDate)}
                           </p>
                           {d.storeName && (
-                            <p className="text-xs text-slate-400">· {d.storeName}</p>
+                            <p className="text-xs text-muted-foreground">· {d.storeName}</p>
                           )}
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <span className={cn(
                           'rounded-full border px-2 py-0.5 text-xs font-semibold',
-                          STATUS_COLORS[d.status as keyof typeof STATUS_COLORS] ?? 'bg-slate-100 text-slate-500 border-slate-200',
+                          STATUS_COLORS[d.status as keyof typeof STATUS_COLORS] ?? 'bg-muted text-muted-foreground border-border',
                         )}>
                           {STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] ?? d.status}
                         </span>
-                        <span className="text-xs font-semibold text-slate-700">{formatPrice(d.price)}</span>
+                        <span className="text-xs font-semibold text-foreground">{formatPrice(d.price)}</span>
                       </div>
                     </div>
                   ))

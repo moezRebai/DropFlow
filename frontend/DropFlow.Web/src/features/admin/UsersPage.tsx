@@ -25,12 +25,12 @@ const PAGE_SIZE = 50
 type StatusFilter = 'all' | 'active' | 'inactive'
 
 const ROLE_COLORS: Record<string, string> = {
-  Admin: 'bg-purple-100 text-purple-700',
-  Manager: 'bg-blue-100 text-blue-700',
-  Driver: 'bg-sky-100 text-sky-700',
-  Livreur: 'bg-sky-100 text-sky-700',
-  Accountant: 'bg-amber-100 text-amber-700',
-  ReadOnly: 'bg-slate-100 text-slate-600',
+  Admin: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400',
+  Manager: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
+  Driver: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
+  Livreur: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
+  Accountant: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+  ReadOnly: 'bg-muted text-muted-foreground',
 }
 
 function roleLabel(role: string) {
@@ -79,7 +79,7 @@ function ChangeRoleModal({ user, onClose }: { user: AdminUserDto; onClose: () =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="bg-gradient-to-br from-violet-600 to-indigo-700 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -121,13 +121,13 @@ function DeleteModal({ user, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <Trash2 className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <Trash2 className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Supprimer cet utilisateur ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Supprimer cet utilisateur ?</h3>
+          <p className="text-sm text-muted-foreground">
             Le compte de <strong>{user.fullName}</strong> ({user.email}) sera archivé (suppression réversible).
           </p>
         </div>
@@ -236,7 +236,7 @@ export default function UsersPage() {
       {/* Toolbar */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Rechercher (nom, email, téléphone)…" className="pl-9" />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -247,22 +247,23 @@ export default function UsersPage() {
               {ROLES.map(r => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          <div className="flex gap-1 rounded-xl bg-muted p-1">
             {(['all', 'active', 'inactive'] as StatusFilter[]).map(s => (
               <button
                 key={s}
                 onClick={() => { setStatus(s); setPage(1) }}
+                aria-pressed={status === s}
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
-                  status === s ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
+                  status === s ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {s === 'all' ? 'Tous' : s === 'active' ? 'Actifs' : 'Inactifs'}
               </button>
             ))}
           </div>
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={includeDeleted} onChange={e => { setIncludeDeleted(e.target.checked); setPage(1) }} className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500" />
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" checked={includeDeleted} onChange={e => { setIncludeDeleted(e.target.checked); setPage(1) }} className="h-4 w-4 rounded border-input text-violet-600 focus:ring-violet-500" />
             Supprimés
           </label>
           <Button variant="outline" size="icon" onClick={() => refetch()} title="Actualiser"><RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} /></Button>
@@ -270,15 +271,15 @@ export default function UsersPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Utilisateur</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Entreprise</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Rôle</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Statut</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Créé le</TableHead>
+              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Utilisateur</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entreprise</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rôle</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Créé le</TableHead>
               <TableHead className="w-32 pr-6" />
             </TableRow>
           </TableHeader>
@@ -298,16 +299,16 @@ export default function UsersPage() {
               <TableRow>
                 <TableCell colSpan={6}>
                   <div className="flex flex-col items-center gap-3 py-16">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <Users className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Aucun utilisateur trouvé</p>
+                    <p className="text-sm font-medium text-muted-foreground">Aucun utilisateur trouvé</p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
               users.map(u => (
-                <TableRow key={u.id} className={cn('hover:bg-violet-50/40', (!u.isActive || u.isDeleted) && 'opacity-60')}>
+                <TableRow key={u.id} className={cn('hover:bg-violet-50/40 dark:hover:bg-violet-500/5', (!u.isActive || u.isDeleted) && 'opacity-60')}>
                   <TableCell className="py-3 pl-6">
                     <div className="flex items-center gap-3">
                       <div className={cn(
@@ -318,39 +319,40 @@ export default function UsersPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-semibold text-slate-800">{u.fullName}</p>
-                          {u.isDeleted && <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-600">supprimé</span>}
+                          <p className="font-semibold text-foreground">{u.fullName}</p>
+                          {u.isDeleted && <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-600 dark:bg-red-500/15 dark:text-red-400">supprimé</span>}
                         </div>
-                        <p className="flex items-center gap-1 text-xs text-slate-400"><Mail className="h-3 w-3" />{u.email}</p>
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground"><Mail className="h-3 w-3" />{u.email}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center gap-1 text-sm text-slate-600">
-                      <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                       {u.tenantName}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', ROLE_COLORS[u.role] ?? 'bg-slate-100 text-slate-600')}>
+                    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', ROLE_COLORS[u.role] ?? 'bg-muted text-muted-foreground')}>
                       {roleLabel(u.role)}
                     </span>
                   </TableCell>
                   <TableCell>
                     <span className={cn(
                       'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                      u.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
+                      u.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
                     )}>
                       {u.isActive ? 'Actif' : 'Inactif'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500">{formatDate(u.createdDate)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDate(u.createdDate)}</TableCell>
                   <TableCell className="pr-6">
                     <div className="flex items-center justify-end gap-1">
                       {u.isDeleted ? (
                         <button
                           onClick={() => restoreMutation.mutate(u.id)}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                          aria-label="Restaurer"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                           title="Restaurer"
                           disabled={restoreMutation.isPending}
                         >
@@ -360,7 +362,8 @@ export default function UsersPage() {
                         <>
                           <button
                             onClick={() => setDialog({ type: 'role', user: u })}
-                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                            aria-label="Changer le rôle"
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                             title="Changer le rôle"
                           >
                             <UserCog className="h-4 w-4" />
@@ -368,7 +371,8 @@ export default function UsersPage() {
                           {u.isActive ? (
                             <button
                               onClick={() => deactivateMutation.mutate(u.id)}
-                              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                              aria-label="Désactiver"
+                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                               title="Désactiver"
                               disabled={deactivateMutation.isPending}
                             >
@@ -377,7 +381,8 @@ export default function UsersPage() {
                           ) : (
                             <button
                               onClick={() => activateMutation.mutate(u.id)}
-                              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                              aria-label="Activer"
+                              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                               title="Activer"
                               disabled={activateMutation.isPending}
                             >
@@ -386,7 +391,8 @@ export default function UsersPage() {
                           )}
                           <button
                             onClick={() => setDialog({ type: 'delete', user: u })}
-                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                            aria-label="Supprimer"
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                             title="Supprimer"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -404,7 +410,7 @@ export default function UsersPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-400">Page {page}</p>
+        <p className="text-sm text-muted-foreground">Page {page}</p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" disabled={!hasPrev} onClick={() => setPage(p => Math.max(1, p - 1))}>
             <ChevronLeft className="mr-1 h-4 w-4" />Précédent

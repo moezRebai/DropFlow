@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import {
@@ -32,7 +33,7 @@ function StatCard({ label, value, sub, icon, iconBg, iconColor, onClick }: StatC
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
+        'group relative overflow-hidden rounded-2xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
         onClick && 'cursor-pointer',
       )}
       onClick={onClick}
@@ -42,9 +43,9 @@ function StatCard({ label, value, sub, icon, iconBg, iconColor, onClick }: StatC
           {icon}
         </div>
       </div>
-      <p className="mb-1 text-3xl font-extrabold tracking-tight text-slate-900">{value}</p>
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
+      <p className="mb-1 text-3xl font-extrabold tracking-tight text-foreground">{value}</p>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   )
 }
@@ -67,13 +68,13 @@ function DistributionCard({
   const max = entries.length ? Math.max(...entries.map(([, v]) => v)) : 0
 
   return (
-    <div className="rounded-2xl border bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <div className="mb-5 flex items-center gap-2">
-        <span className="text-slate-500">{icon}</span>
-        <h2 className="font-semibold text-slate-800">{title}</h2>
+        <span className="text-muted-foreground">{icon}</span>
+        <h2 className="font-semibold text-foreground">{title}</h2>
       </div>
       {entries.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-400">Aucune donnée</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">Aucune donnée</p>
       ) : (
         <div className="flex flex-col gap-4">
           {entries.map(([key, value], i) => {
@@ -82,14 +83,14 @@ function DistributionCard({
             const color = BAR_COLORS[i % BAR_COLORS.length]
             return (
               <div key={key} className="grid items-center gap-3" style={{ gridTemplateColumns: 'minmax(0,120px) 1fr 56px 44px' }}>
-                <span className={cn('inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-medium', colorMap?.[key] ?? 'bg-slate-100 text-slate-600')}>
+                <span className={cn('inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-medium', colorMap?.[key] ?? 'bg-muted text-muted-foreground')}>
                   {labelMap?.[key] ?? key}
                 </span>
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full transition-all duration-700" style={{ width: `${barWidth}%`, background: color }} />
                 </div>
-                <span className="text-right text-sm font-bold text-slate-800">{value}</span>
-                <span className="text-right text-xs text-slate-400">{pct}%</span>
+                <span className="text-right text-sm font-bold text-foreground">{value}</span>
+                <span className="text-right text-xs text-muted-foreground">{pct}%</span>
               </div>
             )
           })}
@@ -177,7 +178,7 @@ export default function AdminDashboardPage() {
             value={stats?.totalTenants ?? 0}
             sub={`${stats?.activeTenants ?? 0} actives · ${stats?.inactiveTenants ?? 0} inactives`}
             icon={<Building2 className="h-5 w-5" />}
-            iconBg="bg-violet-100" iconColor="text-violet-600"
+            iconBg="bg-violet-100 dark:bg-violet-500/15" iconColor="text-violet-600 dark:text-violet-400"
             onClick={() => navigate('/admin/tenants')}
           />
           <StatCard
@@ -185,7 +186,7 @@ export default function AdminDashboardPage() {
             value={stats?.totalUsers ?? 0}
             sub={`${stats?.activeUsers ?? 0} actifs`}
             icon={<Users className="h-5 w-5" />}
-            iconBg="bg-sky-100" iconColor="text-sky-600"
+            iconBg="bg-sky-100 dark:bg-sky-500/15" iconColor="text-sky-600 dark:text-sky-400"
             onClick={() => navigate('/admin/users')}
           />
           <StatCard
@@ -193,14 +194,14 @@ export default function AdminDashboardPage() {
             value={stats?.tenantsCreatedThisMonth ?? 0}
             sub={`${stats?.tenantsCreatedThisWeek ?? 0} cette semaine`}
             icon={<TrendingUp className="h-5 w-5" />}
-            iconBg="bg-emerald-100" iconColor="text-emerald-600"
+            iconBg="bg-emerald-100 dark:bg-emerald-500/15" iconColor="text-emerald-600 dark:text-emerald-400"
           />
           <StatCard
             label="Nouveaux utilisateurs"
             value={stats?.usersCreatedThisMonth ?? 0}
             sub={`${userStats?.usersCreatedThisWeek ?? 0} cette semaine`}
             icon={<UserPlus className="h-5 w-5" />}
-            iconBg="bg-amber-100" iconColor="text-amber-600"
+            iconBg="bg-amber-100 dark:bg-amber-500/15" iconColor="text-amber-600 dark:text-amber-400"
           />
         </div>
       )}
@@ -231,30 +232,31 @@ export default function AdminDashboardPage() {
 
       {/* Secondary stats */}
       {!isLoading && userStats && (
-        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <div className="mb-5 flex items-center gap-2">
-            <Activity className="h-4 w-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-800">Activité utilisateurs</h2>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold text-foreground">Activité utilisateurs</h2>
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { label: 'Total', value: userStats.totalUsers, color: 'text-slate-800' },
-              { label: 'Actifs', value: userStats.activeUsers, color: 'text-emerald-600' },
-              { label: 'Inactifs', value: userStats.inactiveUsers, color: 'text-red-500' },
-              { label: 'Entreprises servies', value: Object.keys(userStats.usersByTenant ?? {}).length, color: 'text-violet-600' },
+              { label: 'Total', value: userStats.totalUsers, color: 'text-foreground' },
+              { label: 'Actifs', value: userStats.activeUsers, color: 'text-emerald-600 dark:text-emerald-400' },
+              { label: 'Inactifs', value: userStats.inactiveUsers, color: 'text-red-500 dark:text-red-400' },
+              { label: 'Entreprises servies', value: Object.keys(userStats.usersByTenant ?? {}).length, color: 'text-violet-600 dark:text-violet-400' },
             ].map((s, i) => (
-              <div key={i} className="flex flex-col items-center gap-1 rounded-xl border bg-slate-50 p-4 text-center">
+              <div key={i} className="flex flex-col items-center gap-1 rounded-xl border bg-muted/50 p-4 text-center">
                 <p className={cn('text-2xl font-extrabold', s.color)}>{s.value}</p>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{s.label}</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
               </div>
             ))}
           </div>
-          <button
+          <Button
+            variant="outline"
             onClick={() => navigate('/admin/users')}
-            className="mt-4 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-slate-200 py-2.5 text-sm font-medium text-sky-600 transition-colors hover:bg-sky-50"
+            className="mt-4 flex w-full items-center justify-center gap-1 rounded-xl border-dashed py-2.5 text-sm font-medium text-sky-600 hover:bg-sky-50 hover:text-sky-700 dark:text-sky-400 dark:hover:bg-sky-500/10 dark:hover:text-sky-300"
           >
             Gérer les utilisateurs <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       )}
     </div>

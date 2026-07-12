@@ -41,11 +41,11 @@ export const ROUTE_STATUS_LABELS: Record<RouteStatus, string> = {
 }
 
 export const ROUTE_STATUS_COLORS: Record<RouteStatus, string> = {
-  [RouteStatus.Draft]:     'bg-slate-100 text-slate-600',
-  [RouteStatus.Confirmed]: 'bg-blue-100 text-blue-700',
-  [RouteStatus.InProgress]:'bg-amber-100 text-amber-700',
-  [RouteStatus.Completed]: 'bg-emerald-100 text-emerald-700',
-  [RouteStatus.Cancelled]: 'bg-red-100 text-red-600',
+  [RouteStatus.Draft]:      'bg-muted text-muted-foreground',
+  [RouteStatus.Confirmed]:  'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
+  [RouteStatus.InProgress]: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+  [RouteStatus.Completed]:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+  [RouteStatus.Cancelled]:  'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400',
 }
 
 export const TEAM_ROLE_LABELS: Record<TeamMemberRole, string> = {

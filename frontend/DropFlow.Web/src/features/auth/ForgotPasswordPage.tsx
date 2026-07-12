@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { isAxiosError } from 'axios'
-import { ArrowLeft, CheckCircle2, Truck } from 'lucide-react'
+import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { DropflowLogo } from '@/components/shared/DropflowLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,7 +52,7 @@ export default function ForgotPasswordPage() {
       <div className="mb-8 flex flex-col items-center gap-1.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <Truck className="h-5 w-5 text-primary-foreground" />
+            <DropflowLogo className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="text-2xl font-bold tracking-tight">DropFlow</span>
         </div>

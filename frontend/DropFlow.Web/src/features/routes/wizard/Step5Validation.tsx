@@ -14,8 +14,8 @@ import { useWizardStore, formatDistance, formatDuration, getMainDriver, computeT
 
 function SectionTitle({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-2">
-      <span className="text-slate-400">{icon}</span>{children}
+    <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2">
+      <span className="text-muted-foreground">{icon}</span>{children}
     </h3>
   )
 }
@@ -23,8 +23,8 @@ function SectionTitle({ icon, children }: { icon: React.ReactNode; children: Rea
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="w-36 shrink-0 text-xs text-slate-400">{label}</span>
-      <span className="text-sm font-medium text-slate-800">{value}</span>
+      <span className="w-36 shrink-0 text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
     </div>
   )
 }
@@ -161,24 +161,24 @@ export function Step5Validation() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
         {/* Route info */}
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="rounded-xl border bg-card p-4 shadow-sm">
           <SectionTitle icon={<Calendar className="h-4 w-4" />}>Informations générales</SectionTitle>
           <div className="flex flex-col gap-2">
             <InfoRow label="Date" value={new Date(wizard.date).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} />
             <InfoRow label="Véhicule" value={
-              <span className="flex items-center gap-1"><Truck className="h-3.5 w-3.5 text-slate-400" />{wizard.vehicleName}</span>
+              <span className="flex items-center gap-1"><Truck className="h-3.5 w-3.5 text-muted-foreground" />{wizard.vehicleName}</span>
             } />
             <InfoRow label="Heure de départ" value={
-              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-slate-400" />{wizard.startTime}</span>
+              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-muted-foreground" />{wizard.startTime}</span>
             } />
             <InfoRow label="Adresse de départ" value={
-              <span className="flex items-center gap-1 text-xs"><MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />{wizard.departureAddress}</span>
+              <span className="flex items-center gap-1 text-xs"><MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />{wizard.departureAddress}</span>
             } />
           </div>
         </div>
 
         {/* Team */}
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="rounded-xl border bg-card p-4 shadow-sm">
           <SectionTitle icon={<Users className="h-4 w-4" />}>Équipe</SectionTitle>
           <div className="flex flex-col gap-2">
             {mainDriver ? (
@@ -187,12 +187,12 @@ export function Step5Validation() {
                   {mainDriver.driverName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-800">{mainDriver.driverName}</p>
-                  <p className="text-xs text-sky-600">{TEAM_ROLE_LABELS[TeamMemberRole.MainDriver]}</p>
+                  <p className="text-sm font-medium text-foreground">{mainDriver.driverName}</p>
+                  <p className="text-xs text-sky-600 dark:text-sky-400">{TEAM_ROLE_LABELS[TeamMemberRole.MainDriver]}</p>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-slate-400">Aucun chauffeur</p>
+              <p className="text-xs text-muted-foreground">Aucun chauffeur</p>
             )}
             {helpers.map(h => (
               <div key={h.driverId} className="flex items-center gap-2">
@@ -200,8 +200,8 @@ export function Step5Validation() {
                   {h.driverName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-800">{h.driverName}</p>
-                  <p className="text-xs text-slate-500">{TEAM_ROLE_LABELS[TeamMemberRole.Helper]}</p>
+                  <p className="text-sm font-medium text-foreground">{h.driverName}</p>
+                  <p className="text-xs text-muted-foreground">{TEAM_ROLE_LABELS[TeamMemberRole.Helper]}</p>
                 </div>
               </div>
             ))}
@@ -210,94 +210,94 @@ export function Step5Validation() {
       </div>
 
       {/* Route stats */}
-      <div className="rounded-xl border bg-white p-4 shadow-sm">
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
         <SectionTitle icon={<Navigation className="h-4 w-4" />}>Itinéraire</SectionTitle>
         <div className="flex items-center gap-6 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <Package className="h-4 w-4 text-slate-400" />
-            <span className="text-sm font-semibold text-slate-800">{wizard.selectedDeliveries.length}</span>
-            <span className="text-sm text-slate-500">livraison{wizard.selectedDeliveries.length > 1 ? 's' : ''}</span>
+            <Package className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-foreground">{wizard.selectedDeliveries.length}</span>
+            <span className="text-sm text-muted-foreground">livraison{wizard.selectedDeliveries.length > 1 ? 's' : ''}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Navigation className="h-4 w-4 text-slate-400" />
-            <span className="text-sm font-semibold text-slate-800">{totalDistance}</span>
+            <Navigation className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-foreground">{totalDistance}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Clock className="h-4 w-4 text-slate-400" />
-            <span className="text-sm font-semibold text-slate-800">{totalDuration}</span>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold text-foreground">{totalDuration}</span>
           </div>
           {wizard.wasOptimizedByGoogle && (
-            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-3.5 w-3.5" />Optimisé via Google Maps
             </span>
           )}
           {wizard.wasManuallyReordered && (
-            <span className="flex items-center gap-1 text-xs font-medium text-amber-600">
+            <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-3.5 w-3.5" />Ordre manuel
             </span>
           )}
           {endTime && (
             <>
-              <div className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs">
-                <Navigation className="h-3.5 w-3.5 text-sky-500" />
-                <span className="text-slate-500">Départ</span>
-                <span className="font-semibold text-sky-700">{wizard.startTime}</span>
+              <div className="flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs dark:border-sky-500/30 dark:bg-sky-500/10">
+                <Navigation className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
+                <span className="text-muted-foreground">Départ</span>
+                <span className="font-semibold text-sky-700 dark:text-sky-400">{wizard.startTime}</span>
               </div>
-              <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-              <div className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs">
-                <Timer className="h-3.5 w-3.5 text-orange-500" />
-                <span className="text-slate-500">Fin estimée</span>
-                <span className="font-semibold text-orange-700">{endTime}</span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs dark:border-orange-500/30 dark:bg-orange-500/10">
+                <Timer className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
+                <span className="text-muted-foreground">Fin estimée</span>
+                <span className="font-semibold text-orange-700 dark:text-orange-400">{endTime}</span>
               </div>
             </>
           )}
         </div>
 
         {/* Delivery list preview */}
-        <div className="mt-3 max-h-96 overflow-y-auto rounded-lg border bg-slate-50 divide-y">
+        <div className="mt-3 max-h-96 overflow-y-auto rounded-lg border bg-muted divide-y">
           {wizard.optimizedDeliveries.map((od, i) => {
             const d = wizard.selectedDeliveries.find(s => s.id === od.deliveryId)
             const tl = timeline[i]
             return (
               <div key={od.deliveryId} className="px-3 py-2.5">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">{i + 1}</span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">{i + 1}</span>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-700 truncate">{d?.clientName ?? `Livraison #${od.deliveryId}`}</p>
-                    <p className="text-xs text-slate-400 truncate">{od.address}</p>
+                    <p className="text-xs font-medium text-foreground truncate">{d?.clientName ?? `Livraison #${od.deliveryId}`}</p>
+                    <p className="text-xs text-muted-foreground truncate">{od.address}</p>
                   </div>
                 </div>
 
                 {tl && tl.travelMinutes > 0 && (
                   <div className="ml-7 mt-1.5 flex flex-wrap items-center gap-1">
-                    <div className="flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5">
-                      <Navigation className="h-3 w-3 text-sky-500" />
-                      <span className="text-xs text-slate-500">Départ</span>
-                      <span className="text-xs font-semibold text-sky-700">{minutesToTime(tl.prevDepartureMinutes)}</span>
+                    <div className="flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 dark:border-sky-500/30 dark:bg-sky-500/10">
+                      <Navigation className="h-3 w-3 text-sky-500 dark:text-sky-400" />
+                      <span className="text-xs text-muted-foreground">Départ</span>
+                      <span className="text-xs font-semibold text-sky-700 dark:text-sky-400">{minutesToTime(tl.prevDepartureMinutes)}</span>
                     </div>
-                    <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
-                    <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5">
-                      <Clock className="h-3 w-3 text-slate-400" />
-                      <span className="text-xs font-medium text-slate-600">{tl.travelMinutes} min</span>
+                    <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
+                    <div className="flex items-center gap-1 rounded-md border bg-card px-2 py-0.5">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">{tl.travelMinutes} min</span>
                     </div>
-                    <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
-                    <div className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5">
-                      <MapPin className="h-3 w-3 text-emerald-500" />
-                      <span className="text-xs text-slate-500">Arrivée</span>
-                      <span className="text-xs font-semibold text-emerald-700">{minutesToTime(tl.arrivalMinutes)}</span>
+                    <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
+                    <div className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                      <MapPin className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
+                      <span className="text-xs text-muted-foreground">Arrivée</span>
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{minutesToTime(tl.arrivalMinutes)}</span>
                     </div>
                     {tl.serviceMinutes > 0 && (
                       <>
-                        <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
-                        <div className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5">
-                          <Timer className="h-3 w-3 text-amber-500" />
-                          <span className="text-xs font-medium text-amber-700">{tl.serviceMinutes} min</span>
+                        <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
+                        <div className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 dark:border-amber-500/30 dark:bg-amber-500/10">
+                          <Timer className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                          <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{tl.serviceMinutes} min</span>
                         </div>
-                        <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
-                        <div className="flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5">
-                          <Navigation className="h-3 w-3 text-orange-500" />
-                          <span className="text-xs text-slate-500">Départ</span>
-                          <span className="text-xs font-semibold text-orange-700">{minutesToTime(tl.departureMinutes)}</span>
+                        <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
+                        <div className="flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 dark:border-orange-500/30 dark:bg-orange-500/10">
+                          <Navigation className="h-3 w-3 text-orange-500 dark:text-orange-400" />
+                          <span className="text-xs text-muted-foreground">Départ</span>
+                          <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">{minutesToTime(tl.departureMinutes)}</span>
                         </div>
                       </>
                     )}
@@ -310,7 +310,7 @@ export function Step5Validation() {
       </div>
 
       {/* Confirm toggle */}
-      <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+      <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
         <input
           type="checkbox"
           checked={confirmAfterCreate}
@@ -318,13 +318,13 @@ export function Step5Validation() {
           className="h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
         />
         <div>
-          <p className="text-sm font-medium text-blue-800">Confirmer la tournée</p>
-          <p className="text-xs text-blue-600">La tournée sera confirmée après création (notifie les chauffeurs)</p>
+          <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Confirmer la tournée</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400">La tournée sera confirmée après création (notifie les chauffeurs)</p>
         </div>
       </label>
 
       {!confirmAfterCreate && (
-        <p className="text-xs text-slate-400 text-center flex items-center justify-center gap-1">
+        <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
           <AlertTriangle className="h-3.5 w-3.5" />
           {isEdit ? 'La tournée sera mise à jour en brouillon.' : 'La tournée sera sauvegardée en brouillon — vous pourrez la confirmer ensuite.'}
         </p>

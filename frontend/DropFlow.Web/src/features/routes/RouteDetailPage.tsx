@@ -46,7 +46,7 @@ function formatTime(timeStr?: string) {
 
 // ─── RouteMapSection ──────────────────────────────────────────────────────────
 
-function MapOverlays({ route }: { route: RouteDto }) {
+function MapOverlays({ route, onResolvingDepartureChange }: { route: RouteDto; onResolvingDepartureChange: (resolving: boolean) => void }) {
   const map = useMap()
   const mapsLib = useMapsLibrary('maps')
   const markerLib = useMapsLibrary('marker')
@@ -126,8 +126,11 @@ function MapOverlays({ route }: { route: RouteDto }) {
       draw(route.departureLatitude, route.departureLongitude)
     } else if (route.departureAddress) {
       // Coords dépôt non stockées : géocodage de l'adresse en fallback
+      onResolvingDepartureChange(true)
       const geocoder = new geocodingLib.Geocoder()
       geocoder.geocode({ address: route.departureAddress, region: 'fr' }, (results, status) => {
+        if (cancelled) return
+        onResolvingDepartureChange(false)
         if (status === 'OK' && results?.[0]) {
           const loc = results[0].geometry.location
           draw(loc.lat(), loc.lng())
@@ -141,23 +144,25 @@ function MapOverlays({ route }: { route: RouteDto }) {
 
     return () => {
       cancelled = true
+      onResolvingDepartureChange(false)
       markers.forEach(m => { m.map = null })
       polylines.forEach(p => p.setMap(null))
     }
-  }, [map, mapsLib, markerLib, geocodingLib, route])
+  }, [map, mapsLib, markerLib, geocodingLib, route, onResolvingDepartureChange])
 
   return null
 }
 
 function RouteMapSection({ route }: { route: RouteDto }) {
+  const [isResolvingDeparture, setIsResolvingDeparture] = useState(false)
   const deliveriesWithCoords = route.deliveries.filter(d => d.latitude != null && d.longitude != null)
   const hasDeparture = route.departureLatitude != null && route.departureLongitude != null
   const hasAnyCoords = deliveriesWithCoords.length > 0 || hasDeparture
 
   if (!hasAnyCoords) {
     return (
-      <div className="flex h-full min-h-44 items-center justify-center rounded-2xl border border-dashed bg-slate-50">
-        <div className="flex flex-col items-center gap-2 text-slate-400">
+      <div className="flex h-full min-h-44 items-center justify-center rounded-2xl border border-dashed bg-muted">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <MapPin className="h-8 w-8 opacity-30" />
           <span className="text-sm">Coordonnées GPS non disponibles</span>
         </div>
@@ -170,23 +175,23 @@ function RouteMapSection({ route }: { route: RouteDto }) {
     : { lat: deliveriesWithCoords[0].latitude!, lng: deliveriesWithCoords[0].longitude! }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm">
-      <div className="flex shrink-0 items-center gap-2 border-b bg-slate-50 px-5 py-3.5">
-        <MapPin className="h-4 w-4 text-slate-400" />
-        <span className="text-sm font-semibold text-slate-700">Carte de la tournée</span>
-        <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
+    <div className="flex h-full min-h-[320px] flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="flex shrink-0 items-center gap-2 border-b bg-muted px-5 py-3.5">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-semibold text-foreground">Carte de la tournée</span>
+        <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-700" />Dépôt
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-700 dark:bg-slate-400" />Dépôt
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-sky-500" />Livraisons
           </span>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5">
+          <span className="rounded-full bg-muted-foreground/10 px-2 py-0.5">
             {deliveriesWithCoords.length}/{route.deliveries.length} géolocalisés
           </span>
         </div>
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0">
         <Map
           defaultCenter={defaultCenter}
           defaultZoom={11}
@@ -195,8 +200,14 @@ function RouteMapSection({ route }: { route: RouteDto }) {
           disableDefaultUI
           style={{ width: '100%', height: '100%' }}
         >
-          <MapOverlays route={route} />
+          <MapOverlays route={route} onResolvingDepartureChange={setIsResolvingDeparture} />
         </Map>
+        {isResolvingDeparture && (
+          <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-lg bg-card/90 px-2.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Localisation du dépôt…
+          </div>
+        )}
       </div>
     </div>
   )
@@ -211,13 +222,13 @@ function ConfirmActionModal({ title, message, confirmLabel, confirmClass, onConf
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-            <AlertTriangle className="h-6 w-6 text-amber-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/15">
+            <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">{title}</h3>
-          <p className="text-sm text-slate-500">{message}</p>
+          <h3 className="mb-1 text-base font-semibold text-foreground">{title}</h3>
+          <p className="text-sm text-muted-foreground">{message}</p>
         </div>
         <div className="flex gap-3 border-t px-6 py-4">
           <Button variant="outline" className="flex-1" onClick={onCancel}>Annuler</Button>
@@ -339,8 +350,8 @@ export default function RouteDetailPage() {
   if (!route) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-6">
-        <Route className="h-12 w-12 text-slate-300" />
-        <p className="text-slate-500">Tournée introuvable</p>
+        <Route className="h-12 w-12 text-muted-foreground/40" />
+        <p className="text-muted-foreground">Tournée introuvable</p>
         <Button variant="outline" onClick={() => navigate('/routes')}>Retour à la liste</Button>
       </div>
     )
@@ -359,7 +370,7 @@ export default function RouteDetailPage() {
           <div>
             <button
               onClick={() => navigate('/routes')}
-              className="mb-3 flex items-center gap-1.5 text-xs text-sky-200 hover:text-white transition-colors"
+              className="mb-3 flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/25"
             >
               <ArrowLeft className="h-3.5 w-3.5" />Retour aux tournées
             </button>
@@ -398,7 +409,7 @@ export default function RouteDetailPage() {
               </button>
             )}
             {(route.status === RouteStatus.Draft || route.status === RouteStatus.Confirmed) && (
-              <button onClick={() => setModalAction('cancel')} className="flex items-center gap-1.5 rounded-xl bg-red-400/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-400/50">
+              <button onClick={() => setModalAction('cancel')} className="flex items-center gap-1.5 rounded-xl bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-500/30">
                 <XCircle className="h-3.5 w-3.5" />Annuler
               </button>
             )}
@@ -408,46 +419,46 @@ export default function RouteDetailPage() {
 
       {/* Info cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <Truck className="h-3.5 w-3.5" />Véhicule
           </div>
-          <p className="text-base font-semibold text-slate-800">{route.vehicleName}</p>
+          <p className="text-base font-semibold text-foreground">{route.vehicleName}</p>
           {route.startTime && (
-            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />Départ {formatTime(route.startTime)}
             </p>
           )}
         </div>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <MapPin className="h-3.5 w-3.5" />Départ
           </div>
-          <p className="text-sm font-medium text-slate-800 line-clamp-2">{route.departureAddress}</p>
+          <p className="text-sm font-medium text-foreground line-clamp-2">{route.departureAddress}</p>
         </div>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <Gauge className="h-3.5 w-3.5" />Distance totale
           </div>
-          <p className="text-base font-semibold text-slate-800">{formatDistance(route.totalDistance)}</p>
-          <p className="mt-1 text-xs text-slate-500">Durée : {formatDuration(route.totalDuration)}</p>
+          <p className="text-base font-semibold text-foreground">{formatDistance(route.totalDistance)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Durée : {formatDuration(route.totalDuration)}</p>
         </div>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <Package className="h-3.5 w-3.5" />Livraisons
           </div>
-          <p className="text-2xl font-bold text-slate-800">{route.totalDeliveries}</p>
+          <p className="text-2xl font-bold text-foreground">{route.totalDeliveries}</p>
           {route.wasOptimizedByGoogle && (
-            <span className="mt-1 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">Optimisé Google</span>
+            <span className="mt-1 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">Optimisé Google</span>
           )}
         </div>
       </div>
 
       {/* Map + séquence */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:min-h-[560px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 min-h-[400px] lg:min-h-[560px]">
 
         {/* Left: Map (2 cols) */}
         <div className="lg:col-span-2 flex flex-col">
@@ -458,9 +469,9 @@ export default function RouteDetailPage() {
         <div className="flex flex-col gap-6">
 
         {/* Team */}
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Users className="h-4 w-4 text-slate-400" />Équipe
+        <div className="rounded-2xl border bg-card p-5 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Users className="h-4 w-4 text-muted-foreground" />Équipe
           </h2>
           <div className="flex flex-col gap-3">
             {mainDriver && (
@@ -469,8 +480,8 @@ export default function RouteDetailPage() {
                   {mainDriver.driverName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{mainDriver.driverName}</p>
-                  <p className="text-xs text-sky-600 font-medium">{TEAM_ROLE_LABELS[mainDriver.role]}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{mainDriver.driverName}</p>
+                  <p className="text-xs text-sky-600 dark:text-sky-400 font-medium">{TEAM_ROLE_LABELS[mainDriver.role]}</p>
                 </div>
               </div>
             )}
@@ -480,60 +491,60 @@ export default function RouteDetailPage() {
                   {h.driverName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{h.driverName}</p>
-                  <p className="text-xs text-slate-500">{TEAM_ROLE_LABELS[h.role]}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{h.driverName}</p>
+                  <p className="text-xs text-muted-foreground">{TEAM_ROLE_LABELS[h.role]}</p>
                 </div>
               </div>
             ))}
             {route.teamMembers.length === 0 && (
-              <p className="text-sm text-slate-400">Aucun membre d'équipe</p>
+              <p className="text-sm text-muted-foreground">Aucun membre d'équipe</p>
             )}
           </div>
         </div>
 
         {/* Delivery sequence */}
-        <div className="flex-1 rounded-2xl border bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-              <Navigation className="h-4 w-4 text-slate-400" />Séquence de livraisons
+        <div className="flex-1 rounded-2xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b bg-muted">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Navigation className="h-4 w-4 text-muted-foreground" />Séquence de livraisons
             </h2>
           </div>
           <div className="divide-y max-h-[480px] overflow-y-auto">
             {route.deliveries.length === 0 ? (
-              <div className="py-10 text-center text-sm text-slate-400">Aucune livraison</div>
+              <div className="py-10 text-center text-sm text-muted-foreground">Aucune livraison</div>
             ) : (
               route.deliveries
                 .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
                 .map((delivery, idx) => (
-                  <div key={delivery.id} className="flex items-start gap-3 px-5 py-3.5 hover:bg-slate-50">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
+                  <div key={delivery.id} className="flex items-start gap-3 px-5 py-3.5 hover:bg-muted/50">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">
                       {idx + 1}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-slate-400">{delivery.reference}</span>
-                        <span className="text-sm font-medium text-slate-800 truncate">{delivery.clientName}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{delivery.reference}</span>
+                        <span className="text-sm font-medium text-foreground truncate">{delivery.clientName}</span>
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-500 truncate">{delivery.address}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground truncate">{delivery.address}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-3">
                         {delivery.estimatedArrivalTime && delivery.estimatedArrivalTime !== '00:00:00' && (
-                          <span className="flex items-center gap-0.5 text-xs text-slate-400">
+                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />Arrivée {formatTime(delivery.estimatedArrivalTime)}
                           </span>
                         )}
                         {delivery.estimatedDurationMinutes != null && delivery.estimatedDurationMinutes > 0 && (
-                          <span className="flex items-center gap-0.5 text-xs text-slate-400">
+                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />{formatDuration(delivery.estimatedDurationMinutes)}
                           </span>
                         )}
                         {delivery.timeSlotName && !delivery.timeSlotName.startsWith('00:00') && (
-                          <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+                          <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
                             <CalendarClock className="h-3 w-3" />
                             {delivery.timeSlotName}
                           </span>
                         )}
                         {delivery.itemCount > 0 && (
-                          <span className="flex items-center gap-0.5 text-xs text-slate-400">
+                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                             <Package className="h-3 w-3" />{delivery.itemCount} colis
                           </span>
                         )}
@@ -541,14 +552,14 @@ export default function RouteDetailPage() {
                     </div>
                     {delivery.distanceToNextMeters ? (
                       <div className="shrink-0 text-right">
-                        <div className="flex items-center gap-1 text-xs text-slate-400">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <ChevronRight className="h-3 w-3" />
                           {delivery.distanceToNextMeters >= 1000
                             ? `${(delivery.distanceToNextMeters / 1000).toFixed(1)} km`
                             : `${delivery.distanceToNextMeters} m`}
                         </div>
                         {delivery.travelDurationMinutes && (
-                          <p className="text-xs text-slate-400">{delivery.travelDurationMinutes} min</p>
+                          <p className="text-xs text-muted-foreground">{delivery.travelDurationMinutes} min</p>
                         )}
                       </div>
                     ) : null}
@@ -562,11 +573,11 @@ export default function RouteDetailPage() {
       </div> {/* end map+sequence grid */}
 
       {/* Footer info */}
-      <div className="flex items-center justify-between rounded-xl border bg-slate-50 px-5 py-3 text-xs text-slate-500">
+      <div className="flex items-center justify-between rounded-xl border bg-muted px-5 py-3 text-xs text-muted-foreground">
         <span>Créée le {new Date(route.createdDate).toLocaleDateString('fr-FR')} par {route.createdBy ?? '—'}</span>
         <div className="flex items-center gap-3">
-          {route.wasOptimizedByGoogle && <span className="text-emerald-600 font-medium">Optimisé via Google Maps</span>}
-          {route.wasManuallyReordered && <span className="text-amber-600 font-medium">Réordonnée manuellement</span>}
+          {route.wasOptimizedByGoogle && <span className="text-emerald-600 dark:text-emerald-400 font-medium">Optimisé via Google Maps</span>}
+          {route.wasManuallyReordered && <span className="text-amber-600 dark:text-amber-400 font-medium">Réordonnée manuellement</span>}
         </div>
       </div>
 

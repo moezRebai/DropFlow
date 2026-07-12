@@ -62,16 +62,17 @@ export function AddressFormDialog({ open, onClose, address, onSubmit, isSubmitti
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-card shadow-2xl">
 
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-800">
+          <h2 className="text-base font-semibold text-foreground">
             {isEdit ? "Modifier l'adresse" : 'Nouvelle adresse'}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Fermer"
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -81,7 +82,7 @@ export function AddressFormDialog({ open, onClose, address, onSubmit, isSubmitti
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 p-6">
 
           <div className="space-y-1.5">
-            <Label htmlFor="addr-label">Libellé <span className="text-slate-400">(optionnel)</span></Label>
+            <Label htmlFor="addr-label">Libellé <span className="text-muted-foreground">(optionnel)</span></Label>
             <Input
               id="addr-label"
               placeholder="Principal, Bureau, Entrepôt…"
@@ -101,7 +102,7 @@ export function AddressFormDialog({ open, onClose, address, onSubmit, isSubmitti
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="addr-zip">Code postal <span className="text-red-500">*</span></Label>
               <Input
@@ -127,7 +128,7 @@ export function AddressFormDialog({ open, onClose, address, onSubmit, isSubmitti
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="addr-complement">Complément <span className="text-slate-400">(optionnel)</span></Label>
+            <Label htmlFor="addr-complement">Complément <span className="text-muted-foreground">(optionnel)</span></Label>
             <Input
               id="addr-complement"
               placeholder="Bâtiment B, 2ème étage…"

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { dashboardApi, dashboardKeys, ChartPeriod } from '@/api/dashboard'
@@ -49,9 +50,24 @@ function formatDateFr(date: Date): string {
 }
 
 const RISK_COLORS: Record<string, { bg: string; border: string; icon: string; chip: string }> = {
-  Warning: { bg: 'bg-amber-50', border: 'border-l-amber-400', icon: 'bg-amber-100 text-amber-600', chip: 'bg-amber-100 text-amber-700' },
-  Error:   { bg: 'bg-red-50',   border: 'border-l-red-400',   icon: 'bg-red-100 text-red-600',     chip: 'bg-red-100 text-red-700'   },
-  Info:    { bg: 'bg-blue-50',  border: 'border-l-blue-400',  icon: 'bg-blue-100 text-blue-600',   chip: 'bg-blue-100 text-blue-700' },
+  Warning: {
+    bg: 'bg-amber-50 dark:bg-amber-500/10',
+    border: 'border-l-amber-400',
+    icon: 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
+    chip: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+  },
+  Error: {
+    bg: 'bg-red-50 dark:bg-red-500/10',
+    border: 'border-l-red-400',
+    icon: 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400',
+    chip: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
+  },
+  Info: {
+    bg: 'bg-blue-50 dark:bg-blue-500/10',
+    border: 'border-l-blue-400',
+    icon: 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400',
+    chip: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
+  },
 }
 
 const STORE_COLORS = [
@@ -59,11 +75,21 @@ const STORE_COLORS = [
   '#8b5cf6', '#14b8a6', '#f97316', '#ec4899',
 ]
 
-function getRankMedal(i: number): string {
-  if (i === 0) return '🥇'
-  if (i === 1) return '🥈'
-  if (i === 2) return '🥉'
-  return `#${i + 1}`
+const RANK_STYLES = [
+  'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+  'bg-slate-200 text-slate-600 dark:bg-slate-500/20 dark:text-slate-300',
+  'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400',
+]
+
+function RankBadge({ rank }: { rank: number }) {
+  if (rank < 3) {
+    return (
+      <span className={cn('mx-auto flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold', RANK_STYLES[rank])}>
+        {rank + 1}
+      </span>
+    )
+  }
+  return <span className="block text-center text-sm font-semibold text-muted-foreground">#{rank + 1}</span>
 }
 
 const PERIOD_LABELS: Record<ChartPeriod, string> = {
@@ -127,7 +153,7 @@ function KpiCard({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm',
+        'group relative overflow-hidden rounded-2xl border bg-card p-5 shadow-sm',
         'transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-transparent',
         onClick && 'cursor-pointer',
       )}
@@ -146,10 +172,10 @@ function KpiCard({
             <div className={cn(
               'flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
               trend.neutral
-                ? 'bg-slate-100 text-slate-500'
+                ? 'bg-muted text-muted-foreground'
                 : trend.up
-                  ? 'bg-emerald-100 text-emerald-600'
-                  : 'bg-red-100 text-red-600',
+                  ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'
+                  : 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400',
             )}>
               {trend.neutral
                 ? <Minus className="h-3 w-3" />
@@ -164,17 +190,17 @@ function KpiCard({
           )}
         </div>
       </div>
-      <p className="mb-1 text-3xl font-extrabold tracking-tight text-slate-900">{value}</p>
-      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <p className="mb-1 text-3xl font-extrabold tracking-tight text-foreground">{value}</p>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
       {progress && (
         <div className="mt-3">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{ width: `${pct}%`, background: `linear-gradient(to right, ${gradientFrom}, ${gradientTo})` }}
             />
           </div>
-          <div className="mt-1.5 flex justify-between text-xs text-slate-400">
+          <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
             <span>{progress.label}</span>
             <span>{pct}%</span>
           </div>
@@ -223,56 +249,56 @@ function PulseBar({
       icon: <Route className="h-5 w-5" />,
       label: 'Tournées actives',
       value: stats ? `${stats.activeRoutes}/${stats.totalRoutesToday}` : '—',
-      valueClass: 'text-blue-700',
-      bg: 'bg-blue-50',
-      iconClass: 'text-blue-500',
+      valueClass: 'text-blue-700 dark:text-blue-400',
+      bg: 'bg-blue-50 dark:bg-blue-500/10',
+      iconClass: 'text-blue-500 dark:text-blue-400',
     },
     {
       icon: <Users className="h-5 w-5" />,
       label: 'Chauffeurs en route',
       value: stats?.driversOnRoad ?? '—',
-      valueClass: 'text-emerald-700',
-      bg: 'bg-emerald-50',
-      iconClass: 'text-emerald-500',
+      valueClass: 'text-emerald-700 dark:text-emerald-400',
+      bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+      iconClass: 'text-emerald-500 dark:text-emerald-400',
     },
     {
       icon: <Car className="h-5 w-5" />,
       label: 'Véhicules inactifs',
       value: stats?.idleVehicles ?? '—',
-      valueClass: 'text-slate-600',
-      bg: 'bg-slate-100',
-      iconClass: 'text-slate-400',
+      valueClass: 'text-muted-foreground',
+      bg: 'bg-muted',
+      iconClass: 'text-muted-foreground',
     },
     {
       icon: <AlertTriangle className="h-5 w-5" />,
       label: 'En retard',
       value: lateCount,
-      valueClass: lateCount > 0 ? 'text-red-700' : 'text-slate-600',
-      bg: lateCount > 0 ? 'bg-red-50' : 'bg-slate-50',
-      iconClass: lateCount > 0 ? 'text-red-500' : 'text-slate-400',
+      valueClass: lateCount > 0 ? 'text-red-700 dark:text-red-400' : 'text-muted-foreground',
+      bg: lateCount > 0 ? 'bg-red-50 dark:bg-red-500/10' : 'bg-muted',
+      iconClass: lateCount > 0 ? 'text-red-500 dark:text-red-400' : 'text-muted-foreground',
       alert: lateCount > 0,
-      alertRingClass: 'ring-1 ring-red-200',
+      alertRingClass: 'ring-1 ring-red-200 dark:ring-red-500/30',
     },
     {
       icon: <Package className="h-5 w-5" />,
       label: 'Non planifiées',
       value: unplanned,
-      valueClass: unplanned > 0 ? 'text-amber-700' : 'text-slate-600',
-      bg: unplanned > 0 ? 'bg-amber-50' : 'bg-slate-50',
-      iconClass: unplanned > 0 ? 'text-amber-500' : 'text-slate-400',
+      valueClass: unplanned > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground',
+      bg: unplanned > 0 ? 'bg-amber-50 dark:bg-amber-500/10' : 'bg-muted',
+      iconClass: unplanned > 0 ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground',
       alert: unplanned > 0,
-      alertRingClass: 'ring-1 ring-amber-200',
+      alertRingClass: 'ring-1 ring-amber-200 dark:ring-amber-500/30',
     },
   ]
 
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-2xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-slate-500" />
-          <h2 className="font-semibold text-slate-800">Pulse opérationnel</h2>
+          <Zap className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold text-foreground">Pulse opérationnel</h2>
         </div>
-        <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-600">
+        <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
           Temps réel
         </span>
@@ -290,7 +316,7 @@ function PulseBar({
           {/* Ring gauge */}
           <div className="flex shrink-0 flex-col items-center gap-1">
             <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-              <circle cx={SIZE / 2} cy={SIZE / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={STROKE} />
+              <circle cx={SIZE / 2} cy={SIZE / 2} r={r} fill="none" stroke="var(--color-muted)" strokeWidth={STROKE} />
               <circle
                 cx={SIZE / 2} cy={SIZE / 2} r={r} fill="none"
                 stroke={ringColor}
@@ -301,17 +327,17 @@ function PulseBar({
                 transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
                 style={{ transition: 'stroke-dashoffset 0.7s ease' }}
               />
-              <text x={SIZE / 2} y={SIZE / 2 - 5} textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="800" fill="#0f172a">
+              <text x={SIZE / 2} y={SIZE / 2 - 5} textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="800" fill="var(--color-foreground)">
                 {Math.round(pct * 100)}%
               </text>
-              <text x={SIZE / 2} y={SIZE / 2 + 11} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#94a3b8">
+              <text x={SIZE / 2} y={SIZE / 2 + 11} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="var(--color-muted-foreground)">
                 {delivered}/{total}
               </text>
             </svg>
-            <p className="text-xs font-semibold text-slate-500">Livrées</p>
+            <p className="text-xs font-semibold text-muted-foreground">Livrées</p>
           </div>
 
-          <div className="h-16 w-px shrink-0 bg-slate-100" />
+          <div className="h-16 w-px shrink-0 bg-border" />
 
           {/* Metric tiles */}
           <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -326,7 +352,7 @@ function PulseBar({
               >
                 <span className={cn(m.iconClass)}>{m.icon}</span>
                 <p className={cn('text-2xl font-extrabold leading-none', m.valueClass)}>{m.value}</p>
-                <p className="text-xs font-medium leading-tight text-slate-500">{m.label}</p>
+                <p className="text-xs font-medium leading-tight text-muted-foreground">{m.label}</p>
               </div>
             ))}
           </div>
@@ -358,52 +384,52 @@ const SWIM_LANES: LaneConfig[] = [
     id: 'planned',
     label: 'À planifier',
     filter: d => ['ToBePlanned', 'Confirmed'].includes(d.status) && !d.isLate,
-    headerBg: 'bg-amber-50',
-    headerBorder: 'border-amber-200',
+    headerBg: 'bg-amber-50 dark:bg-amber-500/10',
+    headerBorder: 'border-amber-200 dark:border-amber-500/30',
     dotColor: 'bg-amber-400',
-    textColor: 'text-amber-700',
-    countBg: 'bg-amber-100 text-amber-700',
-    cardBorder: 'border-amber-100 hover:border-amber-300',
+    textColor: 'text-amber-700 dark:text-amber-400',
+    countBg: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+    cardBorder: 'border-amber-100 hover:border-amber-300 dark:border-amber-500/20 dark:hover:border-amber-500/40',
     ctaLabel: 'Planifier',
-    ctaClass: 'bg-amber-100 text-amber-700 hover:bg-amber-200',
+    ctaClass: 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25',
     showCta: true,
   },
   {
     id: 'inprogress',
     label: 'En cours',
     filter: d => d.status === 'InProgress' && !d.isLate,
-    headerBg: 'bg-purple-50',
-    headerBorder: 'border-purple-200',
+    headerBg: 'bg-purple-50 dark:bg-purple-500/10',
+    headerBorder: 'border-purple-200 dark:border-purple-500/30',
     dotColor: 'bg-purple-400',
-    textColor: 'text-purple-700',
-    countBg: 'bg-purple-100 text-purple-700',
-    cardBorder: 'border-purple-100 hover:border-purple-300',
+    textColor: 'text-purple-700 dark:text-purple-400',
+    countBg: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400',
+    cardBorder: 'border-purple-100 hover:border-purple-300 dark:border-purple-500/20 dark:hover:border-purple-500/40',
     showCta: false,
   },
   {
     id: 'delivered',
     label: 'Livrée',
     filter: d => d.status === 'Delivered',
-    headerBg: 'bg-emerald-50',
-    headerBorder: 'border-emerald-200',
+    headerBg: 'bg-emerald-50 dark:bg-emerald-500/10',
+    headerBorder: 'border-emerald-200 dark:border-emerald-500/30',
     dotColor: 'bg-emerald-400',
-    textColor: 'text-emerald-700',
-    countBg: 'bg-emerald-100 text-emerald-700',
-    cardBorder: 'border-emerald-100 hover:border-emerald-300',
+    textColor: 'text-emerald-700 dark:text-emerald-400',
+    countBg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+    cardBorder: 'border-emerald-100 hover:border-emerald-300 dark:border-emerald-500/20 dark:hover:border-emerald-500/40',
     showCta: false,
   },
   {
     id: 'late',
     label: 'En retard',
     filter: d => d.status === 'Late' || (d.isLate && d.status !== 'Delivered'),
-    headerBg: 'bg-red-50',
-    headerBorder: 'border-red-200',
+    headerBg: 'bg-red-50 dark:bg-red-500/10',
+    headerBorder: 'border-red-200 dark:border-red-500/30',
     dotColor: 'bg-red-400',
-    textColor: 'text-red-700',
-    countBg: 'bg-red-100 text-red-700',
-    cardBorder: 'border-red-100 hover:border-red-300',
+    textColor: 'text-red-700 dark:text-red-400',
+    countBg: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
+    cardBorder: 'border-red-100 hover:border-red-300 dark:border-red-500/20 dark:hover:border-red-500/40',
     ctaLabel: 'Gérer',
-    ctaClass: 'bg-red-100 text-red-700 hover:bg-red-200',
+    ctaClass: 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25',
     showCta: true,
   },
 ]
@@ -412,23 +438,25 @@ function DeliverySwimLanes({ items, isLoading }: { items: TodayDeliveryDto[]; is
   const navigate = useNavigate()
 
   return (
-    <div className="rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <div className="flex items-center justify-between border-b px-6 py-4">
         <div className="flex items-center gap-2">
-          <Truck className="h-4 w-4 text-slate-500" />
-          <h2 className="font-semibold text-slate-800">Livraisons du jour</h2>
+          <Truck className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold text-foreground">Livraisons du jour</h2>
           {items.length > 0 && (
-            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-600">
+            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-600 dark:bg-sky-500/15 dark:text-sky-400">
               {items.length}
             </span>
           )}
         </div>
-        <button
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto gap-1 p-0 text-xs font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
           onClick={() => navigate('/deliveries')}
-          className="flex items-center gap-1 text-xs font-medium text-sky-600 transition-colors hover:text-sky-700"
         >
           Voir tout <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -437,10 +465,10 @@ function DeliverySwimLanes({ items, isLoading }: { items: TodayDeliveryDto[]; is
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Truck className="h-6 w-6" />
           </div>
-          <p className="text-sm text-slate-500">Aucune livraison planifiée aujourd'hui</p>
+          <p className="text-sm text-muted-foreground">Aucune livraison planifiée aujourd'hui</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 p-4 lg:grid-cols-4">
@@ -463,16 +491,16 @@ function DeliverySwimLanes({ items, isLoading }: { items: TodayDeliveryDto[]; is
                 {/* Lane cards */}
                 <div className="flex max-h-80 flex-col gap-2 overflow-y-auto">
                   {laneItems.length === 0 ? (
-                    <div className="flex flex-col items-center gap-1 rounded-xl border border-dashed border-slate-200 py-6 text-center">
-                      <CheckCircle className="h-4 w-4 text-slate-300" />
-                      <p className="text-xs text-slate-400">Aucune</p>
+                    <div className="flex flex-col items-center gap-1 rounded-xl border border-dashed border-border py-6 text-center">
+                      <CheckCircle className="h-4 w-4 text-muted-foreground/50" />
+                      <p className="text-xs text-muted-foreground">Aucune</p>
                     </div>
                   ) : (
                     laneItems.map(d => (
                       <div
                         key={d.id}
                         className={cn(
-                          'group rounded-xl border bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
+                          'group rounded-xl border bg-card p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
                           lane.cardBorder,
                         )}
                       >
@@ -481,17 +509,17 @@ function DeliverySwimLanes({ items, isLoading }: { items: TodayDeliveryDto[]; is
                             {getInitials(d.clientName)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-slate-800">{d.clientName}</p>
-                            <p className="text-xs text-slate-400">{d.reference}</p>
+                            <p className="truncate text-sm font-semibold text-foreground">{d.clientName}</p>
+                            <p className="text-xs text-muted-foreground">{d.reference}</p>
                           </div>
                         </div>
                         <div className="flex flex-col gap-0.5 mb-2">
-                          <p className="flex items-center gap-1 text-xs text-slate-500">
-                            <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
+                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
                             <span className="truncate">{d.deliveryCity}</span>
                           </p>
-                          <p className="flex items-center gap-1 text-xs text-slate-500">
-                            <Clock className="h-3 w-3 shrink-0 text-slate-400" />
+                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
                             {formatTime(d.scheduledTime)}
                           </p>
                         </div>
@@ -499,15 +527,17 @@ function DeliverySwimLanes({ items, isLoading }: { items: TodayDeliveryDto[]; is
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => navigate(`/deliveries/${d.id}`)}
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                              className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                               title="Voir"
+                              aria-label="Voir la livraison"
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={() => navigate(`/deliveries/${d.id}/edit`)}
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                              className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                               title="Modifier"
+                              aria-label="Modifier la livraison"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
@@ -542,31 +572,33 @@ function DeliverySwimLanes({ items, isLoading }: { items: TodayDeliveryDto[]; is
 function RiskSection({ items }: { items: RiskyDeliveryDto[] }) {
   const navigate = useNavigate()
   return (
-    <div className="rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <div className="flex items-center justify-between border-b px-5 py-4">
         <div className="flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-slate-500" />
-          <h2 className="font-semibold text-slate-800">À planifier en urgence</h2>
+          <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold text-foreground">À planifier en urgence</h2>
           {items.length > 0 && (
-            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
+            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-400">
               {items.length}
             </span>
           )}
         </div>
-        <button
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto gap-1 p-0 text-xs font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
           onClick={() => navigate('/deliveries')}
-          className="flex items-center gap-1 text-xs font-medium text-sky-600 transition-colors hover:text-sky-700"
         >
           Voir tout <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
       <div className="p-4">
         {items.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-6 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
               <CheckCircle className="h-5 w-5" />
             </div>
-            <p className="text-sm text-slate-500">Aucun risque détecté</p>
+            <p className="text-sm text-muted-foreground">Aucun risque détecté</p>
           </div>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -590,9 +622,9 @@ function RiskSection({ items }: { items: RiskyDeliveryDto[] }) {
                     <Clock className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-800">{r.reference}</p>
+                    <p className="truncate text-sm font-semibold text-foreground">{r.reference}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                      <p className="flex items-center gap-1 text-xs text-slate-400">
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="h-3 w-3" /> {r.deliveryCity}
                       </p>
                       <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', colors.chip)}>
@@ -694,7 +726,7 @@ export default function DashboardPage() {
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">
-              {getGreeting()}, {user?.firstName ?? 'Utilisateur'} 👋
+              {getGreeting()}, {user?.firstName ?? 'Utilisateur'}
             </h1>
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-sm text-sky-200">Vue d'ensemble de vos opérations</p>
@@ -754,8 +786,8 @@ export default function DashboardPage() {
             label="Livraisons du jour"
             value={stats?.todayDeliveries ?? 0}
             icon={<Truck className="h-5 w-5" />}
-            iconBg="bg-sky-100"
-            iconColor="text-sky-600"
+            iconBg="bg-sky-100 dark:bg-sky-500/15"
+            iconColor="text-sky-600 dark:text-sky-400"
             gradientFrom="#0ea5e9"
             gradientTo="#0284c7"
             trend={{ value: `${stats?.deliveredToday ?? 0}/${stats?.todayDeliveries ?? 0}`, up: true }}
@@ -772,8 +804,8 @@ export default function DashboardPage() {
             label="Non planifiées"
             value={stats?.unplannedDeliveries ?? 0}
             icon={<Package className="h-5 w-5" />}
-            iconBg="bg-amber-100"
-            iconColor="text-amber-600"
+            iconBg="bg-amber-100 dark:bg-amber-500/15"
+            iconColor="text-amber-600 dark:text-amber-400"
             gradientFrom="#f59e0b"
             gradientTo="#d97706"
             trend={
@@ -796,8 +828,8 @@ export default function DashboardPage() {
             label="Factures en attente"
             value={0}
             icon={<Euro className="h-5 w-5" />}
-            iconBg="bg-red-100"
-            iconColor="text-red-600"
+            iconBg="bg-red-100 dark:bg-red-500/15"
+            iconColor="text-red-600 dark:text-red-400"
             gradientFrom="#ef4444"
             gradientTo="#dc2626"
             trend={{ value: '0', up: true, neutral: true }}
@@ -807,8 +839,8 @@ export default function DashboardPage() {
             label="Revenus du mois"
             value={formatRevenue(stats?.monthlyRevenue ?? 0)}
             icon={<BarChart3 className="h-5 w-5" />}
-            iconBg="bg-emerald-100"
-            iconColor="text-emerald-600"
+            iconBg="bg-emerald-100 dark:bg-emerald-500/15"
+            iconColor="text-emerald-600 dark:text-emerald-400"
             gradientFrom="#10b981"
             gradientTo="#059669"
             trend={
@@ -836,26 +868,28 @@ export default function DashboardPage() {
       <RiskSection items={riskyDeliveries} />
 
       {/* ── Performance Chart ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+      <div className="rounded-2xl border bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-800">Performance</h2>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold text-foreground">Performance</h2>
           </div>
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          <div className="flex gap-1 rounded-xl bg-muted p-1">
             {([ChartPeriod.Week, ChartPeriod.Month, ChartPeriod.Year] as ChartPeriod[]).map(p => (
-              <button
+              <Button
                 key={p}
+                variant="ghost"
+                size="sm"
                 onClick={() => setPeriod(p)}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-all hover:bg-transparent',
                   period === p
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700',
+                    ? 'bg-card text-foreground shadow-sm hover:bg-card'
+                    : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {PERIOD_LABELS[p]}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -865,19 +899,19 @@ export default function DashboardPage() {
           {[
             {
               icon: <Truck className="h-4 w-4" />,
-              bg: 'bg-sky-100', color: 'text-sky-600', hoverBg: 'hover:bg-sky-50',
+              bg: 'bg-sky-100 dark:bg-sky-500/15', color: 'text-sky-600 dark:text-sky-400', hoverBg: 'hover:bg-sky-50 dark:hover:bg-sky-500/10',
               value: totalDeliveries.toLocaleString('fr-FR'),
               label: 'Livraisons',
             },
             {
               icon: <Euro className="h-4 w-4" />,
-              bg: 'bg-emerald-100', color: 'text-emerald-600', hoverBg: 'hover:bg-emerald-50',
+              bg: 'bg-emerald-100 dark:bg-emerald-500/15', color: 'text-emerald-600 dark:text-emerald-400', hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-500/10',
               value: `${totalRevenue.toFixed(1)} k€`,
               label: 'Revenus',
             },
             {
               icon: <CheckCircle className="h-4 w-4" />,
-              bg: 'bg-blue-100', color: 'text-blue-600', hoverBg: 'hover:bg-blue-50',
+              bg: 'bg-blue-100 dark:bg-blue-500/15', color: 'text-blue-600 dark:text-blue-400', hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-500/10',
               value: statusChart?.totalCount === 0 ? '—' : `${successRate}%`,
               label: 'Taux de succès',
             },
@@ -885,21 +919,28 @@ export default function DashboardPage() {
             <div
               key={i}
               className={cn(
-                'flex flex-col items-center gap-1 rounded-xl border bg-slate-50 p-4 text-center transition-colors',
+                'flex flex-col items-center gap-1 rounded-xl border bg-muted/50 p-4 text-center transition-colors',
                 item.hoverBg,
               )}
             >
               <div className={cn('flex h-9 w-9 items-center justify-center rounded-full', item.bg, item.color)}>
                 {item.icon}
               </div>
-              <p className="text-2xl font-extrabold text-slate-900">{item.value}</p>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{item.label}</p>
+              <p className="text-2xl font-extrabold text-foreground">{item.value}</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{item.label}</p>
             </div>
           ))}
         </div>
 
         {chartLoading ? (
           <Skeleton className="h-64 rounded-xl" />
+        ) : chartData.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <p className="text-sm text-muted-foreground">Aucune donnée pour cette période</p>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
@@ -913,15 +954,15 @@ export default function DashboardPage() {
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 11, fill: 'var(--color-muted-foreground)' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                tick={{ fontSize: 11, fill: 'var(--color-muted-foreground)' }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -929,10 +970,12 @@ export default function DashboardPage() {
                 contentStyle={{
                   borderRadius: '12px',
                   border: 'none',
+                  background: 'var(--color-popover)',
                   boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                   fontSize: '12px',
                 }}
-                labelStyle={{ fontWeight: 600, color: '#0f172a' }}
+                labelStyle={{ fontWeight: 600, color: 'var(--color-popover-foreground)' }}
+                itemStyle={{ color: 'var(--color-popover-foreground)' }}
               />
               <Legend
                 iconType="circle"
@@ -965,21 +1008,21 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Store Leaderboard ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+      <div className="rounded-2xl border bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-800">Top enseignes</h2>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-semibold text-foreground">Top enseignes</h2>
           </div>
-          <p className="text-xs text-slate-400">Revenus pour la période sélectionnée</p>
+          <p className="text-xs text-muted-foreground">Revenus pour la période sélectionnée</p>
         </div>
 
         {!storeChart || storeChart.storeNames.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <BarChart3 className="h-6 w-6" />
             </div>
-            <p className="text-sm text-slate-500">Aucune donnée disponible</p>
+            <p className="text-sm text-muted-foreground">Aucune donnée disponible</p>
           </div>
         ) : (
           <>
@@ -995,25 +1038,25 @@ export default function DashboardPage() {
                     className="grid items-center gap-3"
                     style={{ gridTemplateColumns: '40px minmax(0,160px) 1fr 90px 40px' }}
                   >
-                    <span className="text-center text-base leading-none">{getRankMedal(i)}</span>
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-slate-700">
+                    <RankBadge rank={i} />
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-foreground">
                       {name}
                     </span>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full transition-all duration-700"
                         style={{ width: `${barWidth}%`, background: color }}
                       />
                     </div>
-                    <span className="text-right text-sm font-bold text-slate-800">{rev.toFixed(1)} k€</span>
-                    <span className="text-right text-xs text-slate-400">{pct}%</span>
+                    <span className="text-right text-sm font-bold text-foreground">{rev.toFixed(1)} k€</span>
+                    <span className="text-right text-xs text-muted-foreground">{pct}%</span>
                   </div>
                 )
               })}
             </div>
-            <div className="mt-4 border-t pt-4 text-right text-sm text-slate-500">
+            <div className="mt-4 border-t pt-4 text-right text-sm text-muted-foreground">
               Total période :{' '}
-              <strong className="text-slate-800">{storeTotal.toFixed(1)} k€</strong>
+              <strong className="text-foreground">{storeTotal.toFixed(1)} k€</strong>
             </div>
           </>
         )}

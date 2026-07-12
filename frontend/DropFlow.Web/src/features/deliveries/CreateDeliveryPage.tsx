@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import {
   ArrowLeft, Plus, Trash2, Search, X, User, MapPin,
-  FileText, Package, Settings2, Euro, Route,
+  FileText, Package, Settings2, Euro, Route, Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -138,17 +138,21 @@ function ClientSearch({ onSelect }: { onSelect: (c: ClientLookupDto) => void }) 
 
   return (
     <div className="relative">
+      <Label htmlFor="client-search" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Rechercher un client existant
+      </Label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Rechercher un client existant…"
+          id="client-search"
+          placeholder="Nom, téléphone, email…"
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           className="pl-9"
         />
         {query && (
-          <button type="button" onClick={() => { setQuery(''); setOpen(false) }}
+          <button type="button" onClick={() => { setQuery(''); setOpen(false) }} aria-label="Effacer la recherche"
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
@@ -225,17 +229,13 @@ function AddressAutocomplete({ value, onChange, onPlaceSelect, error }: {
   }, [places])
 
   return (
-    <input
+    <Input
       ref={inputRef}
       value={value}
       onChange={e => onChange(e.target.value)}
       autoComplete="new-password"
       placeholder="Commencez à saisir une adresse…"
-      className={cn(
-        'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors',
-        'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-        error && 'border-destructive',
-      )}
+      className={cn(error && 'border-destructive')}
     />
   )
 }
@@ -500,7 +500,7 @@ export default function CreateDeliveryPage() {
             <div className="space-y-4">
               <ClientSearch onSelect={handleClientSelect} />
               <Separator />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Prénom" required error={errors.clientFirstName?.message}>
                   <Input {...register('clientFirstName')} />
                 </Field>
@@ -541,7 +541,7 @@ export default function CreateDeliveryPage() {
                   )}
                 />
               </Field>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <Field label="Code postal" required error={errors.zipCode?.message}>
                   <Input {...register('zipCode')} />
                 </Field>
@@ -558,7 +558,7 @@ export default function CreateDeliveryPage() {
           {/* ── Livraison ───────────────────────────────────────────────── */}
           <FormSection icon={FileText} title="Détails de la livraison" color="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Enseigne" required error={errors.storeId?.message}>
                   <Controller control={control} name="storeId"
                     render={({ field }) => (
@@ -645,7 +645,7 @@ export default function CreateDeliveryPage() {
                 </label>
                 {isEdit && existing?.routeReference && (
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Route className="h-4 w-4 text-green-600" />
+                    <Route className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <span>Tournée :</span>
                     <Badge variant="secondary" className="font-mono text-xs">{existing.routeReference}</Badge>
                   </div>
@@ -666,22 +666,23 @@ export default function CreateDeliveryPage() {
                       type="button"
                       onClick={() => setValue('type', t)}
                       className={cn(
-                        'flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all',
+                        'flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all',
                         watchedType === t
                           ? t === DeliveryType.Urgent
-                            ? 'border-red-400 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                            ? 'border-urgent/40 bg-urgent/10 text-urgent'
                             : 'border-primary bg-primary/5 text-primary'
                           : 'text-muted-foreground hover:bg-muted',
                       )}
                     >
-                      {t === DeliveryType.Standard ? 'Standard' : '⚡ Urgente'}
+                      {t === DeliveryType.Urgent && <Zap className="h-3.5 w-3.5" />}
+                      {t === DeliveryType.Standard ? 'Standard' : 'Urgente'}
                     </button>
                   ))}
                 </div>
               </div>
 
               {watchedType === DeliveryType.Urgent && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/30">
+                <div className="rounded-lg border border-urgent/30 bg-urgent/5 p-3">
                   <Field label="Chauffeur urgent" required error={errors.urgentDriverId?.message}>
                     <Controller control={control} name="urgentDriverId"
                       render={({ field }) => (
@@ -702,7 +703,7 @@ export default function CreateDeliveryPage() {
 
           {/* ── Financier ───────────────────────────────────────────────── */}
           <FormSection icon={Euro} title="Financier" color="bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="Prix (€)" required error={errors.price?.message}>
                 <Input type="number" step="0.01" min="0" {...register('price')} />
               </Field>
@@ -718,7 +719,7 @@ export default function CreateDeliveryPage() {
           {/* ── Options ─────────────────────────────────────────────────── */}
           <FormSection icon={Settings2} title="Notes" color="bg-slate-50 text-slate-600 dark:bg-slate-900/40 dark:text-slate-300">
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Note chauffeur">
                   <textarea
                     {...register('deliveryNotes')}

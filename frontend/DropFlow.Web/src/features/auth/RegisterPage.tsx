@@ -4,7 +4,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { isAxiosError } from 'axios'
-import { Check, ChevronLeft, Eye, EyeOff, Truck } from 'lucide-react'
+import {
+  AlertCircle, ArrowRight, Building2, Check, ChevronLeft,
+  Eye, EyeOff, Lock, Mail, User,
+} from 'lucide-react'
+import { DropflowLogo } from '@/components/shared/DropflowLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -110,15 +114,16 @@ export default function RegisterPage() {
       <div className="mb-8 flex flex-col items-center gap-1.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600">
-            <Truck className="h-5 w-5 text-white" />
+            <DropflowLogo className="h-5 w-5 text-white" />
           </div>
           <span className="text-2xl font-bold tracking-tight">DropFlow</span>
         </div>
       </div>
 
-      <Card>
+      <Card className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4 motion-safe:duration-500 overflow-hidden border-none shadow-xl shadow-slate-900/10">
+        <div className="h-1 w-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
         <CardHeader className="pb-2">
-          <CardTitle>Créer un compte</CardTitle>
+          <CardTitle className="text-2xl">Créer un compte</CardTitle>
           <CardDescription>Inscription en {STEP_LABELS.length} étapes</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -129,11 +134,11 @@ export default function RegisterPage() {
                 <div className="flex flex-col items-center gap-1">
                   <div
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors',
+                      'flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-200',
                       i + 1 < step
                         ? 'border-primary bg-primary text-primary-foreground'
                         : i + 1 === step
-                        ? 'border-primary text-primary'
+                        ? 'scale-110 border-primary text-primary shadow-sm shadow-primary/30'
                         : 'border-muted text-muted-foreground',
                     )}
                   >
@@ -141,7 +146,7 @@ export default function RegisterPage() {
                   </div>
                   <span
                     className={cn(
-                      'text-xs',
+                      'text-xs transition-colors duration-200',
                       i + 1 === step ? 'font-medium text-primary' : 'text-muted-foreground',
                     )}
                   >
@@ -150,30 +155,41 @@ export default function RegisterPage() {
                 </div>
                 {i < STEP_LABELS.length - 1 && (
                   <div
-                    className={cn('mb-4 h-0.5 w-10', i + 1 < step ? 'bg-primary' : 'bg-muted')}
+                    className={cn(
+                      'mb-4 h-0.5 w-10 transition-colors duration-300',
+                      i + 1 < step ? 'bg-primary' : 'bg-muted',
+                    )}
                   />
                 )}
               </Fragment>
             ))}
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
             {error && (
-              <Alert variant="destructive">
+              <Alert
+                variant="destructive"
+                className="animate-shake motion-safe:animate-in motion-safe:fade-in-0"
+              >
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {/* Step 1: Company */}
             {step === 1 && (
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
                 <Label htmlFor="companyName">Nom de l&apos;entreprise</Label>
-                <Input
-                  id="companyName"
-                  placeholder="Acme Livraisons"
-                  autoFocus
-                  {...form.register('companyName')}
-                />
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="companyName"
+                    placeholder="Acme Livraisons"
+                    autoFocus
+                    className="pl-10 transition-shadow duration-200"
+                    {...form.register('companyName')}
+                  />
+                </div>
                 {form.formState.errors.companyName && (
                   <p className="text-xs text-destructive">
                     {form.formState.errors.companyName.message}
@@ -184,11 +200,19 @@ export default function RegisterPage() {
 
             {/* Step 2: User info */}
             {step === 2 && (
-              <>
+              <div className="space-y-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="firstName">Prénom</Label>
-                    <Input id="firstName" autoFocus {...form.register('firstName')} />
+                    <div className="relative">
+                      <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="firstName"
+                        autoFocus
+                        className="pl-10 transition-shadow duration-200"
+                        {...form.register('firstName')}
+                      />
+                    </div>
                     {form.formState.errors.firstName && (
                       <p className="text-xs text-destructive">
                         {form.formState.errors.firstName.message}
@@ -197,7 +221,14 @@ export default function RegisterPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="lastName">Nom</Label>
-                    <Input id="lastName" {...form.register('lastName')} />
+                    <div className="relative">
+                      <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="lastName"
+                        className="pl-10 transition-shadow duration-200"
+                        {...form.register('lastName')}
+                      />
+                    </div>
                     {form.formState.errors.lastName && (
                       <p className="text-xs text-destructive">
                         {form.formState.errors.lastName.message}
@@ -207,38 +238,44 @@ export default function RegisterPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="vous@exemple.com"
-                    {...form.register('email')}
-                  />
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="vous@exemple.com"
+                      className="pl-10 transition-shadow duration-200"
+                      {...form.register('email')}
+                    />
+                  </div>
                   {form.formState.errors.email && (
                     <p className="text-xs text-destructive">
                       {form.formState.errors.email.message}
                     </p>
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* Step 3: Password */}
             {step === 3 && (
-              <>
+              <div className="space-y-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Mot de passe</Label>
                   <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       autoFocus
-                      className="pr-10"
+                      className="pl-10 pr-10 transition-shadow duration-200"
                       {...form.register('password')}
                     />
                     <button
                       type="button"
                       tabIndex={-1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       onClick={() => setShowPassword(v => !v)}
                     >
                       {showPassword ? (
@@ -249,25 +286,28 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-1.5">
-                    {PASSWORD_CHECKS.map(check => (
-                      <div
-                        key={check.label}
-                        className={cn(
-                          'flex items-center gap-1.5 text-xs transition-colors',
-                          check.test(watchedPassword) ? 'text-green-600' : 'text-muted-foreground',
-                        )}
-                      >
+                    {PASSWORD_CHECKS.map(check => {
+                      const passed = check.test(watchedPassword)
+                      return (
                         <div
+                          key={check.label}
                           className={cn(
-                            'h-1.5 w-1.5 rounded-full transition-colors',
-                            check.test(watchedPassword)
-                              ? 'bg-green-600'
-                              : 'bg-muted-foreground/40',
+                            'flex items-center gap-1.5 text-xs transition-colors duration-200',
+                            passed ? 'text-green-600' : 'text-muted-foreground',
                           )}
-                        />
-                        {check.label}
-                      </div>
-                    ))}
+                        >
+                          <div
+                            className={cn(
+                              'flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200',
+                              passed ? 'scale-100 bg-green-600' : 'scale-90 bg-muted-foreground/30',
+                            )}
+                          >
+                            {passed && <Check className="h-2.5 w-2.5 text-white" />}
+                          </div>
+                          {check.label}
+                        </div>
+                      )
+                    })}
                   </div>
                   {form.formState.errors.password && (
                     <p className="text-xs text-destructive">
@@ -279,16 +319,18 @@ export default function RegisterPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
                   <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       type={showConfirm ? 'text' : 'password'}
-                      className="pr-10"
+                      className="pl-10 pr-10 transition-shadow duration-200"
                       {...form.register('confirmPassword')}
                     />
                     <button
                       type="button"
                       tabIndex={-1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       onClick={() => setShowConfirm(v => !v)}
                     >
                       {showConfirm ? (
@@ -304,7 +346,7 @@ export default function RegisterPage() {
                     </p>
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             <div className="flex gap-3 pt-1">
@@ -312,26 +354,38 @@ export default function RegisterPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="group flex-1 transition-all duration-200 active:scale-[0.98]"
                   onClick={() => setStep(s => s - 1)}
                 >
-                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
                   Précédent
                 </Button>
               )}
               {step < 3 ? (
-                <Button type="button" className="flex-1" onClick={handleNext}>
+                <Button
+                  type="button"
+                  className="group flex-1 bg-gradient-to-r from-sky-500 to-blue-600 shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
+                  onClick={handleNext}
+                >
                   Suivant
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </Button>
               ) : (
-                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  className="group flex-1 bg-gradient-to-r from-sky-500 to-blue-600 shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                       Inscription…
                     </span>
                   ) : (
-                    "S'inscrire"
+                    <>
+                      S&apos;inscrire
+                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                    </>
                   )}
                 </Button>
               )}

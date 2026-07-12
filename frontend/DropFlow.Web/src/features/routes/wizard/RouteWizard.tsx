@@ -31,16 +31,16 @@ function Stepper({ current }: { current: number }) {
               <div className={cn(
                 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all',
                 isCompleted && 'bg-sky-600 text-white',
-                isActive && 'bg-sky-600 text-white ring-4 ring-sky-200',
-                !isCompleted && !isActive && 'bg-slate-100 text-slate-400',
+                isActive && 'bg-sky-600 text-white ring-4 ring-sky-200 dark:ring-sky-500/30',
+                !isCompleted && !isActive && 'bg-muted text-muted-foreground',
               )}>
                 {isCompleted ? <Check className="h-4 w-4" /> : stepNum}
               </div>
               <div className="hidden sm:block text-center">
-                <p className={cn('text-xs font-medium leading-none', isActive ? 'text-sky-700' : isCompleted ? 'text-slate-600' : 'text-slate-400')}>
+                <p className={cn('text-xs font-medium leading-none', isActive ? 'text-sky-700 dark:text-sky-400' : isCompleted ? 'text-muted-foreground' : 'text-muted-foreground/60')}>
                   {step.label}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">{step.sublabel}</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">{step.sublabel}</p>
               </div>
             </div>
 
@@ -48,7 +48,7 @@ function Stepper({ current }: { current: number }) {
             {idx < STEPS.length - 1 && (
               <div className={cn(
                 'mx-2 mb-5 h-0.5 w-8 sm:w-12 transition-colors',
-                stepNum < current ? 'bg-sky-600' : 'bg-slate-200'
+                stepNum < current ? 'bg-sky-600' : 'bg-muted'
               )} />
             )}
           </div>
@@ -72,7 +72,7 @@ export default function RouteWizard() {
         <div className="relative">
           <button
             onClick={() => navigate(isEdit ? `/routes/${editRouteId}` : '/routes')}
-            className="mb-3 flex items-center gap-1.5 text-xs text-sky-200 hover:text-white transition-colors"
+            className="mb-3 flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/25"
           >
             <ArrowLeft className="h-3.5 w-3.5" />{isEdit ? 'Retour au détail' : 'Retour aux tournées'}
           </button>
@@ -91,9 +91,9 @@ export default function RouteWizard() {
       </div>
 
       {/* Step content */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-base font-semibold text-slate-800">{STEPS[currentStep - 1].label}</h2>
-        <p className="mb-5 text-sm text-slate-500">{STEPS[currentStep - 1].sublabel}</p>
+      <div className="rounded-2xl border bg-card p-6 shadow-sm">
+        <h2 className="mb-1 text-base font-semibold text-foreground">{STEPS[currentStep - 1].label}</h2>
+        <p className="mb-5 text-sm text-muted-foreground">{STEPS[currentStep - 1].sublabel}</p>
 
         {currentStep === 1 && <Step1Info />}
         {currentStep === 2 && <Step2Deliveries />}

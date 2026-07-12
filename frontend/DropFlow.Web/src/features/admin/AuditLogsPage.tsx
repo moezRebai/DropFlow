@@ -42,7 +42,7 @@ function prettyJson(raw?: string): string | null {
 function SeverityBadge({ severity }: { severity: string }) {
   const Icon = SEVERITY_ICON[severity] ?? Info
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', SEVERITY_COLORS[severity] ?? 'bg-slate-100 text-slate-600')}>
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', SEVERITY_COLORS[severity] ?? 'bg-muted text-muted-foreground')}>
       <Icon className="h-3 w-3" />
       {SEVERITY_LABELS[severity] ?? severity}
     </span>
@@ -56,7 +56,7 @@ function DetailsModal({ log, onClose }: { log: AuditLogDto; onClose: () => void 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="flex items-center justify-between bg-gradient-to-br from-violet-600 to-indigo-700 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -67,33 +67,33 @@ function DetailsModal({ log, onClose }: { log: AuditLogDto; onClose: () => void 
               <p className="text-xs text-violet-200">#{log.id} · {formatDateTime(log.timestamp)}</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/15 hover:text-white">
+          <button onClick={onClose} aria-label="Fermer" className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/15 hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-6">
           <div className="flex flex-wrap gap-2">
             <SeverityBadge severity={log.severity} />
-            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               {log.entityName}{log.entityId != null ? ` #${log.entityId}` : ''}
             </span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border bg-slate-50 p-3">
-              <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-400"><User className="h-3 w-3" />Utilisateur</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800">{log.userEmail ?? 'Système'}</p>
+            <div className="rounded-xl border bg-muted p-3">
+              <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"><User className="h-3 w-3" />Utilisateur</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{log.userEmail ?? 'Système'}</p>
             </div>
-            <div className="rounded-xl border bg-slate-50 p-3">
-              <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-400"><Building2 className="h-3 w-3" />Entreprise</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800">{log.tenantName ?? (log.tenantId === 0 ? 'Plateforme' : `#${log.tenantId}`)}</p>
+            <div className="rounded-xl border bg-muted p-3">
+              <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"><Building2 className="h-3 w-3" />Entreprise</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{log.tenantName ?? (log.tenantId === 0 ? 'Plateforme' : `#${log.tenantId}`)}</p>
             </div>
           </div>
           <div>
-            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Détails des changements</p>
+            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Détails des changements</p>
             {changes ? (
               <pre className="max-h-64 overflow-auto rounded-xl border bg-slate-900 p-4 text-xs leading-relaxed text-slate-100">{changes}</pre>
             ) : (
-              <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">Aucun détail enregistré</p>
+              <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">Aucun détail enregistré</p>
             )}
           </div>
         </div>
@@ -158,16 +158,16 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Filters */}
-      <div className="grid gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1.5">
-          <Label className="text-xs text-slate-400">Action</Label>
+          <Label className="text-xs text-muted-foreground">Action</Label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={actionInput} onChange={e => setActionInput(e.target.value)} placeholder="ex. TenantPlanUpdated" className="pl-9" />
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-slate-400">Sévérité</Label>
+          <Label className="text-xs text-muted-foreground">Sévérité</Label>
           <Select value={severity} onValueChange={v => { setSeverity(v); setPage(1) }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -179,11 +179,11 @@ export default function AuditLogsPage() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-slate-400">Du</Label>
+          <Label className="text-xs text-muted-foreground">Du</Label>
           <Input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1) }} />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-slate-400">Au</Label>
+          <Label className="text-xs text-muted-foreground">Au</Label>
           <Input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1) }} />
         </div>
         <div className="flex items-end gap-2">
@@ -199,15 +199,15 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Sévérité</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Action</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Entité</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Utilisateur</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Date</TableHead>
+              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sévérité</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entité</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Utilisateur</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</TableHead>
               <TableHead className="w-16 pr-6" />
             </TableRow>
           </TableHeader>
@@ -227,31 +227,32 @@ export default function AuditLogsPage() {
               <TableRow>
                 <TableCell colSpan={6}>
                   <div className="flex flex-col items-center gap-3 py-16">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <ScrollText className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Aucun log trouvé</p>
+                    <p className="text-sm font-medium text-muted-foreground">Aucun log trouvé</p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
               logs.map(log => (
-                <TableRow key={log.id} className="cursor-pointer hover:bg-violet-50/40" onClick={() => setSelected(log)}>
+                <TableRow key={log.id} className="cursor-pointer hover:bg-violet-50/40 dark:hover:bg-violet-500/5" onClick={() => setSelected(log)}>
                   <TableCell className="py-3 pl-6"><SeverityBadge severity={log.severity} /></TableCell>
-                  <TableCell className="font-medium text-slate-800">{log.action}</TableCell>
-                  <TableCell className="text-sm text-slate-500">
+                  <TableCell className="font-medium text-foreground">{log.action}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {log.entityName}{log.entityId != null ? ` #${log.entityId}` : ''}
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500">{log.userEmail ?? 'Système'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{log.userEmail ?? 'Système'}</TableCell>
                   <TableCell>
-                    <span className="flex items-center gap-1 text-sm text-slate-500">
-                      <Clock className="h-3.5 w-3.5 text-slate-400" />{formatDateTime(log.timestamp)}
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />{formatDateTime(log.timestamp)}
                     </span>
                   </TableCell>
                   <TableCell className="pr-6" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => setSelected(log)}
-                      className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                      aria-label="Détails"
+                      className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       title="Détails"
                     >
                       <Eye className="h-4 w-4" />
@@ -266,7 +267,7 @@ export default function AuditLogsPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-400">Page {page}</p>
+        <p className="text-sm text-muted-foreground">Page {page}</p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" disabled={!hasPrev} onClick={() => setPage(p => Math.max(1, p - 1))}>
             <ChevronLeft className="mr-1 h-4 w-4" />Précédent

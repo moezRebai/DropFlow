@@ -59,16 +59,16 @@ function DeleteConfirmModal({ route, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <Trash2 className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <Trash2 className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Supprimer cette tournée ?</h3>
-          <p className="mb-3 text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Supprimer cette tournée ?</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
             La tournée <strong>{route.reference}</strong> sera définitivement supprimée.
           </p>
-          <ul className="space-y-1 rounded-xl bg-red-50 px-4 py-3 text-xs text-red-700">
+          <ul className="space-y-1 rounded-xl bg-red-50 px-4 py-3 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-300">
             <li>• Les livraisons assignées seront libérées</li>
             <li>• Les chauffeurs et aide-livreurs seront détachés</li>
             <li>• Le véhicule sera libéré</li>
@@ -96,13 +96,13 @@ function ConfirmRouteModal({ route, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-            <CheckCircle className="h-6 w-6 text-blue-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/15">
+            <CheckCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Confirmer cette tournée ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Confirmer cette tournée ?</h3>
+          <p className="text-sm text-muted-foreground">
             La tournée <strong>{route.reference}</strong> sera confirmée et ne pourra plus être modifiée.
           </p>
         </div>
@@ -127,13 +127,13 @@ function CancelConfirmModal({ route, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Annuler cette tournée ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Annuler cette tournée ?</h3>
+          <p className="text-sm text-muted-foreground">
             La tournée <strong>{route.reference}</strong> sera annulée et toutes ses livraisons seront libérées.
           </p>
         </div>
@@ -279,16 +279,17 @@ export default function RoutesPage() {
       </div>
 
       {/* Status tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto rounded-xl border bg-slate-50 p-1">
+      <div className="flex items-center gap-1 overflow-x-auto rounded-xl border bg-muted p-1">
         {STATUS_TABS.map(tab => (
           <button
             key={String(tab.value)}
             onClick={() => { setStatusFilter(tab.value); setPage(1) }}
+            aria-pressed={statusFilter === tab.value}
             className={cn(
               'shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
               statusFilter === tab.value
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700',
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {tab.label}
@@ -299,10 +300,10 @@ export default function RoutesPage() {
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9 pr-9" placeholder="Rechercher une référence, véhicule, chauffeur…" value={searchInput} onChange={e => setSearchInput(e.target.value)} />
           {searchInput && (
-            <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => setSearchInput('')} aria-label="Effacer la recherche" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -311,19 +312,19 @@ export default function RoutesPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50 hover:bg-slate-50">
-              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Référence</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Date</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Véhicule</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Chauffeur</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Livraisons</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Distance</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Durée</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Statut</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Créée par</TableHead>
+            <TableRow className="bg-muted hover:bg-muted">
+              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Référence</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Véhicule</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Chauffeur</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Livraisons</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Distance</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Durée</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Créée par</TableHead>
               <TableHead className="w-24 pr-6" />
             </TableRow>
           </TableHeader>
@@ -340,10 +341,10 @@ export default function RoutesPage() {
               <TableRow>
                 <TableCell colSpan={10} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <Route className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {debouncedSearch || statusFilter !== undefined ? 'Aucune tournée ne correspond à vos filtres' : 'Aucune tournée'}
                     </p>
                     {!debouncedSearch && statusFilter === undefined && (
@@ -358,75 +359,75 @@ export default function RoutesPage() {
               routes.map(route => (
                 <TableRow
                   key={route.id}
-                  className="cursor-pointer hover:bg-sky-50/40"
+                  className="cursor-pointer hover:bg-sky-50/40 dark:hover:bg-sky-500/5"
                   onClick={() => navigate(`/routes/${route.id}`)}
                 >
                   <TableCell className="py-3 pl-6">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-100">
-                        <Route className="h-4 w-4 text-sky-600" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-500/15">
+                        <Route className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                       </div>
-                      <span className="font-mono text-sm font-semibold text-slate-800">{route.reference}</span>
+                      <span className="font-mono text-sm font-semibold text-foreground">{route.reference}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                       {new Date(route.date).toLocaleDateString('fr-FR')}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                      <Truck className="h-3.5 w-3.5 text-slate-400" />
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Truck className="h-3.5 w-3.5 text-muted-foreground" />
                       {route.vehicleName}
                     </div>
                   </TableCell>
                   <TableCell>
                     {route.mainDriverName ? (
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <Users className="h-3.5 w-3.5 text-slate-400" />
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
                         {route.mainDriverName}
                         {route.teamCount > 1 && (
-                          <span className="text-xs text-slate-400">+{route.teamCount - 1}</span>
+                          <span className="text-xs text-muted-foreground">+{route.teamCount - 1}</span>
                         )}
                       </div>
                     ) : (
-                      <span className="text-sm text-slate-400">—</span>
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm font-medium text-slate-700">{route.totalDeliveries}</span>
+                    <span className="text-sm font-medium text-foreground">{route.totalDeliveries}</span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-slate-600">
-                      <Navigation className="h-3 w-3 text-slate-400" />
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Navigation className="h-3 w-3 text-muted-foreground" />
                       {formatDistance(route.totalDistance)}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-slate-600">
-                      <Clock className="h-3 w-3 text-slate-400" />
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
                       {formatDuration(route.totalDuration)}
                     </div>
                   </TableCell>
                   <TableCell><StatusBadge status={route.status} /></TableCell>
                   <TableCell>
                     {route.createdBy ? (
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <UserCircle className="h-3.5 w-3.5 text-slate-400" />
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
                         {route.createdBy}
                       </div>
                     ) : (
-                      <span className="text-sm text-slate-400">—</span>
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell className="pr-6" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => navigate(`/routes/${route.id}`)} className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700" title="Voir le détail">
+                      <button onClick={() => navigate(`/routes/${route.id}`)} aria-label="Voir le détail" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Voir le détail">
                         <Eye className="h-4 w-4" />
                       </button>
                       {route.status === RouteStatus.Draft && (
-                        <button onClick={e => { e.stopPropagation(); navigate(`/routes/${route.id}/edit`) }} className="rounded-lg p-1.5 text-amber-500 transition-colors hover:bg-amber-50 hover:text-amber-600" title="Modifier">
+                        <button onClick={e => { e.stopPropagation(); navigate(`/routes/${route.id}/edit`) }} aria-label="Modifier" className="rounded-lg p-1.5 text-amber-500 transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400" title="Modifier">
                           <Pencil className="h-4 w-4" />
                         </button>
                       )}
@@ -434,7 +435,8 @@ export default function RoutesPage() {
                         <button
                           onClick={e => { e.stopPropagation(); setConfirmTarget(route) }}
                           disabled={confirmMutation.isPending}
-                          className="rounded-lg p-1.5 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                          aria-label="Confirmer la tournée"
+                          className="rounded-lg p-1.5 text-blue-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
                           title="Confirmer la tournée"
                         >
                           {confirmMutation.isPending
@@ -446,7 +448,8 @@ export default function RoutesPage() {
                         <button
                           onClick={e => handleDownload(e, route)}
                           disabled={downloadingId === route.id}
-                          className="rounded-lg p-1.5 text-sky-500 transition-colors hover:bg-sky-50 hover:text-sky-600"
+                          aria-label="Télécharger la feuille de route"
+                          className="rounded-lg p-1.5 text-sky-500 transition-colors hover:bg-sky-50 hover:text-sky-600 dark:hover:bg-sky-500/10 dark:hover:text-sky-400"
                           title="Télécharger la feuille de route"
                         >
                           {downloadingId === route.id
@@ -455,12 +458,12 @@ export default function RoutesPage() {
                         </button>
                       )}
                       {route.status === RouteStatus.Draft && (
-                        <button onClick={e => { e.stopPropagation(); setDeleteTarget(route) }} className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-500" title="Supprimer la tournée">
+                        <button onClick={e => { e.stopPropagation(); setDeleteTarget(route) }} aria-label="Supprimer la tournée" className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400" title="Supprimer la tournée">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
                       {route.status === RouteStatus.Confirmed && (
-                        <button onClick={e => { e.stopPropagation(); setCancelTarget(route) }} className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-500" title="Annuler la tournée">
+                        <button onClick={e => { e.stopPropagation(); setCancelTarget(route) }} aria-label="Annuler la tournée" className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400" title="Annuler la tournée">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
@@ -476,14 +479,14 @@ export default function RoutesPage() {
       {/* Pagination */}
       {totalCount > 0 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             <strong>{from}</strong> à <strong>{to}</strong> sur <strong>{totalCount}</strong> tournée{totalCount > 1 ? 's' : ''}
           </p>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
               <ChevronLeft className="h-4 w-4" />Précédent
             </Button>
-            <span className="rounded-lg border bg-white px-3 py-1.5 text-sm font-medium text-slate-700">{page} / {totalPages}</span>
+            <span className="rounded-lg border bg-card px-3 py-1.5 text-sm font-medium text-foreground">{page} / {totalPages}</span>
             <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
               Suivant<ChevronRight className="h-4 w-4" />
             </Button>

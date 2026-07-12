@@ -5,11 +5,12 @@ import {
   AlertTriangle, Bell, Building2, CheckCircle, ChevronDown,
   ChevronLeft, ChevronRight, HelpCircle, Info, LayoutDashboard,
   LogOut, Menu, Package, PackageCheck, Route, ScrollText,
-  Settings, Truck, UserCircle, Users, Users2, X, XCircle,
+  Settings, UserCircle, Users, Users2, X, XCircle,
 } from 'lucide-react'
 import { dashboardApi, dashboardKeys } from '@/api/dashboard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DropflowLogo } from '@/components/shared/DropflowLogo'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -79,7 +80,7 @@ function SidebarContent({ collapsed = false, onToggle, onNavigate }: SidebarCont
         collapsed ? 'h-14 justify-center px-0' : 'min-h-14 gap-2.5 px-4 py-3',
       )}>
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-600">
-          <Truck className="h-4 w-4 text-white" />
+          <DropflowLogo className="h-4 w-4 text-white" />
         </div>
         {!collapsed && (
           <div className="flex min-w-0 flex-1 flex-col">

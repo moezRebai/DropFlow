@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { isAxiosError } from 'axios'
-import { Eye, EyeOff, Truck } from 'lucide-react'
+import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react'
+import { DropflowLogo } from '@/components/shared/DropflowLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -87,39 +88,48 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-md px-4">
-      <div className="mb-8 flex flex-col items-center gap-1.5">
+      <div className="mb-8 flex flex-col items-center gap-1.5 lg:hidden">
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600">
-            <Truck className="h-5 w-5 text-white" />
+            <DropflowLogo className="h-5 w-5 text-white" />
           </div>
           <span className="text-2xl font-bold tracking-tight">DropFlow</span>
         </div>
         <p className="text-sm text-muted-foreground">Gestion de livraisons</p>
       </div>
 
-      <Card>
+      <Card className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4 motion-safe:duration-500 overflow-hidden border-none shadow-xl shadow-slate-900/10">
+        <div className="h-1 w-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
         <CardHeader className="pb-4">
-          <CardTitle>Connexion</CardTitle>
+          <CardTitle className="text-2xl">Connexion</CardTitle>
           <CardDescription>Connectez-vous à votre espace DropFlow</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
             {error && (
-              <Alert variant="destructive">
+              <Alert
+                variant="destructive"
+                className="animate-shake motion-safe:animate-in motion-safe:fade-in-0"
+              >
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="vous@exemple.com"
-                autoComplete="email"
-                {...emailField}
-                onBlur={handleEmailBlur}
-              />
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  autoComplete="email"
+                  className="pl-10 transition-shadow duration-200"
+                  {...emailField}
+                  onBlur={handleEmailBlur}
+                />
+              </div>
               {form.formState.errors.email && (
                 <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
               )}
@@ -155,17 +165,19 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className="pr-10"
+                  className="pl-10 pr-10 transition-shadow duration-200"
                   {...form.register('password')}
                 />
                 <button
                   type="button"
                   tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   onClick={() => setShowPassword(v => !v)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -176,14 +188,21 @@ export default function LoginPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="group w-full bg-gradient-to-r from-sky-500 to-blue-600 shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   Connexion…
                 </span>
               ) : (
-                'Se connecter'
+                <span className="flex items-center gap-1.5">
+                  Se connecter
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </span>
               )}
             </Button>
           </form>

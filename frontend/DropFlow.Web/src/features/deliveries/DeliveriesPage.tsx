@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table'
 import {
   deliveriesApi, deliveryKeys, DeliveryStatus, DeliveryType,
-  STATUS_LABELS, STATUS_COLORS,
+  STATUS_LABELS, STATUS_COLORS, URGENT_BADGE_CLASS,
   type DeliveryViewDto, type DeliveryFilterDto,
 } from '@/api/deliveries'
 import { DeliveryStatusBadge } from './DeliveryStatusBadge'
@@ -73,14 +73,15 @@ function WarningIcons({ delivery, onGeocode }: { delivery: DeliveryViewDto; onGe
       {geoIssue && (
         <button
           title="Adresse non géolocalisée — cliquer pour géocoder"
+          aria-label="Géocoder l'adresse"
           onClick={e => { e.stopPropagation(); onGeocode(delivery.id) }}
-          className="flex items-center justify-center rounded p-0.5 text-amber-500 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+          className="flex items-center justify-center rounded p-0.5 text-amber-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 transition-colors"
         >
           <MapPinOff className="h-3.5 w-3.5" />
         </button>
       )}
       {durIssue && (
-        <span title="Durée de service non renseignée" className="flex items-center justify-center rounded p-0.5 text-slate-400">
+        <span title="Durée de service non renseignée" className="flex items-center justify-center rounded p-0.5 text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
         </span>
       )}
@@ -91,7 +92,7 @@ function WarningIcons({ delivery, onGeocode }: { delivery: DeliveryViewDto; onGe
               ? 'Statut confirmé/en cours sans date de livraison'
               : 'Date planifiée mais statut "À planifier"'
           }
-          className="flex items-center justify-center rounded p-0.5 text-orange-500"
+          className="flex items-center justify-center rounded p-0.5 text-orange-500 dark:text-orange-400"
         >
           <CalendarX className="h-3.5 w-3.5" />
         </span>
@@ -116,9 +117,9 @@ function DeliveryCard({
   return (
     <div
       className={cn(
-        'group relative cursor-pointer rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
+        'group relative cursor-pointer rounded-xl border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg',
         selected && 'ring-2 ring-primary',
-        issue && 'border-amber-200 bg-amber-50/40',
+        issue && 'border-amber-200 bg-amber-50/40 dark:border-amber-500/30 dark:bg-amber-500/5',
       )}
       onClick={() => navigate(`/deliveries/${delivery.id}`)}
     >
@@ -145,7 +146,7 @@ function DeliveryCard({
           <Truck className="mr-1 h-3 w-3" />{delivery.storeName}
         </Badge>
         {delivery.type === DeliveryType.Urgent && (
-          <Badge variant="destructive" className="text-xs">Urgente</Badge>
+          <Badge variant="outline" className={cn('text-xs', URGENT_BADGE_CLASS)}>Urgente</Badge>
         )}
         {delivery.withAssembly && (
           <Badge variant="outline" className="text-xs">Montage</Badge>
@@ -165,7 +166,7 @@ function DeliveryCard({
             </span>
           )}
         </div>
-        <span className="font-semibold text-green-600">{formatPrice(delivery.price)}</span>
+        <span className="font-semibold text-green-600 dark:text-green-400">{formatPrice(delivery.price)}</span>
       </div>
     </div>
   )
@@ -334,7 +335,7 @@ export default function DeliveriesPage() {
   const statusOptions: { value: string; label: string }[] = [
     { value: 'active', label: 'Actives (défaut)' },
     { value: 'all', label: 'Toutes' },
-    { value: 'issues', label: '⚠ Problèmes' },
+    { value: 'issues', label: 'Problèmes' },
     ...Object.values(DeliveryStatus)
       .filter((v): v is DeliveryStatus => typeof v === 'number')
       .map(s => ({ value: String(s), label: STATUS_LABELS[s] })),
@@ -354,7 +355,7 @@ export default function DeliveriesPage() {
               {data?.totalCount ?? 0} livraison{(data?.totalCount ?? 0) > 1 ? 's' : ''}
               {issueCount > 0 && (
                 <button
-                  className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 transition-colors"
+                  className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25 transition-colors"
                   onClick={() => setStatusFilter('issues')}
                 >
                   <AlertTriangle className="h-3 w-3" />{issueCount} problème{issueCount > 1 ? 's' : ''}
@@ -381,7 +382,7 @@ export default function DeliveriesPage() {
             className="pl-9"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <button onClick={() => setSearch('')} aria-label="Effacer la recherche" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -398,15 +399,19 @@ export default function DeliveriesPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex rounded-md border">
+        <div className="flex rounded-md border" role="group" aria-label="Mode d'affichage">
           <button
             onClick={() => setView('cards')}
+            aria-label="Vue en cartes"
+            aria-pressed={view === 'cards'}
             className={cn('flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors', view === 'cards' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
           <button
             onClick={() => setView('list')}
+            aria-label="Vue en liste"
+            aria-pressed={view === 'list'}
             className={cn('flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors', view === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
           >
             <List className="h-4 w-4" />
@@ -480,7 +485,7 @@ export default function DeliveriesPage() {
                 {deliveries.map(d => (
                   <TableRow
                     key={d.id}
-                    className={cn('cursor-pointer', hasIssue(d) && 'bg-amber-50/50 hover:bg-amber-50')}
+                    className={cn('cursor-pointer', hasIssue(d) && 'bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-500/5 dark:hover:bg-amber-500/10')}
                     onClick={() => navigate(`/deliveries/${d.id}`)}
                   >
                     <TableCell className="py-1.5 pl-3 pr-0" onClick={e => e.stopPropagation()}>
@@ -503,7 +508,7 @@ export default function DeliveriesPage() {
                         : <p className="text-xs text-muted-foreground">—</p>}
                       <p className="text-xs text-muted-foreground">{formatDate(d.createdDate)}</p>
                     </TableCell>
-                    <TableCell className="py-1.5 text-sm font-medium text-green-600">{formatPrice(d.price)}</TableCell>
+                    <TableCell className="py-1.5 text-sm font-medium text-green-600 dark:text-green-400">{formatPrice(d.price)}</TableCell>
                     <TableCell className="py-1.5"><DeliveryStatusBadge status={d.status} /></TableCell>
                     <TableCell className="py-1.5" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-0.5">

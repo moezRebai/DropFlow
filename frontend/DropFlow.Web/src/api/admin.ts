@@ -140,10 +140,10 @@ export const PLAN_LABELS: Record<string, string> = {
 }
 
 export const PLAN_COLORS: Record<string, string> = {
-  Free: 'bg-slate-100 text-slate-600',
-  Starter: 'bg-sky-100 text-sky-700',
-  Business: 'bg-violet-100 text-violet-700',
-  Enterprise: 'bg-amber-100 text-amber-700',
+  Free: 'bg-muted text-muted-foreground',
+  Starter: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
+  Business: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400',
+  Enterprise: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
 }
 
 // Default resource limits per plan — used to pre-fill the plan dialog (editable).
@@ -161,9 +161,9 @@ export const SEVERITY_LABELS: Record<string, string> = {
 }
 
 export const SEVERITY_COLORS: Record<string, string> = {
-  Info: 'bg-blue-100 text-blue-700',
-  Warning: 'bg-amber-100 text-amber-700',
-  Critical: 'bg-red-100 text-red-700',
+  Info: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
+  Warning: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+  Critical: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
 }
 
 // ─── Query keys ─────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import {
   ArrowLeft, Edit, MapPin, Phone, Mail, Package, Wrench,
   Trash2, Store, FileText, CalendarDays, Clock,
-  Route, Euro, CreditCard, Building2, StickyNote, AlertTriangle,
+  Route, Euro, CreditCard, Building2, StickyNote, AlertTriangle, Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table'
 import {
   deliveriesApi, deliveryKeys, DeliveryStatus, DeliveryType,
-  STATUS_LABELS, type DeliveryDto,
+  STATUS_LABELS, URGENT_BADGE_CLASS, type DeliveryDto,
 } from '@/api/deliveries'
 import { DeliveryStatusBadge } from './DeliveryStatusBadge'
 import { cn } from '@/lib/utils'
@@ -42,16 +42,16 @@ const STATUS_HERO: Record<DeliveryStatus, { bg: string; border: string; text: st
     accent: 'bg-purple-500',
   },
   [DeliveryStatus.Delivered]: {
-    bg: 'bg-green-50 dark:bg-green-950/30',
-    border: 'border-green-200 dark:border-green-800',
-    text: 'text-green-800 dark:text-green-200',
-    accent: 'bg-green-500',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    border: 'border-emerald-200 dark:border-emerald-800',
+    text: 'text-emerald-800 dark:text-emerald-200',
+    accent: 'bg-emerald-500',
   },
   [DeliveryStatus.Canceled]: {
-    bg: 'bg-gray-50 dark:bg-gray-900/30',
-    border: 'border-gray-200 dark:border-gray-700',
-    text: 'text-gray-600 dark:text-gray-400',
-    accent: 'bg-gray-400',
+    bg: 'bg-red-50 dark:bg-red-950/30',
+    border: 'border-red-200 dark:border-red-800',
+    text: 'text-red-700 dark:text-red-300',
+    accent: 'bg-red-500',
   },
 }
 
@@ -197,7 +197,7 @@ export default function DeliveryDetailPage() {
                 <h1 className={cn('text-2xl font-bold', hero.text)}>{delivery.reference}</h1>
                 <DeliveryStatusBadge status={delivery.status} />
                 {delivery.type === DeliveryType.Urgent && (
-                  <Badge variant="destructive" className="gap-1">
+                  <Badge variant="outline" className={cn('gap-1', URGENT_BADGE_CLASS)}>
                     <AlertTriangle className="h-3 w-3" />
                     Urgente
                   </Badge>
@@ -215,7 +215,7 @@ export default function DeliveryDetailPage() {
             </div>
           </div>
 
-          <div className="flex shrink-0 gap-2 pl-10 sm:pl-0">
+          <div className="flex shrink-0 items-center gap-2 pl-10 sm:pl-0">
             {!isDelivered && (
               <Button size="sm" asChild>
                 <Link to={`/deliveries/${delivery.id}/edit`}>
@@ -225,9 +225,18 @@ export default function DeliveryDetailPage() {
               </Button>
             )}
             {!isDelivered && (
-              <Button variant="destructive" size="sm" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <>
+                <div className="h-6 w-px bg-border" aria-hidden="true" />
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  aria-label="Supprimer la livraison"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -242,13 +251,15 @@ export default function DeliveryDetailPage() {
                 <div key={step} className="flex flex-1 items-center">
                   <div className="flex flex-col items-center gap-1">
                     <div className={cn(
-                      'h-2.5 w-2.5 rounded-full border-2 transition-all',
+                      'flex h-4 w-4 items-center justify-center rounded-full border-2 transition-all',
                       done
                         ? cn(hero.accent, 'border-transparent')
                         : 'border-muted-foreground/30 bg-background',
-                    )} />
+                    )}>
+                      {done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
+                    </div>
                     <span className={cn(
-                      'hidden text-[10px] sm:block',
+                      'text-center text-[9px] leading-tight sm:text-[10px]',
                       done ? hero.text : 'text-muted-foreground/50',
                     )}>
                       {STATUS_LABELS[step]}
@@ -351,7 +362,7 @@ export default function DeliveryDetailPage() {
                   Articles
                 </CardTitle>
                 {delivery.totalPackages > 0 && (
-                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/15">
                     {delivery.totalPackages} colis
                   </Badge>
                 )}
@@ -407,7 +418,7 @@ export default function DeliveryDetailPage() {
             </CardHeader>
             <CardContent className="divide-y">
               <InfoRow icon={Store} label="Enseigne" value={delivery.storeName} iconClass="text-violet-500" />
-              <InfoRow icon={FileText} label="N° dossier" value={delivery.fileNumber} iconClass="text-slate-500" />
+              <InfoRow icon={FileText} label="N° dossier" value={delivery.fileNumber} />
               <InfoRow icon={CalendarDays} label="Date de livraison" value={formatDate(delivery.scheduledDate)} iconClass="text-amber-500" />
               <InfoRow icon={Clock} label="Durée estimée" value={delivery.estimatedDurationMinutes != null ? `${delivery.estimatedDurationMinutes} min` : null} iconClass="text-blue-500" />
               {delivery.timeSlot && (
@@ -422,7 +433,7 @@ export default function DeliveryDetailPage() {
                 <InfoRow icon={AlertTriangle} label="Chauffeur urgent" value={delivery.urgentDriverName} iconClass="text-destructive" />
               )}
               {delivery.routeReference && (
-                <InfoRow icon={Route} label="Tournée" value={delivery.routeReference} iconClass="text-green-600" />
+                <InfoRow icon={Route} label="Tournée" value={delivery.routeReference} iconClass="text-green-600 dark:text-green-400" />
               )}
             </CardContent>
           </Card>

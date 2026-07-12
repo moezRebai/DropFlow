@@ -99,7 +99,7 @@ function DriverCreateModal({ existingUserIds, onClose }: { existingUserIds: Set<
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="bg-gradient-to-br from-sky-500 to-blue-600 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -124,7 +124,7 @@ function DriverCreateModal({ existingUserIds, onClose }: { existingUserIds: Set<
               </SelectTrigger>
               <SelectContent>
                 {availableUsers.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-sm text-slate-400">
+                  <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                     Aucun utilisateur disponible
                   </div>
                 ) : (
@@ -137,9 +137,9 @@ function DriverCreateModal({ existingUserIds, onClose }: { existingUserIds: Set<
               </SelectContent>
             </Select>
             {form.formState.errors.userId && <p className="text-xs text-red-500">{form.formState.errors.userId.message}</p>}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Seuls les utilisateurs sans profil chauffeur apparaissent.{' '}
-              <span className="text-sky-600">Invitez d'abord l'utilisateur via l'onglet Équipe.</span>
+              <span className="text-sky-600 dark:text-sky-400">Invitez d'abord l'utilisateur via l'onglet Équipe.</span>
             </p>
           </div>
           <div className="space-y-1.5">
@@ -201,7 +201,7 @@ function DriverEditModal({ driver, onClose }: { driver: DriverDto; onClose: () =
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="bg-gradient-to-br from-sky-500 to-blue-600 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">

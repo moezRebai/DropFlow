@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -20,6 +21,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-urgent: var(--urgent);
+  --color-urgent-foreground: var(--urgent-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -36,6 +39,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -60,6 +64,8 @@
   --accent-foreground: oklch(0.13 0.015 248);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
+  --urgent: oklch(0.65 0.19 45);
+  --urgent-foreground: oklch(0.985 0 0);
   --border: oklch(0.90 0.005 248);
   --input: oklch(0.90 0.005 248);
   --ring: oklch(0.59 0.21 248);
@@ -95,6 +101,8 @@
   --accent-foreground: oklch(0.97 0.005 260);
   --destructive: oklch(0.65 0.22 27);
   --destructive-foreground: oklch(0.985 0 0);
+  --urgent: oklch(0.72 0.18 45);
+  --urgent-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.68 0.19 248);
@@ -128,5 +136,41 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  button:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.route-dash {
+  animation: dash-flow 1.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-dash {
+    animation: none;
+  }
+}
+
+@keyframes shake-x {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.animate-shake {
+  animation: shake-x 0.4s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-shake {
+    animation: none;
   }
 }

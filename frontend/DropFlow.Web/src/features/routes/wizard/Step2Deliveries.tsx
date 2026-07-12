@@ -20,21 +20,21 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-card shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b bg-slate-50 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b bg-muted/50 px-5 py-4">
           <div>
-            <p className="font-mono text-xs text-slate-400">{delivery.reference}</p>
-            <h3 className="text-base font-semibold text-slate-800">{delivery.clientName}</h3>
+            <p className="font-mono text-xs text-muted-foreground">{delivery.reference}</p>
+            <h3 className="text-base font-semibold text-foreground">{delivery.clientName}</h3>
             {delivery.type === DeliveryType.Urgent && (
-              <span className="mt-0.5 inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
+              <span className="mt-0.5 inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-400">
                 {TYPE_LABELS[DeliveryType.Urgent]}
               </span>
             )}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600">
+          <button onClick={onClose} aria-label="Fermer" className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -42,12 +42,12 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
         <div className="max-h-[60vh] overflow-y-auto px-5 py-4 space-y-4">
           {/* Address */}
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Adresse</p>
-            <div className="flex items-start gap-2 text-sm text-slate-700">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Adresse</p>
+            <div className="flex items-start gap-2 text-sm text-foreground">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
                 <p>{delivery.address}</p>
-                {delivery.addressComplement && <p className="text-xs text-slate-500">{delivery.addressComplement}</p>}
+                {delivery.addressComplement && <p className="text-xs text-muted-foreground">{delivery.addressComplement}</p>}
                 <p>{delivery.zipCode} {delivery.city}</p>
               </div>
             </div>
@@ -56,17 +56,17 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
           {/* Contact */}
           {(delivery.clientPhone || delivery.clientEmail) && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Contact</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contact</p>
               <div className="space-y-1">
                 {delivery.clientPhone && (
-                  <div className="flex items-center gap-2 text-sm text-slate-700">
-                    <Phone className="h-3.5 w-3.5 text-slate-400" />
-                    <a href={`tel:${delivery.clientPhone}`} className="hover:text-sky-600">{delivery.clientPhone}</a>
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                    <a href={`tel:${delivery.clientPhone}`} className="hover:text-sky-600 dark:hover:text-sky-400">{delivery.clientPhone}</a>
                   </div>
                 )}
                 {delivery.clientEmail && (
-                  <div className="flex items-center gap-2 text-sm text-slate-700">
-                    <Mail className="h-3.5 w-3.5 text-slate-400" />
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="truncate">{delivery.clientEmail}</span>
                   </div>
                 )}
@@ -77,20 +77,20 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
           {/* Duration + packages */}
           <div className="flex flex-wrap gap-3">
             {delivery.estimatedDurationMinutes && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
-                <Timer className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-xs font-medium text-amber-700">{delivery.estimatedDurationMinutes} min prestation</span>
+              <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-500/30 dark:bg-amber-500/10">
+                <Timer className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{delivery.estimatedDurationMinutes} min prestation</span>
               </div>
             )}
             {delivery.totalPackages > 0 && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
-                <Layers className="h-3.5 w-3.5 text-slate-500" />
-                <span className="text-xs font-medium text-slate-700">{delivery.totalPackages} colis</span>
+              <div className="flex items-center gap-1.5 rounded-lg border bg-muted px-3 py-1.5">
+                <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">{delivery.totalPackages} colis</span>
               </div>
             )}
             {delivery.withAssembly && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5">
-                <span className="text-xs font-medium text-purple-700">Avec montage</span>
+              <div className="flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 dark:border-purple-500/30 dark:bg-purple-500/10">
+                <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Avec montage</span>
               </div>
             )}
           </div>
@@ -98,12 +98,12 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
           {/* Items */}
           {delivery.items.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Articles ({delivery.items.length})</p>
-              <div className="space-y-1 rounded-lg border bg-slate-50 divide-y">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Articles ({delivery.items.length})</p>
+              <div className="space-y-1 rounded-lg border bg-muted/50 divide-y">
                 {delivery.items.map(item => (
                   <div key={item.id} className="flex items-center justify-between px-3 py-2 text-xs">
-                    <span className="text-slate-700">{item.designation}</span>
-                    <span className="font-semibold text-slate-800">× {item.quantity}</span>
+                    <span className="text-foreground">{item.designation}</span>
+                    <span className="font-semibold text-foreground">× {item.quantity}</span>
                   </div>
                 ))}
               </div>
@@ -113,10 +113,10 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
           {/* Notes client */}
           {delivery.deliveryNotes && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Notes client</p>
-              <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
-                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-                <p className="text-xs text-sky-800">{delivery.deliveryNotes}</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes client</p>
+              <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-500/30 dark:bg-sky-500/10">
+                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" />
+                <p className="text-xs text-sky-800 dark:text-sky-300">{delivery.deliveryNotes}</p>
               </div>
             </div>
           )}
@@ -124,17 +124,17 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
           {/* Notes internes */}
           {delivery.internalNotes && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Notes internes</p>
-              <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                <p className="text-xs text-slate-600">{delivery.internalNotes}</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes internes</p>
+              <div className="flex items-start gap-2 rounded-lg border bg-muted/50 px-3 py-2">
+                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">{delivery.internalNotes}</p>
               </div>
             </div>
           )}
 
           {/* Store + créneau */}
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
-            {delivery.storeName && <span>Enseigne : <strong className="text-slate-700">{delivery.storeName}</strong></span>}
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+            {delivery.storeName && <span>Enseigne : <strong className="text-foreground">{delivery.storeName}</strong></span>}
             {delivery.timeSlot && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />{delivery.timeSlot.label} ({delivery.timeSlot.startTime.substring(0, 5)} – {delivery.timeSlot.endTime.substring(0, 5)})
@@ -145,12 +145,12 @@ function DeliveryDetailModal({ delivery, onClose }: { delivery: DeliveryDto; onC
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t px-5 py-3">
-          <span className="text-sm font-semibold text-slate-800">{delivery.price.toFixed(2)} €</span>
+          <span className="text-sm font-semibold text-foreground">{delivery.price.toFixed(2)} €</span>
           <a
             href={`/deliveries/${delivery.id}/edit`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
             onClick={e => e.stopPropagation()}
           >
             <ExternalLink className="h-3.5 w-3.5" />Modifier la livraison
@@ -257,7 +257,7 @@ export function Step2Deliveries() {
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9 pr-9"
             placeholder="Référence, client, ville…"
@@ -265,7 +265,7 @@ export function Step2Deliveries() {
             onChange={e => setSearch(e.target.value)}
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => setSearch('')} aria-label="Effacer la recherche" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -275,39 +275,39 @@ export function Step2Deliveries() {
             <select
               value={storeFilter ?? ''}
               onChange={e => setStoreFilter(e.target.value ? Number(e.target.value) : undefined)}
-              className="appearance-none rounded-md border bg-white px-3 py-2 text-sm pr-7 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="appearance-none rounded-md border bg-background px-3 py-2 text-sm pr-7 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
               <option value="">Toutes les enseignes</option>
               {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           </div>
         )}
       </div>
 
       {/* Counter */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted-foreground">
           {isLoading ? '…' : `${filtered.length} livraison${filtered.length > 1 ? 's' : ''} disponible${filtered.length > 1 ? 's' : ''}`}
         </p>
         {wizard.selectedDeliveries.length > 0 && (
-          <span className="rounded-full bg-sky-100 px-3 py-0.5 text-xs font-semibold text-sky-700">
+          <span className="rounded-full bg-sky-100 px-3 py-0.5 text-xs font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">
             {wizard.selectedDeliveries.length} sélectionnée{wizard.selectedDeliveries.length > 1 ? 's' : ''}
           </span>
         )}
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <div className="flex items-center gap-3 border-b bg-slate-50 px-4 py-2.5">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div className="flex items-center gap-3 border-b bg-muted px-4 py-2.5">
           <input
             type="checkbox"
             checked={allFilteredSelected}
             onChange={toggleAll}
             disabled={filtered.length === 0}
-            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+            className="h-4 w-4 rounded border-input text-sky-600 focus:ring-sky-500"
           />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Tout sélectionner</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tout sélectionner</span>
         </div>
 
         <div className="divide-y max-h-[420px] overflow-y-auto">
@@ -320,8 +320,8 @@ export function Step2Deliveries() {
             ))
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10">
-              <Package className="h-8 w-8 text-slate-300" />
-              <p className="text-sm text-slate-400">
+              <Package className="h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">
                 {allDeliveries.length === 0
                   ? `Aucune livraison disponible pour le ${new Date(wizard.date).toLocaleDateString('fr-FR')}`
                   : 'Aucun résultat pour ce filtre'}
@@ -335,8 +335,8 @@ export function Step2Deliveries() {
                   key={delivery.id}
                   onClick={() => toggle(delivery.id)}
                   className={cn(
-                    'flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-sky-50/50',
-                    selected && 'bg-sky-50'
+                    'flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-sky-50/50 dark:hover:bg-sky-500/5',
+                    selected && 'bg-sky-50 dark:bg-sky-500/10'
                   )}
                 >
                   <input
@@ -344,41 +344,41 @@ export function Step2Deliveries() {
                     checked={selected}
                     onChange={() => toggle(delivery.id)}
                     onClick={e => e.stopPropagation()}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-input text-sky-600 focus:ring-sky-500"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-slate-400">{delivery.reference}</span>
-                      <span className="text-sm font-medium text-slate-800">{delivery.clientName}</span>
+                      <span className="font-mono text-xs text-muted-foreground">{delivery.reference}</span>
+                      <span className="text-sm font-medium text-foreground">{delivery.clientName}</span>
                       {delivery.type === DeliveryType.Urgent && (
-                        <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-semibold text-red-600">
+                        <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-400">
                           {TYPE_LABELS[DeliveryType.Urgent]}
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                    <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-0.5">
                         <MapPin className="h-3 w-3" />{delivery.city}
                       </span>
                       <span className="truncate max-w-48">{delivery.address}</span>
                       {delivery.storeName && (
-                        <span className="shrink-0 text-slate-400">{delivery.storeName}</span>
+                        <span className="shrink-0 text-muted-foreground">{delivery.storeName}</span>
                       )}
                     </div>
                     {/* Duration + notes */}
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       {delivery.estimatedDurationMinutes && (
-                        <span className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
+                        <span className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
                           <Timer className="h-3 w-3" />{delivery.estimatedDurationMinutes} min
                         </span>
                       )}
                       {delivery.totalPackages > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-slate-400">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Layers className="h-3 w-3" />{delivery.totalPackages} colis
                         </span>
                       )}
                       {delivery.deliveryNotes && (
-                        <span className="flex items-center gap-1 text-xs text-sky-600 max-w-xs truncate">
+                        <span className="flex items-center gap-1 text-xs text-sky-600 dark:text-sky-400 max-w-xs truncate">
                           <FileText className="h-3 w-3 shrink-0" />
                           {delivery.deliveryNotes.length > 60
                             ? delivery.deliveryNotes.substring(0, 60) + '…'
@@ -387,7 +387,7 @@ export function Step2Deliveries() {
                       )}
                     </div>
                     {delivery.scheduledDate && (
-                      <div className="mt-0.5 flex items-center gap-0.5 text-xs text-amber-600">
+                      <div className="mt-0.5 flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400">
                         <Calendar className="h-3 w-3" />
                         Prévue le {new Date(delivery.scheduledDate).toLocaleDateString('fr-FR')}
                       </div>
@@ -397,7 +397,8 @@ export function Step2Deliveries() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={e => { e.stopPropagation(); setDetailDeliveryId(delivery.id) }}
-                        className="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-600 hover:bg-sky-100 hover:border-sky-300 transition-colors"
+                        aria-label="Voir le détail"
+                        className="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-600 hover:bg-sky-100 hover:border-sky-300 transition-colors dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-400 dark:hover:bg-sky-500/20"
                         title="Voir le détail"
                       >
                         <Eye className="h-3.5 w-3.5" />Détail
@@ -405,15 +406,16 @@ export function Step2Deliveries() {
                       <button
                         onClick={e => { e.stopPropagation(); reloadDeliveries() }}
                         disabled={isFetching}
-                        className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-1 text-slate-400 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600 disabled:opacity-50 transition-colors"
+                        aria-label="Actualiser cette livraison"
+                        className="flex items-center justify-center rounded-lg border bg-background p-1 text-muted-foreground hover:border-foreground/20 hover:bg-muted hover:text-foreground disabled:opacity-50 transition-colors"
                         title="Actualiser cette livraison"
                       >
                         <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
                       </button>
                     </div>
-                    <p className="text-sm font-semibold text-slate-700">{delivery.price.toFixed(2)} €</p>
+                    <p className="text-sm font-semibold text-foreground">{delivery.price.toFixed(2)} €</p>
                     {delivery.totalPackages > 0 && (
-                      <p className="text-xs text-slate-400">{delivery.totalPackages} colis</p>
+                      <p className="text-xs text-muted-foreground">{delivery.totalPackages} colis</p>
                     )}
                   </div>
                 </div>
@@ -424,7 +426,7 @@ export function Step2Deliveries() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+        <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600 dark:bg-red-500/10 dark:text-red-400">
           <AlertTriangle className="h-4 w-4 shrink-0" />{error}
         </div>
       )}

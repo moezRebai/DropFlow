@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
 import {
-  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+  SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates, useSortable, arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
@@ -41,32 +41,32 @@ function SortableRow({ delivery, index, timeline }: {
     <div
       ref={setNodeRef}
       style={style}
-      className="border-b last:border-b-0 bg-white px-4 py-3 hover:bg-slate-50"
+      className="border-b last:border-b-0 bg-card px-4 py-3 hover:bg-muted/50"
     >
       <div className="flex items-center gap-3">
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab touch-none text-slate-300 hover:text-slate-500 active:cursor-grabbing"
-          aria-label="Réordonner"
+          className="cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
+          aria-label="Réordonner (glisser ou utiliser les flèches du clavier)"
         >
           <GripVertical className="h-4 w-4" />
         </button>
 
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">
           {index + 1}
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-slate-800 truncate">
+          <p className="text-sm font-medium text-foreground truncate">
             {delivery.clientName ?? `Livraison #${delivery.deliveryId}`}
           </p>
-          <p className="text-xs text-slate-500 truncate">{delivery.address}</p>
+          <p className="text-xs text-muted-foreground truncate">{delivery.address}</p>
         </div>
 
         {delivery.distanceToNextMeters > 0 && (
           <div className="shrink-0 text-right">
-            <p className="flex items-center gap-0.5 text-xs text-slate-400 justify-end">
+            <p className="flex items-center gap-0.5 text-xs text-muted-foreground justify-end">
               <Navigation className="h-3 w-3" />
               {delivery.distanceToNextMeters >= 1000
                 ? `${(delivery.distanceToNextMeters / 1000).toFixed(1)} km`
@@ -79,38 +79,38 @@ function SortableRow({ delivery, index, timeline }: {
       {timeline && timeline.travelMinutes > 0 && (
         <div className="ml-9 mt-2 flex flex-wrap items-center gap-1.5">
           {/* Départ précédent */}
-          <div className="flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5">
-            <Navigation className="h-3 w-3 text-sky-500" />
-            <span className="text-xs text-slate-500">Départ</span>
-            <span className="text-xs font-semibold text-sky-700">{minutesToTime(timeline.prevDepartureMinutes)}</span>
+          <div className="flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 dark:border-sky-500/30 dark:bg-sky-500/10">
+            <Navigation className="h-3 w-3 text-sky-500 dark:text-sky-400" />
+            <span className="text-xs text-muted-foreground">Départ</span>
+            <span className="text-xs font-semibold text-sky-700 dark:text-sky-400">{minutesToTime(timeline.prevDepartureMinutes)}</span>
           </div>
-          <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
+          <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
           {/* Trajet */}
-          <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5">
-            <Clock className="h-3 w-3 text-slate-400" />
-            <span className="text-xs font-medium text-slate-600">{timeline.travelMinutes} min de trajet</span>
+          <div className="flex items-center gap-1 rounded-md border bg-muted px-2 py-0.5">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">{timeline.travelMinutes} min de trajet</span>
           </div>
-          <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
+          <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
           {/* Arrivée */}
-          <div className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5">
-            <MapPin className="h-3 w-3 text-emerald-500" />
-            <span className="text-xs text-slate-500">Arrivée</span>
-            <span className="text-xs font-semibold text-emerald-700">{minutesToTime(timeline.arrivalMinutes)}</span>
+          <div className="flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+            <MapPin className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
+            <span className="text-xs text-muted-foreground">Arrivée</span>
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{minutesToTime(timeline.arrivalMinutes)}</span>
           </div>
           {timeline.serviceMinutes > 0 && (
             <>
-              <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
+              <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
               {/* Prestation */}
-              <div className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5">
-                <Timer className="h-3 w-3 text-amber-500" />
-                <span className="text-xs font-medium text-amber-700">{timeline.serviceMinutes} min prestation</span>
+              <div className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 dark:border-amber-500/30 dark:bg-amber-500/10">
+                <Timer className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{timeline.serviceMinutes} min prestation</span>
               </div>
-              <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
+              <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/40" />
               {/* Départ client */}
-              <div className="flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5">
-                <Navigation className="h-3 w-3 text-orange-500" />
-                <span className="text-xs text-slate-500">Départ client</span>
-                <span className="text-xs font-semibold text-orange-700">{minutesToTime(timeline.departureMinutes)}</span>
+              <div className="flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 dark:border-orange-500/30 dark:bg-orange-500/10">
+                <Navigation className="h-3 w-3 text-orange-500 dark:text-orange-400" />
+                <span className="text-xs text-muted-foreground">Départ client</span>
+                <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">{minutesToTime(timeline.departureMinutes)}</span>
               </div>
             </>
           )}
@@ -126,7 +126,10 @@ export function Step4Optimize() {
   const wizard = useWizardStore()
   const [hasOptimized, setHasOptimized] = useState(wizard.optimizedDeliveries.length > 0)
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   const deliveryIdToName = new Map(
     wizard.selectedDeliveries.map(d => [d.id, d.clientName])
@@ -205,14 +208,14 @@ export function Step4Optimize() {
     <div className="flex flex-col gap-5">
 
       {/* Optimize panel */}
-      <div className="rounded-2xl border bg-gradient-to-br from-sky-50 to-blue-50 p-5">
+      <div className="rounded-2xl border bg-gradient-to-br from-sky-50 to-blue-50 p-5 dark:border-sky-500/20 dark:from-sky-500/10 dark:to-blue-500/10">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-4 w-4 text-sky-600" />
-              <h3 className="text-sm font-semibold text-slate-700">Itinéraire & Optimisation</h3>
+              <Sparkles className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+              <h3 className="text-sm font-semibold text-foreground">Itinéraire & Optimisation</h3>
             </div>
-            <p className="text-xs text-slate-500 max-w-sm">
+            <p className="text-xs text-muted-foreground max-w-sm">
               Calcule l'itinéraire le plus court pour {wizard.selectedDeliveries.length} livraison{wizard.selectedDeliveries.length > 1 ? 's' : ''} depuis {wizard.departureAddress}.
             </p>
           </div>
@@ -239,23 +242,23 @@ export function Step4Optimize() {
         {hasOptimized && wizard.totalDistanceKm !== null && (
           <div className="mt-4 space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                <Navigation className="h-3.5 w-3.5 text-sky-500" />
+              <div className="flex items-center gap-1.5 rounded-xl bg-card/70 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+                <Navigation className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
                 {formatDistance(wizard.totalDistanceKm * 1000)}
               </div>
               {wizard.totalDurationMinutes !== null && (
-                <div className="flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                  <Clock className="h-3.5 w-3.5 text-sky-500" />
+                <div className="flex items-center gap-1.5 rounded-xl bg-card/70 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+                  <Clock className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
                   {formatDuration(wizard.totalDurationMinutes)}
                 </div>
               )}
               {wizard.wasOptimizedByGoogle && !wizard.wasManuallyReordered && (
-                <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                   <CheckCircle className="h-3.5 w-3.5" />Optimisé
                 </div>
               )}
               {wizard.wasManuallyReordered && (
-                <div className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
                   <AlertTriangle className="h-3.5 w-3.5" />Réordonné manuellement
                 </div>
               )}
@@ -263,19 +266,27 @@ export function Step4Optimize() {
             {/* Start / end time row */}
             {endTime && (
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 text-xs shadow-sm">
-                  <Navigation className="h-3.5 w-3.5 text-sky-500" />
-                  <span className="text-slate-500">Départ tournée</span>
-                  <span className="font-semibold text-sky-700">{wizard.startTime}</span>
+                <div className="flex items-center gap-1.5 rounded-xl bg-card/70 px-3 py-1.5 text-xs shadow-sm">
+                  <Navigation className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
+                  <span className="text-muted-foreground">Départ tournée</span>
+                  <span className="font-semibold text-sky-700 dark:text-sky-400">{wizard.startTime}</span>
                 </div>
-                <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                <div className="flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 text-xs shadow-sm">
-                  <Timer className="h-3.5 w-3.5 text-orange-500" />
-                  <span className="text-slate-500">Fin estimée</span>
-                  <span className="font-semibold text-orange-700">{endTime}</span>
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex items-center gap-1.5 rounded-xl bg-card/70 px-3 py-1.5 text-xs shadow-sm">
+                  <Timer className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
+                  <span className="text-muted-foreground">Fin estimée</span>
+                  <span className="font-semibold text-orange-700 dark:text-orange-400">{endTime}</span>
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Error state */}
+        {optimizeMutation.isError && (
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            L'optimisation a échoué. Réessayez ou passez cette étape — les livraisons resteront dans l'ordre de sélection.
           </div>
         )}
       </div>
@@ -284,21 +295,21 @@ export function Step4Optimize() {
       {deliveries.length > 0 ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-600">Séquence de livraisons</p>
-            <p className="text-xs text-slate-400 flex items-center gap-1">
-              <GripVertical className="h-3.5 w-3.5" />Glissez pour réordonner
+            <p className="text-sm font-medium text-foreground">Séquence de livraisons</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <GripVertical className="h-3.5 w-3.5" />Glissez ou utilisez les flèches pour réordonner
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
             {/* Departure */}
-            <div className="flex items-center gap-3 border-b bg-sky-50 px-4 py-2.5">
+            <div className="flex items-center gap-3 border-b bg-sky-50 px-4 py-2.5 dark:bg-sky-500/10">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-600">
                 <MapPin className="h-3.5 w-3.5 text-white" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-sky-700">Départ</p>
-                <p className="text-xs text-slate-500 truncate max-w-xs">{wizard.departureAddress}</p>
+                <p className="text-xs font-semibold text-sky-700 dark:text-sky-400">Départ</p>
+                <p className="text-xs text-muted-foreground truncate max-w-xs">{wizard.departureAddress}</p>
               </div>
             </div>
 
@@ -317,15 +328,15 @@ export function Step4Optimize() {
           </div>
         </div>
       ) : !optimizeMutation.isPending && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 py-10">
-          <Navigation className="h-8 w-8 text-slate-300" />
-          <p className="text-sm text-slate-400">Cliquez sur "Optimiser avec Google Maps" pour calculer la meilleure route</p>
+        <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border py-10">
+          <Navigation className="h-8 w-8 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">Cliquez sur "Optimiser avec Google Maps" pour calculer la meilleure route</p>
         </div>
       )}
 
       {/* Skip note */}
       {!hasOptimized && (
-        <p className="text-xs text-slate-400 text-center">
+        <p className="text-xs text-muted-foreground text-center">
           Vous pouvez passer cette étape — les livraisons seront dans l'ordre de sélection.
         </p>
       )}
