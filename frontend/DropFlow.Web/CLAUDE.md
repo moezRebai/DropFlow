@@ -7,9 +7,8 @@ Il contient le contexte projet, les conventions, et l'état d'avancement de la m
 
 ## Contexte
 
-Réécriture du frontend Blazor Server (`frontend/DropFlow.WebApp`) en React + TypeScript.
-L'API backend (.NET 9) reste inchangée — seul le frontend change.
-L'appli Blazor reste en production pendant la migration ; les deux coexistent.
+Frontend **React + TypeScript** de DropFlow. Il remplace l'ancien frontend Blazor Server
+(supprimé du dépôt) ; c'est désormais le seul frontend web. L'API backend (.NET 9) est inchangée.
 
 **API base URL** : définie dans `.env.local` → `VITE_API_URL`
 

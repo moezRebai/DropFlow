@@ -4,7 +4,7 @@
 
 ## Overview
 
-DropFlow is a web-based platform that lets logistics companies manage their entire delivery operation — from client and order management through route planning, driver dispatch, and delivery validation. Each company runs in a fully isolated tenant, with role-based access control separating platform administrators, operations managers, and drivers. The application is built as a Blazor Server front-end communicating with an ASP.NET Core REST API backed by SQL Server.
+DropFlow is a web-based platform that lets logistics companies manage their entire delivery operation — from client and order management through route planning, driver dispatch, and delivery validation. Each company runs in a fully isolated tenant, with role-based access control separating platform administrators, operations managers, and drivers. The application is built as a React + TypeScript single-page front-end communicating with an ASP.NET Core REST API backed by PostgreSQL.
 
 ## Features
 
@@ -58,32 +58,36 @@ DropFlow follows a layered architecture with a clean separation of concerns acro
 
 ```
 DropFlow.sln
-└── src/
-    ├── DropFlow.Domain          # Entities, enums, interfaces, constants — no dependencies
-    ├── DropFlow.Application     # Service layer, DTOs, FluentValidation — depends on Domain
-    ├── DropFlow.Shared          # DTOs shared between API and WebApp — no server dependencies
-    ├── DropFlow.Infrastructure  # EF Core, Identity, external services — depends on Application
-    ├── DropFlow.Api             # ASP.NET Core Web API — depends on Application + Infrastructure
-    └── DropFlow.WebApp          # Blazor Server front-end — depends on Shared only
+├── backend/
+│   ├── DropFlow.Domain          # Entities, enums, interfaces, constants — no dependencies
+│   ├── DropFlow.Application     # Service layer, DTOs, FluentValidation — depends on Domain
+│   ├── DropFlow.Infrastructure  # EF Core, Identity, external services — depends on Application
+│   └── DropFlow.Api             # ASP.NET Core Web API — depends on Application + Infrastructure
+├── shared/
+│   └── DropFlow.Shared          # DTOs shared between backend projects
+├── frontend/
+│   └── DropFlow.Web             # React + TypeScript SPA (Vite) — consumes the API over HTTP
+└── mobile/
+    └── DropFlow.Mobile          # .NET MAUI driver app
 ```
 
-The `DropFlow.Api` and `DropFlow.WebApp` are two separate processes. The Blazor app communicates with the API exclusively over HTTP using named `HttpClient` instances. There is no shared in-process state between them.
+The `DropFlow.Api` and the `DropFlow.Web` front-end are separate processes. The React SPA communicates with the API exclusively over HTTP (Axios). There is no shared in-process state between them.
 
 ### Dependency Flow
 
 ```
-WebApp  →  (HTTP)  →  Api  →  Application  →  Domain
-                       ↓
-                  Infrastructure  →  Application
+React SPA  →  (HTTP)  →  Api  →  Application  →  Domain
+                          ↓
+                     Infrastructure  →  Application
 ```
 
 ### Key Design Decisions
 
 - **No MediatR / CQRS** — services are injected directly via interfaces
 - **`ResponseResult<T>`** — all service methods return a typed result wrapper instead of throwing exceptions to the UI
-- **`BaseApiService`** — Blazor services inherit a shared HTTP base class that handles JWT attachment and error logging
-- **Multi-step wizards** — state is held in a centralized state object, not individual component state
-- **Event bus** — a singleton `DeliveryEventBus` propagates delivery change events across Blazor components within a server circuit
+- **Typed API modules** — the React app groups API calls in per-domain modules under `src/api/`; an Axios interceptor handles JWT attachment and 401 token refresh
+- **Multi-step wizards** — state is held in a centralized Zustand store, not individual component state
+- **Cross-tab sync** — a `BroadcastChannel` propagates delivery change events across browser tabs
 
 ## Tech Stack
 
@@ -91,13 +95,14 @@ WebApp  →  (HTTP)  →  Api  →  Application  →  Domain
 |-------|-----------|
 | Runtime | .NET 9 (SDK 10.x required) |
 | API framework | ASP.NET Core 9 |
-| UI framework | Blazor Server (Interactive Server rendering) |
-| UI component library | MudBlazor 8.x |
+| Frontend framework | React 18 + TypeScript (Vite) |
+| UI components / styling | shadcn/ui + Tailwind CSS v4 |
+| Frontend data layer | TanStack Query + Zustand + Axios |
 | ORM | Entity Framework Core 9 |
-| Database | SQL Server (LocalDB for development) |
+| Database | PostgreSQL (Neon) |
 | Identity | ASP.NET Core Identity |
 | Authentication | JWT Bearer tokens |
-| Client-side auth storage | `ProtectedLocalStorage` (Blazor) |
+| Client-side auth storage | `localStorage` (Zustand persist) |
 | PDF generation | QuestPDF 2025.x |
 | Validation | FluentValidation 12.x |
 | Mapping display strings | Humanizer.Core 3.x |
@@ -114,7 +119,8 @@ WebApp  →  (HTTP)  →  Api  →  Application  →  Domain
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) (targets net9.0; SDK 10 required by `global.json`)
-- SQL Server or SQL Server LocalDB (included with Visual Studio)
+- PostgreSQL (a Neon branch or a local instance)
+- Node.js 18+ and npm (for the React front-end)
 - A Google Cloud project with the following APIs enabled:
   - Maps JavaScript API
   - Geocoding API
@@ -152,23 +158,22 @@ The application automatically seeds initial data (roles, DropFlow admin user, an
 
 ### Running the Application
 
-The solution requires two processes running simultaneously: the API and the Blazor front-end.
+Run two processes: the API and the React front-end.
 
 **Terminal 1 — API:**
 ```bash
-cd src/DropFlow.Api
+cd backend/DropFlow.Api
 dotnet run
 # Listens on https://localhost:7001
 ```
 
-**Terminal 2 — Blazor WebApp:**
+**Terminal 2 — React front-end:**
 ```bash
-cd src/DropFlow.WebApp
-dotnet run
-# Listens on https://localhost:7003
+cd frontend/DropFlow.Web
+npm install
+npm run dev
+# Serves on http://localhost:3000 (must match AllowedOrigins for CORS)
 ```
-
-Or run both from Visual Studio by setting multiple startup projects.
 
 Swagger UI is available at `https://localhost:7001/swagger` in the Development environment.
 
@@ -178,7 +183,7 @@ All keys below are read from `appsettings.json` or overridden by environment var
 
 | Key | Description | Required | Secret |
 |-----|-------------|----------|--------|
-| `ConnectionStrings:DefaultConnection` | SQL Server connection string | Yes | No |
+| `ConnectionStrings:DefaultConnection` | PostgreSQL connection string (Npgsql) | Yes | No |
 | `JwtSettings:SecretKey` | HMAC-SHA256 signing key for JWT tokens (min. 32 characters) | Yes | **Yes** |
 | `JwtSettings:Issuer` | JWT issuer claim value | Yes | No |
 | `JwtSettings:Audience` | JWT audience claim value | Yes | No |
@@ -186,7 +191,7 @@ All keys below are read from `appsettings.json` or overridden by environment var
 | `SuperAdmin:Email` | Email address for the initial DropFlow platform admin | Yes | No |
 | `SuperAdmin:Password` | Password for the initial platform admin | Yes | **Yes** |
 | `AppUrl` | Base URL of the API (used in email links) | Yes | No |
-| `BlazorClientUrl` | Base URL of the Blazor front-end | Yes | No |
+| `BlazorClientUrl` | Base URL of the web front-end (legacy config key name) | Yes | No |
 | `AllowedOrigins` | JSON array of origins permitted by CORS (development) | Yes | No |
 | `ProductionUrl` | Single origin permitted by CORS in production | No | No |
 | `FileStorage:BasePath` | Absolute path on the server where uploaded files are stored | Yes | No |
@@ -246,11 +251,11 @@ This filter is automatically applied to all LINQ queries on those entities — i
 
 ### Login Flow
 
-1. The user navigates to `/login` in the Blazor app
+1. The user navigates to `/login` in the web app
 2. If the account exists in multiple tenants, the app calls `GET /api/auth/tenants?email=` to list options
 3. The user selects a tenant and submits credentials via `POST /api/auth/login`
 4. The API returns a signed JWT containing: `UserId`, `Email`, `FullName`, `Role`, `TenantId`, `IsActive`, `TenantName`
-5. The Blazor app stores the JWT in `ProtectedLocalStorage` (AES-encrypted, server-key-protected)
+5. The web app stores the JWT in `localStorage` (via the Zustand auth store)
 6. Subsequent API calls attach the token as `Authorization: Bearer <token>`
 
 ### Roles
@@ -492,7 +497,7 @@ The following features are specified but not yet implemented:
 2. Follow the commit message convention: `[Module] Action: short description`
    - Example: `[Deliveries] Fix: cross-tenant delete via FindAsync`
    - Example: `[Routes] Add: recalculate metrics endpoint`
-3. Business logic belongs in the Application layer, not in controllers or Blazor components
+3. Business logic belongs in the Application layer, not in controllers or UI components
 4. New entities must implement `ITenantEntity` and have a corresponding global query filter registered in `ApplicationDbContext.OnModelCreating`
 5. New list endpoints must support `PageNumber` + `PageSize` pagination
 6. All service methods must return `ResponseResult<T>` — do not throw exceptions to callers

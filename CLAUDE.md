@@ -10,8 +10,8 @@ It provides persistent context about the project so you don't need to re-explain
 Multi-tenant SaaS delivery management platform for logistics companies.
 
 **Stack:**
-- .NET Core 9 / ASP.NET Core
-- Blazor Server + MudBlazor
+- .NET Core 9 / ASP.NET Core (REST API)
+- React 18 + TypeScript frontend — Vite, Tailwind CSS v4, shadcn/ui (see `frontend/DropFlow.Web/CLAUDE.md`)
 - Entity Framework Core (PostgreSQL via Neon)
 - JWT Auth + LocalStorage
 - Google Maps API
@@ -33,7 +33,7 @@ Each skill encodes production-grade .NET patterns. Read the relevant SKILL.md
 | `dependency-injection-patterns` | DI registration, scope management, keyed services, IServiceCollection extensions |
 | `microsoft-extensions-configuration` | IOptions pattern, appsettings, secrets, environment-specific config |
 | `testcontainers-integration-tests` | Integration tests with Docker (PostgreSQL, Redis, etc.) |
-| `playwright-blazor-testing` | E2E tests for Blazor pages, page objects, async assertions |
+| `playwright-blazor-testing` | E2E UI tests with Playwright — page objects, async assertions (applies to the React app too) |
 | `dotnet-project-structure` | Solution layout, Directory.Build.props, layered architecture decisions |
 
 ### Skills Routing — Quick Reference
@@ -45,7 +45,7 @@ Each skill encodes production-grade .NET patterns. Read the relevant SKILL.md
 - **New appsettings key or secret** → `microsoft-extensions-configuration`
 - **Writing C# code in general** → `modern-csharp-coding-standards`
 - **Integration test against DB** → `testcontainers-integration-tests` (PostgreSQL container)
-- **E2E test of a Blazor page** → `playwright-blazor-testing`
+- **E2E test of a frontend page** → `playwright-blazor-testing`
 
 ---
 
@@ -56,8 +56,7 @@ with DropFlow's established architecture, **DropFlow rules win**:
 
 | Generic skill says | DropFlow rule (override) |
 |--------------------|--------------------------|
-| "Composition over inheritance, sealed by default" | Frontend services inherit from `BaseApiService` — keep this pattern |
-| "No abstract base classes" | `BaseApiService` is an accepted base class for API call abstraction |
+| (Frontend conventions) | Frontend is **React** (`frontend/DropFlow.Web`) — API calls live in per-domain modules under `src/api/`; follow that app's own `CLAUDE.md` |
 | "No AutoMapper" | ✅ Aligned — DropFlow does not use AutoMapper either |
 | (No mention of multi-tenancy) | **Always apply DropFlow multi-tenant rules** (see section below) |
 | (No mention of MediatR) | **Do NOT use MediatR / CQRS** — DropFlow uses direct services |
@@ -72,21 +71,16 @@ note the conflict explicitly in your reasoning, then follow DropFlow.
 
 **DO follow these patterns:**
 - Services are injected via interfaces, registered as Scoped in DI
-- Frontend Blazor services inherit from `BaseApiService`
 - All API responses use `ResponseResult<T>` wrapper
-- User feedback uses MudBlazor `ISnackbar` service
 - Multi-step wizards hold state in a centralized state object (not component-level)
 - EF queries on lists always use `.AsNoTracking()` + server-side pagination
-- JS interop only in `OnAfterRenderAsync(firstRender)`, never in `OnInitializedAsync`
-- Components that subscribe to EventBus implement `IDisposable`
-- Prefer MudBlazor native components (`MudTablePager` / `ServerData`, `MudChart`) over custom or third-party
+- **Frontend is React** (`frontend/DropFlow.Web`) — follow that app's `CLAUDE.md` for frontend conventions (per-domain `src/api/` modules, TanStack Query, Zustand, React Hook Form + Zod, shadcn/ui, French UI labels)
 
 **DO NOT use:**
 - MediatR or CQRS pattern (decision was made to use direct services)
 - Raw exceptions thrown to the UI (use ResponseResult error handling)
 - Hardcoded tenant IDs or user IDs anywhere
-- Blocking `.Result` or `.Wait()` on async calls in Blazor
-- ApexCharts when MudChart can do the job
+- Blocking `.Result` or `.Wait()` on async calls
 
 ---
 
@@ -148,7 +142,7 @@ DropFlow/
 │   ├── DropFlow.Infrastructure/  # EF Core, repositories, external services
 │   └── DropFlow.Api/             # ASP.NET Core Web API entry point
 ├── frontend/
-│   └── DropFlow.WebApp/          # Blazor Server + MudBlazor
+│   └── DropFlow.Web/             # React + TypeScript (Vite, Tailwind, shadcn/ui)
 ├── mobile/
 │   └── DropFlow.Mobile/          # Driver mobile app (MAUI)
 ├── shared/
@@ -166,7 +160,7 @@ shared/DropFlow.Shared        (no dependencies)
     ← DropFlow.Application    → Domain + Shared
       ← DropFlow.Infrastructure → Application + Domain
         ← DropFlow.Api        → Infrastructure + Shared
-frontend/DropFlow.WebApp      → Shared only
+frontend/DropFlow.Web         → consumes REST API over HTTP (own TS types; does NOT reference the .NET Shared project)
 mobile/DropFlow.Mobile        → Shared only
 ```
 
@@ -187,8 +181,8 @@ mobile/DropFlow.Mobile        → Shared only
 | Application services | `backend/DropFlow.Application/Services/` |
 | Shared DTOs | `shared/DropFlow.Shared/` |
 | Shared enums | `shared/DropFlow.Shared/Enums/` |
-| Base API service | `frontend/DropFlow.WebApp/Services/BaseApiService.cs` |
-| Blazor pages | `frontend/DropFlow.WebApp/Components/Pages/` |
+| Frontend API layer | `frontend/DropFlow.Web/src/api/` |
+| Frontend pages | `frontend/DropFlow.Web/src/features/` |
 | Mobile app | `mobile/DropFlow.Mobile/` |
 | Skills library | `.claude/skills/` |
 
@@ -241,7 +235,7 @@ The route module has accumulated some non-obvious rules from past debugging:
 - **Single-delivery routes**: require a separate `GetDirectionsAsync` call path. Without it, Google Maps isn't called and metrics return zero.
 - **Driver availability filter**: exclude drivers only from `Confirmed`, `InProgress`, `Completed` routes — **not from `Draft`**. Drivers must remain selectable while editing draft routes.
 - **Delivery availability filter**: include deliveries that are either unassigned OR belong to a `Draft` route, to support both creation and editing.
-- **EventBus subscriptions**: cross-tab change detection uses a custom `IDeliveryEventBus` singleton. Components subscribing **must** unsubscribe in `Dispose()` to avoid memory leaks.
+- **Cross-tab change detection**: the React app uses a `BroadcastChannel` (`dropflow_deliveries`) via the `useDeliveryBroadcast` hook to invalidate delivery caches across browser tabs.
 
 ---
 
@@ -251,7 +245,7 @@ When I ask you to generate new code for DropFlow, always:
 
 1. **Read the relevant skill first** — for any task matching a skill trigger above, consult that SKILL.md before writing code
 2. **Follow existing patterns** — look at a similar existing service/component before writing a new one
-3. **Use the correct layer** — business logic in Application services, not in Blazor components
+3. **Use the correct layer** — business logic in Application services, not in UI components
 4. **Include tenant isolation** — new entities must implement `ITenantEntity`, new services must respect tenant scope
 5. **Use pagination** — any new list query must support `PageNumber` + `PageSize` parameters
 6. **Add validation** — new DTOs must have DataAnnotations or FluentValidation rules
