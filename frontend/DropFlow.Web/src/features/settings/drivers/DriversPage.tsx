@@ -228,7 +228,7 @@ function DriverEditModal({ driver, onClose }: { driver: DriverDto; onClose: () =
           </div>
           <div className="flex items-center gap-2">
             <input type="checkbox" id="isActive" {...form.register('isActive')}
-              className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500" />
+              className="h-4 w-4 rounded border-input text-sky-600 focus:ring-sky-500" />
             <Label htmlFor="isActive" className="cursor-pointer">Chauffeur actif</Label>
           </div>
           <div className="flex gap-3 pt-2">
@@ -253,13 +253,13 @@ function DeleteConfirmModal({ driver, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Supprimer ce chauffeur ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Supprimer ce chauffeur ?</h3>
+          <p className="text-sm text-muted-foreground">
             Le profil chauffeur de <strong>{driver.firstName} {driver.lastName}</strong> sera définitivement supprimé.
           </p>
         </div>
@@ -359,10 +359,10 @@ export default function DriversPage() {
       {/* Toolbar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9 pr-9" placeholder="Rechercher un chauffeur…" value={searchInput} onChange={e => setSearchInput(e.target.value)} />
           {searchInput && (
-            <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => setSearchInput('')} aria-label="Effacer la recherche" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -371,14 +371,14 @@ export default function DriversPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50 hover:bg-slate-50">
-              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Chauffeur</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Contact</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Permis</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Statut</TableHead>
+            <TableRow className="bg-muted hover:bg-muted">
+              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Chauffeur</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contact</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Permis</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</TableHead>
               <TableHead className="w-20 pr-6" />
             </TableRow>
           </TableHeader>
@@ -397,10 +397,10 @@ export default function DriversPage() {
               <TableRow>
                 <TableCell colSpan={5} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <UserCheck className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {debouncedSearch ? 'Aucun chauffeur ne correspond à votre recherche' : 'Aucun chauffeur'}
                     </p>
                     {!debouncedSearch && (
@@ -413,15 +413,15 @@ export default function DriversPage() {
               </TableRow>
             ) : (
               drivers.map(driver => (
-                <TableRow key={driver.id} className={cn('hover:bg-sky-50/40', !driver.isActive && 'opacity-60')}>
+                <TableRow key={driver.id} className={cn('hover:bg-sky-50/40 dark:hover:bg-sky-500/5', !driver.isActive && 'opacity-60')}>
                   <TableCell className="py-3 pl-6">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-sm font-bold text-white">
                         {getInitials(driver.firstName, driver.lastName)}
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-800">{driver.firstName} {driver.lastName}</p>
-                        <p className="flex items-center gap-1 text-xs text-slate-400">
+                        <p className="font-semibold text-foreground">{driver.firstName} {driver.lastName}</p>
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Mail className="h-3 w-3" />{driver.email}
                         </p>
                       </div>
@@ -429,29 +429,29 @@ export default function DriversPage() {
                   </TableCell>
                   <TableCell>
                     {driver.phone && (
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <Phone className="h-3.5 w-3.5 text-slate-400" />{driver.phone}
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />{driver.phone}
                       </div>
                     )}
                   </TableCell>
                   <TableCell>
                     {driver.licenseNumber ? (
-                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <CreditCard className="h-3.5 w-3.5 text-slate-400" />{driver.licenseNumber}
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />{driver.licenseNumber}
                         {driver.licenseExpiryDate && (
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-muted-foreground">
                             (exp. {new Date(driver.licenseExpiryDate).toLocaleDateString('fr-FR')})
                           </span>
                         )}
                       </div>
                     ) : (
-                      <span className="text-sm text-slate-400">—</span>
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <span className={cn(
                       'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
-                      driver.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
+                      driver.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
                     )}>
                       {driver.isActive ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
                       {driver.isActive ? 'Actif' : 'Inactif'}
@@ -459,10 +459,10 @@ export default function DriversPage() {
                   </TableCell>
                   <TableCell className="pr-6" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setDialog({ type: 'edit', driver })} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="Modifier">
+                      <button onClick={() => setDialog({ type: 'edit', driver })} aria-label="Modifier" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Modifier">
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button onClick={() => setDialog({ type: 'delete', driver })} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500" title="Supprimer">
+                      <button onClick={() => setDialog({ type: 'delete', driver })} aria-label="Supprimer" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400" title="Supprimer">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -477,14 +477,14 @@ export default function DriversPage() {
       {/* Pagination */}
       {totalCount > 0 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             <strong>{from}</strong> à <strong>{to}</strong> sur <strong>{totalCount}</strong> chauffeur{totalCount > 1 ? 's' : ''}
           </p>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
               <ChevronLeft className="h-4 w-4" />Précédent
             </Button>
-            <span className="rounded-lg border bg-white px-3 py-1.5 text-sm font-medium text-slate-700">{page} / {totalPages}</span>
+            <span className="rounded-lg border bg-card px-3 py-1.5 text-sm font-medium text-foreground">{page} / {totalPages}</span>
             <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
               Suivant<ChevronRight className="h-4 w-4" />
             </Button>
