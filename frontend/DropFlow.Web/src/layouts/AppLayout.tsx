@@ -191,10 +191,10 @@ const NOTIF_CONFIG: Record<string, {
   iconColor: string
   Icon: React.ElementType
 }> = {
-  Success: { iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', Icon: CheckCircle },
-  Warning: { iconBg: 'bg-amber-100',   iconColor: 'text-amber-600',   Icon: AlertTriangle },
-  Error:   { iconBg: 'bg-red-100',     iconColor: 'text-red-600',     Icon: XCircle },
-  Info:    { iconBg: 'bg-blue-100',    iconColor: 'text-blue-600',    Icon: Info },
+  Success: { iconBg: 'bg-emerald-100 dark:bg-emerald-500/15', iconColor: 'text-emerald-600 dark:text-emerald-400', Icon: CheckCircle },
+  Warning: { iconBg: 'bg-amber-100 dark:bg-amber-500/15',     iconColor: 'text-amber-600 dark:text-amber-400',     Icon: AlertTriangle },
+  Error:   { iconBg: 'bg-red-100 dark:bg-red-500/15',         iconColor: 'text-red-600 dark:text-red-400',         Icon: XCircle },
+  Info:    { iconBg: 'bg-blue-100 dark:bg-blue-500/15',       iconColor: 'text-blue-600 dark:text-blue-400',       Icon: Info },
 }
 
 function NotificationsPopover() {
@@ -221,7 +221,7 @@ function NotificationsPopover() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-700"
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
@@ -238,10 +238,10 @@ function NotificationsPopover() {
         {/* Header */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-slate-500" />
-            <span className="font-semibold text-slate-800">Notifications</span>
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">Notifications</span>
             {count > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-bold text-red-600">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-bold text-red-600 dark:bg-red-500/15 dark:text-red-400">
                 {count}
               </span>
             )}
@@ -260,11 +260,11 @@ function NotificationsPopover() {
         <div className="max-h-80 overflow-y-auto">
           {visible.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Bell className="h-5 w-5" />
               </div>
-              <p className="text-sm font-medium text-slate-500">Aucune notification</p>
-              <p className="text-xs text-slate-400">Vous êtes à jour !</p>
+              <p className="text-sm font-medium text-muted-foreground">Aucune notification</p>
+              <p className="text-xs text-muted-foreground">Vous êtes à jour !</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -273,7 +273,7 @@ function NotificationsPopover() {
                 return (
                   <div
                     key={n.id}
-                    className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
+                    className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
                   >
                     <div className={cn(
                       'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
@@ -283,14 +283,14 @@ function NotificationsPopover() {
                     </div>
                     <div className="min-w-0 flex-1">
                       {n.title && (
-                        <p className="truncate text-sm font-semibold text-slate-800">{n.title}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">{n.title}</p>
                       )}
-                      <p className="text-xs leading-snug text-slate-500">{n.message}</p>
-                      <p className="mt-1 text-xs text-slate-400">Il y a {n.timeAgo}</p>
+                      <p className="text-xs leading-snug text-muted-foreground">{n.message}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Il y a {n.timeAgo}</p>
                     </div>
                     <button
                       onClick={() => dismiss(n.id)}
-                      className="mt-0.5 shrink-0 rounded p-0.5 text-slate-300 opacity-0 transition-all hover:bg-slate-200 hover:text-slate-500 group-hover:opacity-100"
+                      className="mt-0.5 shrink-0 rounded p-0.5 text-muted-foreground/60 opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
                       aria-label="Ignorer"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -304,8 +304,8 @@ function NotificationsPopover() {
 
         {/* Footer */}
         <div className="border-t p-1.5">
-          <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-slate-50">
-            <Link to="/dashboard" className="flex items-center justify-between text-sm font-medium text-sky-600">
+          <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-muted">
+            <Link to="/dashboard" className="flex items-center justify-between text-sm font-medium text-sky-600 dark:text-sky-400">
               Voir toutes les notifications
               <ChevronRight className="h-4 w-4" />
             </Link>
@@ -352,21 +352,21 @@ function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="flex h-10 items-center gap-2.5 rounded-xl px-2 hover:bg-slate-100"
+            className="flex h-10 items-center gap-2.5 rounded-xl px-2 hover:bg-muted"
           >
             <div className="relative shrink-0">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-xs font-bold text-white">
                 {initials}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-400" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-400" />
             </div>
             <div className="hidden flex-col items-start lg:flex">
-              <span className="text-sm font-semibold leading-tight text-slate-800">
+              <span className="text-sm font-semibold leading-tight text-foreground">
                 {user?.firstName} {user?.lastName}
               </span>
-              <span className="text-xs leading-tight text-slate-400">{roleLabel}</span>
+              <span className="text-xs leading-tight text-muted-foreground">{roleLabel}</span>
             </div>
-            <ChevronDown className="hidden h-3.5 w-3.5 text-slate-400 lg:block" />
+            <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground lg:block" />
           </Button>
         </DropdownMenuTrigger>
 
@@ -401,30 +401,30 @@ function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
 
           {/* Navigation items */}
           <div className="p-1.5">
-            <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0 focus:bg-slate-50">
+            <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0 focus:bg-muted">
               <Link to="/profile" className="flex items-center gap-3 px-3 py-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                   <UserCircle className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-700">Mon profil</p>
-                  <p className="text-xs text-slate-400">Infos personnelles & sécurité</p>
+                  <p className="text-sm font-medium text-foreground">Mon profil</p>
+                  <p className="text-xs text-muted-foreground">Infos personnelles & sécurité</p>
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
               </Link>
             </DropdownMenuItem>
 
             {showSettings && (
-              <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0 focus:bg-slate-50">
+              <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-0 focus:bg-muted">
                 <Link to="/settings" className="flex items-center gap-3 px-3 py-2.5">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Settings className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700">Paramètres</p>
-                    <p className="text-xs text-slate-400">Configuration de l'entreprise</p>
+                    <p className="text-sm font-medium text-foreground">Paramètres</p>
+                    <p className="text-xs text-muted-foreground">Configuration de l'entreprise</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
                 </Link>
               </DropdownMenuItem>
             )}
@@ -436,14 +436,14 @@ function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           <div className="p-1.5">
             <DropdownMenuItem
               onClick={logout}
-              className="cursor-pointer rounded-lg px-3 py-2.5 text-red-600 focus:bg-red-50 focus:text-red-700"
+              className="cursor-pointer rounded-lg px-3 py-2.5 text-red-600 dark:text-red-400 focus:bg-red-50 focus:text-red-700 dark:focus:bg-red-500/10 dark:focus:text-red-400"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500 dark:bg-red-500/15 dark:text-red-400">
                 <LogOut className="h-4 w-4" />
               </div>
               <div className="ml-3 min-w-0 flex-1">
                 <p className="text-sm font-medium">Déconnexion</p>
-                <p className="text-xs text-red-400">Fermer la session en cours</p>
+                <p className="text-xs text-red-400 dark:text-red-400/70">Fermer la session en cours</p>
               </div>
             </DropdownMenuItem>
           </div>

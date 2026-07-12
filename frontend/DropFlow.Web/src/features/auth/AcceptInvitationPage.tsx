@@ -126,7 +126,7 @@ export default function AcceptInvitationPage() {
           <>
             <CardHeader className="pb-4">
               <div className="mb-3 flex justify-center">
-                <CheckCircle2 className="h-12 w-12 text-green-500" />
+                <CheckCircle2 className="h-12 w-12 text-green-500 dark:text-green-400" />
               </div>
               <CardTitle className="text-center">Compte activé !</CardTitle>
               <CardDescription className="text-center">
@@ -155,7 +155,7 @@ export default function AcceptInvitationPage() {
                   </Alert>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="firstName">Prénom</Label>
                     <Input id="firstName" autoFocus {...form.register('firstName')} />
@@ -188,6 +188,7 @@ export default function AcceptInvitationPage() {
                     <button
                       type="button"
                       tabIndex={-1}
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       onClick={() => setShowPassword(v => !v)}
                     >
@@ -200,13 +201,13 @@ export default function AcceptInvitationPage() {
                         key={check.label}
                         className={cn(
                           'flex items-center gap-1.5 text-xs transition-colors',
-                          check.test(watchedPassword) ? 'text-green-600' : 'text-muted-foreground',
+                          check.test(watchedPassword) ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground',
                         )}
                       >
                         <div
                           className={cn(
                             'h-1.5 w-1.5 rounded-full transition-colors',
-                            check.test(watchedPassword) ? 'bg-green-600' : 'bg-muted-foreground/40',
+                            check.test(watchedPassword) ? 'bg-green-600 dark:bg-green-500' : 'bg-muted-foreground/40',
                           )}
                         />
                         {check.label}
@@ -232,6 +233,7 @@ export default function AcceptInvitationPage() {
                     <button
                       type="button"
                       tabIndex={-1}
+                      aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       onClick={() => setShowConfirm(v => !v)}
                     >

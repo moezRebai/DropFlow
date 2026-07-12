@@ -18,7 +18,7 @@ function ErrorView({ code, title, message, icon, primary, secondary }: ErrorView
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 p-6 text-center">
       <div className="relative">
-        <p className="text-[7rem] font-extrabold leading-none tracking-tight text-slate-100 sm:text-[9rem]">{code}</p>
+        <p className="text-[7rem] font-extrabold leading-none tracking-tight text-muted-foreground/15 sm:text-[9rem]">{code}</p>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg">
             {icon ?? <AlertTriangle className="h-8 w-8" />}
@@ -26,8 +26,8 @@ function ErrorView({ code, title, message, icon, primary, secondary }: ErrorView
         </div>
       </div>
       <div className="max-w-md">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-800">{title}</h1>
-        <p className="mt-2 text-sm text-slate-500">{message}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
         {primary}

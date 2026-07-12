@@ -38,6 +38,33 @@ Ne pas introduire de nouvelles librairies sans justification explicite.
 
 ---
 
+## Design System — À consulter avant tout nouveau travail UI
+
+**`design-system/dropflow/MASTER.md`** (à la racine du repo) est la source de vérité pour le style
+visuel de l'app. Avant de créer une nouvelle page ou un nouveau composant, ou de modifier un
+composant existant, le lire et l'appliquer :
+
+- Palette de couleurs, typographie (Plus Jakarta Sans), échelle d'espacement/ombres
+- **Système d'accent par zone** : sky-500→blue-600 (pages Standard/tenant), violet-600→indigo-700
+  (Super-Admin), slate-700→slate-900 (Paramètres) — ne pas mélanger les zones
+- Mapping tokens shadcn : `bg-card` / `text-foreground` / `text-muted-foreground` / `bg-muted` /
+  `border-border` pour tout élément structurel ; jamais de `bg-white` ou `slate-*` en dur
+- Toute couleur sémantique colorée (badge, pill, icône) doit avoir sa variante `dark:` — voir le
+  patron `dark:{couleur}-500/15` + `dark:text-{couleur}-400` utilisé dans tout le code
+- Pas d'emoji dans l'UI — utiliser les icônes Lucide correspondantes
+- Boutons/liens cliquables : `cursor-pointer`, état `focus-visible` visible, transitions 150–300ms
+- Contraste texte ≥ 4.5:1 en light **et** dark mode (l'app a `next-themes` + un toggle manuel —
+  voir `defaultTheme="light" enableSystem={false}` dans `main.tsx`, donc tester le dark mode via le
+  toggle in-app ou `localStorage.setItem('theme', 'dark')`, pas via `prefers-color-scheme`)
+- Respecter les breakpoints responsive 375 / 768 / 1024 / 1440 — pas de `grid-cols-2` figé sur des
+  champs de formulaire (texte/labels qui débordent à 375px)
+
+Le fichier documente aussi les specs de composants (boutons, cards, inputs, modals), l'exception
+"hero action pill" (`bg-white/15` sur fond dégradé, jamais `<Button>` shadcn), et la checklist de
+pré-livraison à repasser avant de considérer une page terminée.
+
+---
+
 ## Structure des dossiers
 
 ```

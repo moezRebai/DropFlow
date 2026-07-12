@@ -96,7 +96,7 @@ function TimeSlotFormModal({ slot, nextOrder, onClose }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="bg-gradient-to-br from-sky-500 to-blue-600 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -114,7 +114,7 @@ function TimeSlotFormModal({ slot, nextOrder, onClose }: {
             <Input id="name" {...form.register('name')} placeholder="Matin, Après-midi…" />
             {form.formState.errors.name && <p className="text-xs text-red-500">{form.formState.errors.name.message}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="startTime">Début *</Label>
               <Input id="startTime" type="time" {...form.register('startTime')} />
@@ -154,13 +154,13 @@ function DeleteConfirmModal({ slot, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Supprimer ce créneau ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Supprimer ce créneau ?</h3>
+          <p className="text-sm text-muted-foreground">
             Le créneau <strong>«{slot.name}»</strong> sera définitivement supprimé.
           </p>
         </div>
@@ -244,15 +244,15 @@ export default function TimeSlotsPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50 hover:bg-slate-50">
-              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Créneau</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Début</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Fin</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Durée</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ordre</TableHead>
+            <TableRow className="bg-muted hover:bg-muted">
+              <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Créneau</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Début</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fin</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Durée</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ordre</TableHead>
               <TableHead className="w-20 pr-6" />
             </TableRow>
           </TableHeader>
@@ -272,10 +272,10 @@ export default function TimeSlotsPage() {
               <TableRow>
                 <TableCell colSpan={6} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <Clock className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Aucun créneau horaire défini</p>
+                    <p className="text-sm font-medium text-muted-foreground">Aucun créneau horaire défini</p>
                     <Button size="sm" onClick={() => setDialog({ type: 'create' })}>
                       <Plus className="mr-1.5 h-3.5 w-3.5" />Créer le premier créneau
                     </Button>
@@ -291,37 +291,37 @@ export default function TimeSlotsPage() {
                   ? `${Math.floor(durationMin / 60)}h${durationMin % 60 > 0 ? String(durationMin % 60).padStart(2, '0') : ''}`
                   : `${durationMin}min`
                 return (
-                  <TableRow key={slot.id} className="hover:bg-sky-50/40">
+                  <TableRow key={slot.id} className="hover:bg-sky-50/40 dark:hover:bg-sky-500/5">
                     <TableCell className="py-3 pl-6">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100">
-                          <Clock className="h-4 w-4 text-sky-600" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-500/15">
+                          <Clock className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                         </div>
-                        <span className="font-semibold text-slate-800">{slot.name}</span>
+                        <span className="font-semibold text-foreground">{slot.name}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-sm font-medium text-slate-700">
+                      <span className="rounded-lg bg-muted px-2.5 py-1 font-mono text-sm font-medium text-foreground">
                         {formatTime(slot.startTime)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-sm font-medium text-slate-700">
+                      <span className="rounded-lg bg-muted px-2.5 py-1 font-mono text-sm font-medium text-foreground">
                         {formatTime(slot.endTime)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-slate-600">{durationLabel}</span>
+                      <span className="text-sm text-muted-foreground">{durationLabel}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-slate-400">#{slot.displayOrder}</span>
+                      <span className="text-sm text-muted-foreground">#{slot.displayOrder}</span>
                     </TableCell>
                     <TableCell className="pr-6" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setDialog({ type: 'edit', slot })} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="Modifier">
+                        <button onClick={() => setDialog({ type: 'edit', slot })} aria-label="Modifier" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Modifier">
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setDialog({ type: 'delete', slot })} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500" title="Supprimer">
+                        <button onClick={() => setDialog({ type: 'delete', slot })} aria-label="Supprimer" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400" title="Supprimer">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

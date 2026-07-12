@@ -32,7 +32,7 @@ const CATEGORIES: Category[] = [
     id: 'start',
     title: 'Démarrage',
     icon: Rocket,
-    color: 'bg-sky-100 text-sky-600',
+    color: 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400',
     articles: [
       { q: 'Comment configurer mon entreprise ?', a: "Rendez-vous dans Paramètres → Entreprise pour renseigner vos informations légales, vos dépôts et vos coordonnées. Ces informations apparaissent sur vos documents." },
       { q: 'Comment inviter mon équipe ?', a: "Dans Paramètres → Équipe, cliquez sur « Inviter un membre », saisissez l'email et choisissez un rôle. La personne reçoit un lien d'invitation pour créer son compte." },
@@ -43,7 +43,7 @@ const CATEGORIES: Category[] = [
     id: 'deliveries',
     title: 'Livraisons',
     icon: Package,
-    color: 'bg-amber-100 text-amber-600',
+    color: 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
     articles: [
       { q: 'Comment créer une livraison ?', a: "Depuis Livraisons → Nouvelle livraison. Sélectionnez ou créez un client, saisissez l'adresse (avec l'autocomplétion Google), les détails et planifiez la date." },
       { q: 'Comment suivre le statut d\'une livraison ?', a: 'Chaque livraison passe par : À planifier → Confirmée → En cours → Livrée. Vous pouvez filtrer la liste par statut et changer un statut en lot.' },
@@ -54,7 +54,7 @@ const CATEGORIES: Category[] = [
     id: 'routes',
     title: 'Tournées',
     icon: RouteIcon,
-    color: 'bg-violet-100 text-violet-600',
+    color: 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400',
     articles: [
       { q: 'Comment créer une tournée ?', a: "Tournées → Nouvelle tournée ouvre un assistant en 5 étapes : véhicule, sélection des livraisons, équipe, optimisation Google Maps puis validation." },
       { q: 'Comment fonctionne l\'optimisation ?', a: "L'étape 4 calcule l'ordre optimal des arrêts via Google Maps. Vous pouvez réorganiser manuellement : les distances et horaires sont alors recalculés." },
@@ -65,7 +65,7 @@ const CATEGORIES: Category[] = [
     id: 'clients',
     title: 'Clients',
     icon: Users2,
-    color: 'bg-emerald-100 text-emerald-600',
+    color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
     articles: [
       { q: 'Comment gérer les adresses d\'un client ?', a: "Ouvrez la fiche client : vous pouvez ajouter plusieurs adresses et définir une adresse par défaut utilisée lors de la création de livraisons." },
       { q: 'Puis-je voir l\'historique d\'un client ?', a: 'Oui, la fiche client affiche l\'ensemble des livraisons passées ainsi que le chiffre d\'affaires associé.' },
@@ -75,7 +75,7 @@ const CATEGORIES: Category[] = [
     id: 'settings',
     title: 'Paramètres',
     icon: Settings,
-    color: 'bg-slate-100 text-slate-600',
+    color: 'bg-muted text-muted-foreground',
     articles: [
       { q: 'Comment ajouter un véhicule ou un chauffeur ?', a: 'Dans Paramètres → Véhicules ou Chauffeurs, utilisez le bouton d\'ajout. Les chauffeurs sont liés à un compte utilisateur.' },
       { q: 'À quoi servent les créneaux horaires ?', a: 'Les créneaux (Paramètres → Créneaux) définissent des plages de livraison réutilisables, sélectionnables lors de la planification.' },
@@ -94,12 +94,12 @@ const POPULAR = [
 
 function ArticleItem({ article, open, onToggle }: { article: Article; open: boolean; onToggle: () => void }) {
   return (
-    <div className="rounded-xl border bg-white">
-      <button onClick={onToggle} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
-        <span className="text-sm font-medium text-slate-800">{article.q}</span>
-        <ChevronDown className={cn('h-4 w-4 shrink-0 text-slate-400 transition-transform', open && 'rotate-180')} />
+    <div className="rounded-xl border bg-card">
+      <button onClick={onToggle} aria-expanded={open} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+        <span className="text-sm font-medium text-foreground">{article.q}</span>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
       </button>
-      {open && <p className="border-t px-4 py-3 text-sm leading-relaxed text-slate-500">{article.a}</p>}
+      {open && <p className="border-t px-4 py-3 text-sm leading-relaxed text-muted-foreground">{article.a}</p>}
     </div>
   )
 }
@@ -154,14 +154,14 @@ export default function HelpPage() {
       {/* Popular */}
       {!query && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-400">Populaire :</span>
+          <span className="text-sm font-medium text-muted-foreground">Populaire :</span>
           {POPULAR.map(p => {
             const cat = CATEGORIES.find(c => c.id === p.catId)!
             return (
               <button
                 key={p.q}
                 onClick={() => { setOpenKey(`${p.catId}-${p.q}`); document.getElementById(`cat-${p.catId}`)?.scrollIntoView({ behavior: 'smooth' }) }}
-                className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-sky-300 hover:text-sky-600"
+                className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-sky-300 hover:text-sky-600 dark:hover:text-sky-400"
               >
                 <cat.icon className="h-3.5 w-3.5" />{p.q}
               </button>
@@ -172,12 +172,12 @@ export default function HelpPage() {
 
       {/* Categories */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 py-16 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Search className="h-6 w-6" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Aucun résultat pour « {query} »</p>
-          <p className="text-sm text-slate-400">Essayez d'autres mots-clés ou contactez le support.</p>
+          <p className="text-sm font-medium text-muted-foreground">Aucun résultat pour « {query} »</p>
+          <p className="text-sm text-muted-foreground">Essayez d'autres mots-clés ou contactez le support.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -187,7 +187,7 @@ export default function HelpPage() {
                 <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', cat.color)}>
                   <cat.icon className="h-5 w-5" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-800">{cat.title}</h2>
+                <h2 className="text-lg font-bold text-foreground">{cat.title}</h2>
               </div>
               <div className="flex flex-col gap-2">
                 {cat.articles.map(a => {
@@ -209,35 +209,35 @@ export default function HelpPage() {
 
       {/* Resources + contact */}
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-sky-600" />
-            <h3 className="font-semibold text-slate-800">Ressources</h3>
+            <BookOpen className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+            <h3 className="font-semibold text-foreground">Ressources</h3>
           </div>
           <div className="flex flex-col gap-2">
-            <Link to="/dashboard" className="flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:border-sky-300 hover:text-sky-600">
+            <Link to="/dashboard" className="flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-sky-300 hover:text-sky-600 dark:hover:text-sky-400">
               <span className="flex items-center gap-2"><Rocket className="h-4 w-4" />Guide de démarrage</span>
-              <ExternalLink className="h-4 w-4 text-slate-300" />
+              <ExternalLink className="h-4 w-4 text-muted-foreground/50" />
             </Link>
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium text-slate-600 transition-colors hover:border-sky-300 hover:text-sky-600">
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-sky-300 hover:text-sky-600 dark:hover:text-sky-400">
               <span className="flex items-center gap-2"><ScrollText className="h-4 w-4" />Documentation API</span>
-              <ExternalLink className="h-4 w-4 text-slate-300" />
+              <ExternalLink className="h-4 w-4 text-muted-foreground/50" />
             </a>
           </div>
         </div>
 
-        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-sky-600" />
-            <h3 className="font-semibold text-slate-800">Contacter le support</h3>
+            <MessageSquare className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+            <h3 className="font-semibold text-foreground">Contacter le support</h3>
           </div>
           {contactSent ? (
             <div className="flex flex-col items-center gap-2 py-6 text-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
                 <Mail className="h-5 w-5" />
               </div>
-              <p className="text-sm font-medium text-slate-700">Message envoyé !</p>
-              <p className="text-xs text-slate-400">Nous vous répondrons sous 24h.</p>
+              <p className="text-sm font-medium text-foreground">Message envoyé !</p>
+              <p className="text-xs text-muted-foreground">Nous vous répondrons sous 24h.</p>
             </div>
           ) : (
             <form onSubmit={handleContact} className="flex flex-col gap-3">
@@ -252,13 +252,13 @@ export default function HelpPage() {
                   required
                   rows={3}
                   placeholder="Décrivez votre problème…"
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                  className="w-full rounded-xl border border-input bg-background p-3 text-sm focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
                 />
               </div>
               <Button type="submit" className="w-full">
                 <Mail className="mr-1.5 h-4 w-4" />Envoyer
               </Button>
-              <p className="text-center text-xs text-slate-400">ou écrivez-nous à <a href={`mailto:${SUPPORT_EMAIL}`} className="text-sky-600 hover:underline">{SUPPORT_EMAIL}</a></p>
+              <p className="text-center text-xs text-muted-foreground">ou écrivez-nous à <a href={`mailto:${SUPPORT_EMAIL}`} className="text-sky-600 dark:text-sky-400 hover:underline">{SUPPORT_EMAIL}</a></p>
             </form>
           )}
         </div>

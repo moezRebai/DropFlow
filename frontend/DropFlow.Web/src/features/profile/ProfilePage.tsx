@@ -135,25 +135,25 @@ function GeneralTab() {
 
   if (!profile) {
     return (
-      <div className="m-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-        <p className="text-sm text-red-700">Impossible de charger les informations du profil</p>
+      <div className="m-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10">
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
+        <p className="text-sm text-red-700 dark:text-red-300">Impossible de charger les informations du profil</p>
       </div>
     )
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="p-6">
-      <h3 className="mb-6 text-base font-semibold text-slate-800">Informations personnelles</h3>
+      <h3 className="mb-6 text-base font-semibold text-foreground">Informations personnelles</h3>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {/* First name */}
         <div className="space-y-1.5">
-          <Label htmlFor="firstName" className="text-sm font-medium text-slate-700">
+          <Label htmlFor="firstName" className="text-sm font-medium text-foreground">
             Prénom <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="firstName"
               className={cn('pl-9', errors.firstName && 'border-red-400 focus-visible:ring-red-400')}
@@ -168,11 +168,11 @@ function GeneralTab() {
 
         {/* Last name */}
         <div className="space-y-1.5">
-          <Label htmlFor="lastName" className="text-sm font-medium text-slate-700">
+          <Label htmlFor="lastName" className="text-sm font-medium text-foreground">
             Nom <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="lastName"
               className={cn('pl-9', errors.lastName && 'border-red-400 focus-visible:ring-red-400')}
@@ -187,24 +187,24 @@ function GeneralTab() {
 
         {/* Email — readonly */}
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email</Label>
+          <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="email"
               value={profile.email}
               disabled
-              className="cursor-not-allowed bg-slate-50 pl-9 text-slate-500"
+              className="cursor-not-allowed bg-muted pl-9 text-muted-foreground"
             />
           </div>
-          <p className="text-xs text-slate-400">L'email ne peut pas être modifié</p>
+          <p className="text-xs text-muted-foreground">L'email ne peut pas être modifié</p>
         </div>
 
         {/* Phone */}
         <div className="space-y-1.5">
-          <Label htmlFor="phone" className="text-sm font-medium text-slate-700">Téléphone</Label>
+          <Label htmlFor="phone" className="text-sm font-medium text-foreground">Téléphone</Label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="phone"
               className="pl-9"
@@ -212,14 +212,14 @@ function GeneralTab() {
               {...register('phoneNumber')}
             />
           </div>
-          <p className="text-xs text-slate-400">Format : +33 6 12 34 56 78</p>
+          <p className="text-xs text-muted-foreground">Format : +33 6 12 34 56 78</p>
         </div>
 
         {/* Address */}
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="address" className="text-sm font-medium text-slate-700">Adresse</Label>
+          <Label htmlFor="address" className="text-sm font-medium text-foreground">Adresse</Label>
           <div className="relative">
-            <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <textarea
               id="address"
               rows={2}
@@ -237,29 +237,29 @@ function GeneralTab() {
 
       {/* Read-only section */}
       <div className="mt-6 border-t pt-5">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Informations entreprise (lecture seule)
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-slate-700">Entreprise</Label>
+            <Label className="text-sm font-medium text-foreground">Entreprise</Label>
             <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={profile.tenantName ?? ''}
                 disabled
-                className="cursor-not-allowed bg-slate-50 pl-9 text-slate-500"
+                className="cursor-not-allowed bg-muted pl-9 text-muted-foreground"
               />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-slate-700">Rôle</Label>
+            <Label className="text-sm font-medium text-foreground">Rôle</Label>
             <div className="relative">
-              <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={getRoleLabel(profile.role)}
                 disabled
-                className="cursor-not-allowed bg-slate-50 pl-9 text-slate-500"
+                className="cursor-not-allowed bg-muted pl-9 text-muted-foreground"
               />
             </div>
           </div>
@@ -270,8 +270,8 @@ function GeneralTab() {
             className={cn(
               'flex items-center gap-2 rounded-xl border px-4 py-3 text-sm',
               profile.isActive
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-amber-200 bg-amber-50 text-amber-700',
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400'
+                : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
             )}
           >
             {profile.isActive ? (
@@ -281,14 +281,14 @@ function GeneralTab() {
             )}
             {profile.isActive ? 'Votre compte est actif' : 'Votre compte est désactivé'}
           </div>
-          <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-400">
+          <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span>
-              <strong className="text-slate-500">Membre depuis :</strong>{' '}
+              <strong className="text-foreground/70">Membre depuis :</strong>{' '}
               {new Date(profile.createdDate).toLocaleDateString('fr-FR')}
             </span>
             {profile.lastLoginDate && (
               <span>
-                <strong className="text-slate-500">Dernière connexion :</strong>{' '}
+                <strong className="text-foreground/70">Dernière connexion :</strong>{' '}
                 {new Date(profile.lastLoginDate).toLocaleString('fr-FR', {
                   dateStyle: 'short',
                   timeStyle: 'short',
@@ -369,11 +369,11 @@ function SecurityTab() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="p-6">
-      <h3 className="mb-2 text-base font-semibold text-slate-800">Changer le mot de passe</h3>
+      <h3 className="mb-2 text-base font-semibold text-foreground">Changer le mot de passe</h3>
 
-      <div className="mb-6 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
-        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-        <p className="text-sm text-sky-700">
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-500/30 dark:bg-sky-500/10">
+        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+        <p className="text-sm text-sky-700 dark:text-sky-300">
           Pour des raisons de sécurité, vous devez saisir votre mot de passe actuel avant d'en définir un nouveau.
         </p>
       </div>
@@ -381,11 +381,11 @@ function SecurityTab() {
       <div className="space-y-5">
         {/* Current password */}
         <div className="space-y-1.5">
-          <Label htmlFor="currentPassword" className="text-sm font-medium text-slate-700">
+          <Label htmlFor="currentPassword" className="text-sm font-medium text-foreground">
             Mot de passe actuel <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="currentPassword"
               type={showCurrent ? 'text' : 'password'}
@@ -395,7 +395,8 @@ function SecurityTab() {
             <button
               type="button"
               onClick={() => setShowCurrent(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label={showCurrent ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -409,11 +410,11 @@ function SecurityTab() {
 
         {/* New password */}
         <div className="space-y-1.5">
-          <Label htmlFor="newPassword" className="text-sm font-medium text-slate-700">
+          <Label htmlFor="newPassword" className="text-sm font-medium text-foreground">
             Nouveau mot de passe <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="newPassword"
               type={showNew ? 'text' : 'password'}
@@ -424,7 +425,8 @@ function SecurityTab() {
             <button
               type="button"
               onClick={() => setShowNew(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label={showNew ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -435,9 +437,9 @@ function SecurityTab() {
 
           {/* Strength indicator */}
           {newPassword && (
-            <div className="mt-2 rounded-xl bg-slate-50 p-3">
-              <p className="mb-2 text-xs font-medium text-slate-600">Force du mot de passe :</p>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+            <div className="mt-2 rounded-xl bg-muted p-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Force du mot de passe :</p>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted-foreground/20">
                 <div
                   className={cn('h-full rounded-full transition-all duration-300', strength.color)}
                   style={{ width: `${strength.score}%` }}
@@ -445,9 +447,9 @@ function SecurityTab() {
               </div>
               <p
                 className={cn('mt-1 text-xs font-medium', {
-                  'text-red-500': strength.score < 50,
-                  'text-amber-500': strength.score >= 50 && strength.score < 75,
-                  'text-emerald-500': strength.score >= 75,
+                  'text-red-500 dark:text-red-400': strength.score < 50,
+                  'text-amber-500 dark:text-amber-400': strength.score >= 50 && strength.score < 75,
+                  'text-emerald-500 dark:text-emerald-400': strength.score >= 75,
                 })}
               >
                 {strength.label}
@@ -458,11 +460,11 @@ function SecurityTab() {
 
         {/* Confirm password */}
         <div className="space-y-1.5">
-          <Label htmlFor="confirmNewPassword" className="text-sm font-medium text-slate-700">
+          <Label htmlFor="confirmNewPassword" className="text-sm font-medium text-foreground">
             Confirmer le nouveau mot de passe <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="confirmNewPassword"
               type={showConfirm ? 'text' : 'password'}
@@ -472,7 +474,8 @@ function SecurityTab() {
             <button
               type="button"
               onClick={() => setShowConfirm(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -600,18 +603,19 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Tabs + Content ─────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         {/* Tab bar */}
-        <div className="flex border-b bg-slate-50">
+        <div className="flex border-b bg-muted">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
+              aria-pressed={activeTab === key}
               className={cn(
                 'flex items-center gap-2 border-b-2 px-6 py-4 text-sm font-medium transition-colors',
                 activeTab === key
-                  ? 'border-sky-600 bg-white text-sky-700'
-                  : 'border-transparent text-slate-500 hover:bg-white/60 hover:text-slate-700',
+                  ? 'border-sky-600 bg-card text-sky-700 dark:text-sky-400'
+                  : 'border-transparent text-muted-foreground hover:bg-card/60 hover:text-foreground',
               )}
             >
               <Icon className="h-4 w-4" />

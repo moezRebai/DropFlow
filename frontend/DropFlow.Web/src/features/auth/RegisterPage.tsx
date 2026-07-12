@@ -201,7 +201,7 @@ export default function RegisterPage() {
             {/* Step 2: User info */}
             {step === 2 && (
               <div className="space-y-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="firstName">Prénom</Label>
                     <div className="relative">
@@ -293,13 +293,13 @@ export default function RegisterPage() {
                           key={check.label}
                           className={cn(
                             'flex items-center gap-1.5 text-xs transition-colors duration-200',
-                            passed ? 'text-green-600' : 'text-muted-foreground',
+                            passed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground',
                           )}
                         >
                           <div
                             className={cn(
                               'flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200',
-                              passed ? 'scale-100 bg-green-600' : 'scale-90 bg-muted-foreground/30',
+                              passed ? 'scale-100 bg-green-600 dark:bg-green-500' : 'scale-90 bg-muted-foreground/30',
                             )}
                           >
                             {passed && <Check className="h-2.5 w-2.5 text-white" />}

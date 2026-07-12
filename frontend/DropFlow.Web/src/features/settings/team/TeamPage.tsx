@@ -46,16 +46,16 @@ type DialogState =
 // ─── Role badge ───────────────────────────────────────────────────────────────
 
 const ROLE_COLORS: Record<string, string> = {
-  Admin: 'bg-purple-100 text-purple-700',
-  Manager: 'bg-blue-100 text-blue-700',
-  Driver: 'bg-sky-100 text-sky-700',
-  Accountant: 'bg-amber-100 text-amber-700',
-  ReadOnly: 'bg-slate-100 text-slate-600',
+  Admin: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400',
+  Manager: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
+  Driver: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
+  Accountant: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+  ReadOnly: 'bg-muted text-muted-foreground',
 }
 
 function RoleBadge({ role }: { role: string }) {
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', ROLE_COLORS[role] ?? 'bg-slate-100 text-slate-600')}>
+    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', ROLE_COLORS[role] ?? 'bg-muted text-muted-foreground')}>
       {ROLE_LABELS[role] ?? role}
     </span>
   )
@@ -95,7 +95,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="bg-gradient-to-br from-sky-500 to-blue-600 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -167,7 +167,7 @@ function ChangeRoleModal({ user, onClose }: { user: TeamUserDto; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="bg-gradient-to-br from-sky-500 to-blue-600 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -215,13 +215,13 @@ function DeleteConfirmModal({ user, onConfirm, onCancel, isPending }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl bg-card shadow-2xl">
         <div className="p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-slate-800">Supprimer cet utilisateur ?</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="mb-1 text-base font-semibold text-foreground">Supprimer cet utilisateur ?</h3>
+          <p className="text-sm text-muted-foreground">
             Le compte de <strong>{user.firstName} {user.lastName}</strong> ({user.email}) sera définitivement supprimé.
           </p>
         </div>
@@ -322,7 +322,7 @@ export default function TeamPage() {
   function renderUserRow(user: TeamUserDto) {
     const isSelf = user.id === currentUser?.id
     return (
-      <TableRow key={user.id} className={cn('hover:bg-sky-50/40', !user.isActive && 'opacity-50')}>
+      <TableRow key={user.id} className={cn('hover:bg-sky-50/40 dark:hover:bg-sky-500/5', !user.isActive && 'opacity-50')}>
         <TableCell className="py-3 pl-6">
           <div className="flex items-center gap-3">
             <div className={cn(
@@ -335,12 +335,12 @@ export default function TeamPage() {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="font-semibold text-slate-800">{user.firstName} {user.lastName}</p>
+                <p className="font-semibold text-foreground">{user.firstName} {user.lastName}</p>
                 {isSelf && (
-                  <span className="rounded-full bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-600">vous</span>
+                  <span className="rounded-full bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-600 dark:bg-sky-500/15 dark:text-sky-400">vous</span>
                 )}
               </div>
-              <p className="flex items-center gap-1 text-xs text-slate-400">
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Mail className="h-3 w-3" />{user.email}
               </p>
             </div>
@@ -349,7 +349,7 @@ export default function TeamPage() {
         <TableCell>
           <span className={cn(
             'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
-            user.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500',
+            user.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
           )}>
             {user.isActive ? 'Actif' : 'Inactif'}
           </span>
@@ -359,7 +359,8 @@ export default function TeamPage() {
             <div className="flex items-center justify-end gap-1">
               <button
                 onClick={() => setDialog({ type: 'changeRole', user })}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Changer le rôle"
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Changer le rôle"
               >
                 <UserCog className="h-4 w-4" />
@@ -367,7 +368,8 @@ export default function TeamPage() {
               {user.isActive ? (
                 <button
                   onClick={() => deactivateMutation.mutate(user.id)}
-                  className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                  aria-label="Désactiver"
+                  className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                   title="Désactiver"
                   disabled={deactivateMutation.isPending}
                 >
@@ -376,7 +378,8 @@ export default function TeamPage() {
               ) : (
                 <button
                   onClick={() => activateMutation.mutate(user.id)}
-                  className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                  aria-label="Réactiver"
+                  className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                   title="Réactiver"
                   disabled={activateMutation.isPending}
                 >
@@ -385,7 +388,8 @@ export default function TeamPage() {
               )}
               <button
                 onClick={() => setDialog({ type: 'delete', user })}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                aria-label="Supprimer"
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                 title="Supprimer"
               >
                 <Trash2 className="h-4 w-4" />
@@ -432,12 +436,12 @@ export default function TeamPage() {
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3">
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
           <input
             type="checkbox"
             checked={showInactive}
             onChange={e => setShowInactive(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+            className="h-4 w-4 rounded border-input text-sky-600 focus:ring-sky-500"
           />
           Afficher les membres inactifs
         </label>
@@ -446,7 +450,7 @@ export default function TeamPage() {
 
       {/* Grouped by role */}
       {isLoading ? (
-        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <Table>
             <TableBody>
               {[...Array(5)].map((_, i) => (
@@ -460,11 +464,11 @@ export default function TeamPage() {
           </Table>
         </div>
       ) : users.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 py-16">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Users className="h-6 w-6" />
           </div>
-          <p className="text-sm font-medium text-slate-500">Aucun membre dans l'équipe</p>
+          <p className="text-sm font-medium text-muted-foreground">Aucun membre dans l'équipe</p>
           <Button size="sm" onClick={() => setDialog({ type: 'invite' })}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />Inviter le premier membre
           </Button>
@@ -472,19 +476,19 @@ export default function TeamPage() {
       ) : (
         <div className="flex flex-col gap-4">
           {grouped.map(({ role, members }) => (
-            <div key={role} className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+            <div key={role} className="overflow-hidden rounded-2xl border bg-card shadow-sm">
               {/* Group header */}
-              <div className="flex items-center gap-3 border-b bg-slate-50 px-5 py-3">
+              <div className="flex items-center gap-3 border-b bg-muted px-5 py-3">
                 <RoleBadge role={role} />
-                <span className="text-xs text-slate-400 font-medium">
+                <span className="text-xs text-muted-foreground font-medium">
                   {members.length} membre{members.length > 1 ? 's' : ''}
                 </span>
               </div>
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-slate-400">Membre</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-400">Statut</TableHead>
+                    <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Membre</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</TableHead>
                     <TableHead className="w-28 pr-6" />
                   </TableRow>
                 </TableHeader>
