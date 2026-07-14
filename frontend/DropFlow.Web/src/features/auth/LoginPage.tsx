@@ -87,25 +87,25 @@ export default function LoginPage() {
   const isSubmitting = form.formState.isSubmitting
 
   return (
-    <div className="w-full max-w-md px-4">
-      <div className="mb-8 flex flex-col items-center gap-1.5 lg:hidden">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600">
+    <div className="w-full max-w-lg px-4">
+      <div className="mb-10 flex flex-col items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600">
             <DropflowLogo className="h-5 w-5 text-white" />
           </div>
-          <span className="text-2xl font-bold tracking-tight">DropFlow</span>
+          <span className="text-3xl font-bold tracking-tight">DropFlow</span>
         </div>
         <p className="text-sm text-muted-foreground">Gestion de livraisons</p>
       </div>
 
       <Card className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4 motion-safe:duration-500 overflow-hidden border-none shadow-xl shadow-slate-900/10">
-        <div className="h-1 w-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl">Connexion</CardTitle>
-          <CardDescription>Connectez-vous à votre espace DropFlow</CardDescription>
+        <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
+        <CardHeader className="p-8 pb-6 sm:p-10 sm:pb-7">
+          <CardTitle className="text-3xl">Connexion</CardTitle>
+          <CardDescription className="text-base">Connectez-vous à votre espace DropFlow</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <CardContent className="p-8 pt-3 sm:p-10 sm:pt-3">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7" noValidate>
             {error && (
               <Alert
                 variant="destructive"
@@ -116,16 +116,16 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="vous@exemple.com"
                   autoComplete="email"
-                  className="pl-10 transition-shadow duration-200"
+                  className="h-12 pl-11 text-base transition-shadow duration-200"
                   {...emailField}
                   onBlur={handleEmailBlur}
                 />
@@ -136,14 +136,14 @@ export default function LoginPage() {
             </div>
 
             {tenants.length > 1 && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label>Organisation</Label>
                 <Select
                   value={tenantId > 0 ? String(tenantId) : ''}
                   onValueChange={v => setTenantId(Number(v))}
                   disabled={isLoadingTenants}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue placeholder="Sélectionner une organisation" />
                   </SelectTrigger>
                   <SelectContent>
@@ -157,7 +157,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Mot de passe</Label>
                 <Link to="/forgot-password" className="text-xs text-primary hover:underline">
@@ -165,22 +165,22 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className="pl-10 pr-10 transition-shadow duration-200"
+                  className="h-12 pl-11 pr-11 text-base transition-shadow duration-200"
                   {...form.register('password')}
                 />
                 <button
                   type="button"
                   tabIndex={-1}
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   onClick={() => setShowPassword(v => !v)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                 </button>
               </div>
               {form.formState.errors.password && (
@@ -188,26 +188,28 @@ export default function LoginPage() {
               )}
             </div>
 
-            <Button
-              type="submit"
-              className="group w-full bg-gradient-to-r from-sky-500 to-blue-600 shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Connexion…
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  Se connecter
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-                </span>
-              )}
-            </Button>
+            <div className="border-t border-border/70 pt-7">
+              <Button
+                type="submit"
+                className="group h-12 w-full bg-gradient-to-r from-sky-500 to-blue-600 text-base shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Connexion…
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    Se connecter
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </span>
+                )}
+              </Button>
+            </div>
           </form>
 
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="mt-8 text-center text-sm text-muted-foreground">
             Pas encore de compte ?{' '}
             <Link to="/register" className="font-medium text-primary hover:underline">
               S&apos;inscrire

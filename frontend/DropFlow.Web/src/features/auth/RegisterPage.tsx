@@ -110,31 +110,31 @@ export default function RegisterPage() {
   const isSubmitting = form.formState.isSubmitting
 
   return (
-    <div className="w-full max-w-md px-4">
-      <div className="mb-8 flex flex-col items-center gap-1.5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600">
+    <div className="w-full max-w-lg px-4">
+      <div className="mb-10 flex flex-col items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600">
             <DropflowLogo className="h-5 w-5 text-white" />
           </div>
-          <span className="text-2xl font-bold tracking-tight">DropFlow</span>
+          <span className="text-3xl font-bold tracking-tight">DropFlow</span>
         </div>
       </div>
 
       <Card className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4 motion-safe:duration-500 overflow-hidden border-none shadow-xl shadow-slate-900/10">
-        <div className="h-1 w-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
-        <CardHeader className="pb-2">
-          <CardTitle className="text-2xl">Créer un compte</CardTitle>
-          <CardDescription>Inscription en {STEP_LABELS.length} étapes</CardDescription>
+        <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600" />
+        <CardHeader className="p-8 pb-5 sm:p-10 sm:pb-6">
+          <CardTitle className="text-3xl">Créer un compte</CardTitle>
+          <CardDescription className="text-base">Inscription en {STEP_LABELS.length} étapes</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="p-8 pt-3 sm:p-10 sm:pt-3 space-y-9">
           {/* Step indicator */}
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2.5">
             {STEP_LABELS.map((label, i) => (
               <Fragment key={i}>
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center gap-1.5">
                   <div
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-200',
+                      'flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-200',
                       i + 1 < step
                         ? 'border-primary bg-primary text-primary-foreground'
                         : i + 1 === step
@@ -156,7 +156,7 @@ export default function RegisterPage() {
                 {i < STEP_LABELS.length - 1 && (
                   <div
                     className={cn(
-                      'mb-4 h-0.5 w-10 transition-colors duration-300',
+                      'mb-4 h-0.5 w-12 transition-colors duration-300',
                       i + 1 < step ? 'bg-primary' : 'bg-muted',
                     )}
                   />
@@ -165,7 +165,7 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7" noValidate>
             {error && (
               <Alert
                 variant="destructive"
@@ -178,15 +178,15 @@ export default function RegisterPage() {
 
             {/* Step 1: Company */}
             {step === 1 && (
-              <div className="space-y-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
+              <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
                 <Label htmlFor="companyName">Nom de l&apos;entreprise</Label>
                 <div className="relative">
-                  <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Building2 className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="companyName"
                     placeholder="Acme Livraisons"
                     autoFocus
-                    className="pl-10 transition-shadow duration-200"
+                    className="h-12 pl-11 text-base transition-shadow duration-200"
                     {...form.register('companyName')}
                   />
                 </div>
@@ -200,16 +200,16 @@ export default function RegisterPage() {
 
             {/* Step 2: User info */}
             {step === 2 && (
-              <div className="space-y-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
+              <div className="space-y-7 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
                     <Label htmlFor="firstName">Prénom</Label>
                     <div className="relative">
-                      <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <User className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="firstName"
                         autoFocus
-                        className="pl-10 transition-shadow duration-200"
+                        className="h-12 pl-11 text-base transition-shadow duration-200"
                         {...form.register('firstName')}
                       />
                     </div>
@@ -219,13 +219,13 @@ export default function RegisterPage() {
                       </p>
                     )}
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <Label htmlFor="lastName">Nom</Label>
                     <div className="relative">
-                      <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <User className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="lastName"
-                        className="pl-10 transition-shadow duration-200"
+                        className="h-12 pl-11 text-base transition-shadow duration-200"
                         {...form.register('lastName')}
                       />
                     </div>
@@ -236,15 +236,15 @@ export default function RegisterPage() {
                     )}
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="vous@exemple.com"
-                      className="pl-10 transition-shadow duration-200"
+                      className="h-12 pl-11 text-base transition-shadow duration-200"
                       {...form.register('email')}
                     />
                   </div>
@@ -259,33 +259,33 @@ export default function RegisterPage() {
 
             {/* Step 3: Password */}
             {step === 3 && (
-              <div className="space-y-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
-                <div className="space-y-1.5">
+              <div className="space-y-7 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-300">
+                <div className="space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       autoFocus
-                      className="pl-10 pr-10 transition-shadow duration-200"
+                      className="h-12 pl-11 pr-11 text-base transition-shadow duration-200"
                       {...form.register('password')}
                     />
                     <button
                       type="button"
                       tabIndex={-1}
                       aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       onClick={() => setShowPassword(v => !v)}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4.5 w-4.5" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4.5 w-4.5" />
                       )}
                     </button>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  <div className="mt-2.5 grid grid-cols-2 gap-2">
                     {PASSWORD_CHECKS.map(check => {
                       const passed = check.test(watchedPassword)
                       return (
@@ -316,27 +316,27 @@ export default function RegisterPage() {
                   )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       type={showConfirm ? 'text' : 'password'}
-                      className="pl-10 pr-10 transition-shadow duration-200"
+                      className="h-12 pl-11 pr-11 text-base transition-shadow duration-200"
                       {...form.register('confirmPassword')}
                     />
                     <button
                       type="button"
                       tabIndex={-1}
                       aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       onClick={() => setShowConfirm(v => !v)}
                     >
                       {showConfirm ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4.5 w-4.5" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4.5 w-4.5" />
                       )}
                     </button>
                   </div>
@@ -349,12 +349,12 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <div className="flex gap-3 pt-1">
+            <div className="flex gap-3 border-t border-border/70 pt-7">
               {step > 1 && (
                 <Button
                   type="button"
                   variant="outline"
-                  className="group flex-1 transition-all duration-200 active:scale-[0.98]"
+                  className="group h-12 flex-1 text-base transition-all duration-200 active:scale-[0.98]"
                   onClick={() => setStep(s => s - 1)}
                 >
                   <ChevronLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
@@ -364,7 +364,7 @@ export default function RegisterPage() {
               {step < 3 ? (
                 <Button
                   type="button"
-                  className="group flex-1 bg-gradient-to-r from-sky-500 to-blue-600 shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
+                  className="group h-12 flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-base shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
                   onClick={handleNext}
                 >
                   Suivant
@@ -373,7 +373,7 @@ export default function RegisterPage() {
               ) : (
                 <Button
                   type="submit"
-                  className="group flex-1 bg-gradient-to-r from-sky-500 to-blue-600 shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
+                  className="group h-12 flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-base shadow-md shadow-blue-600/20 transition-all duration-200 hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
