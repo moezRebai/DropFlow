@@ -29,3 +29,13 @@ GoogleService-Info.plist
 # Secrets
 .env
 *.env.local
+secrets.txt
+
+# Claude Code — personal/local overrides
+.claude/settings.local.json
+
+# CodeGraph tool index
+.codegraph/
+
+# Vite cache
+.vite/
