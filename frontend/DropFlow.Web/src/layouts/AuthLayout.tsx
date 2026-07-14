@@ -5,7 +5,7 @@ import { DropflowLogo } from '@/components/shared/DropflowLogo'
 export function AuthLayout() {
   return (
     <div className="flex h-screen bg-background">
-      <aside className="relative hidden shrink-0 overflow-hidden bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-900 lg:flex lg:w-[46%] lg:max-w-xl lg:flex-col lg:justify-between lg:p-10">
+      <aside className="relative hidden shrink-0 overflow-hidden bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-900 lg:flex lg:w-[44%] lg:max-w-xl lg:flex-col lg:justify-between lg:p-12">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
           style={{
@@ -22,12 +22,12 @@ export function AuthLayout() {
           <span className="text-lg font-bold tracking-tight text-white">DropFlow</span>
         </div>
 
-        <div className="relative space-y-8">
-          <div className="space-y-3">
-            <h1 className="max-w-sm text-3xl font-bold leading-tight tracking-tight text-white">
+        <div className="relative space-y-9">
+          <div className="space-y-3.5">
+            <h1 className="max-w-sm text-4xl font-bold leading-[1.15] tracking-tight text-white">
               La tournée idéale, calculée en secondes.
             </h1>
-            <p className="max-w-sm text-sm leading-relaxed text-sky-100/80">
+            <p className="max-w-sm text-base leading-relaxed text-sky-100/80">
               Optimisez vos itinéraires, suivez vos chauffeurs en temps réel et livrez à l&apos;heure, à chaque fois.
             </p>
           </div>
@@ -46,7 +46,7 @@ export function AuthLayout() {
         </p>
       </aside>
 
-      <div className="flex flex-1 items-center justify-center overflow-y-auto p-6">
+      <div className="flex flex-1 items-center justify-center overflow-y-auto p-6 sm:p-10 lg:p-14">
         <Outlet />
       </div>
     </div>
