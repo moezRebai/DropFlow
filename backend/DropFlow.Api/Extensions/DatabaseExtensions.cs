@@ -34,6 +34,7 @@ public static class DatabaseExtensions
             if (app.Environment.IsDevelopment())
             {
                 await SeedDevelopmentDataAsync(services, logger);
+                await ResetDeliveriesOnlyAsync(services, logger);
             }
         }
         catch (Exception ex)
@@ -41,6 +42,45 @@ public static class DatabaseExtensions
             logger.LogError(ex, "Error initializing database");
             throw;
         }
+    }
+
+    private static async Task ResetDeliveriesOnlyAsync(IServiceProvider services, ILogger logger)
+    {
+        var configuration = services.GetRequiredService<IConfiguration>();
+
+        if (!configuration.GetValue("DevData:ResetDeliveriesOnly", false))
+        {
+            return;
+        }
+
+        var context = services.GetRequiredService<ApplicationDbContext>();
+
+        var tenant = await context.Tenants.FirstOrDefaultAsync();
+        if (tenant is null)
+        {
+            logger.LogWarning("DevData:ResetDeliveriesOnly=true but no tenant exists, skipping");
+            return;
+        }
+
+        var user = await context.Users.FirstOrDefaultAsync(u => u.TenantId == tenant.Id);
+        if (user is null)
+        {
+            logger.LogWarning("DevData:ResetDeliveriesOnly=true but tenant {TenantId} has no user, skipping", tenant.Id);
+            return;
+        }
+
+        var stores = await context.Stores.Where(s => s.TenantId == tenant.Id).ToArrayAsync();
+
+        logger.LogInformation("DevData:ResetDeliveriesOnly=true — deleting existing deliveries for tenant {TenantId}...", tenant.Id);
+
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $@"DELETE FROM ""DeliveryItems"" WHERE ""DeliveryId"" IN (SELECT ""Id"" FROM ""Deliveries"" WHERE ""TenantId"" = {tenant.Id})");
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $@"DELETE FROM ""Deliveries"" WHERE ""TenantId"" = {tenant.Id}");
+
+        logger.LogInformation("Existing deliveries deleted, re-seeding...");
+
+        await SeedDeliveriesAsync(context, tenant.Id, user.Id, stores, logger);
     }
 
     private static async Task SeedSuperAdminAsync(
@@ -379,11 +419,11 @@ public static class DatabaseExtensions
             (DeliveryStatus.ToBePlanned, null),
             (DeliveryStatus.ToBePlanned, null),
             (DeliveryStatus.ToBePlanned, null),
-            (DeliveryStatus.ToBePlanned, 3),
-            (DeliveryStatus.ToBePlanned, 7),
-            (DeliveryStatus.ToBePlanned, 14),
-            (DeliveryStatus.ToBePlanned, 21),
-            (DeliveryStatus.ToBePlanned, 30),
+            (DeliveryStatus.Confirmed,   3),
+            (DeliveryStatus.Confirmed,   7),
+            (DeliveryStatus.Confirmed,   14),
+            (DeliveryStatus.Confirmed,   21),
+            (DeliveryStatus.Confirmed,   30),
             (DeliveryStatus.InProgress,  1),
             (DeliveryStatus.InProgress,  2),
         };

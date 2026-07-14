@@ -94,7 +94,7 @@ export default function SettingsHubPage() {
     <div className="flex flex-col gap-6 p-6">
 
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 p-6 shadow-lg">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-6 shadow-lg">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         <div className="relative flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -102,7 +102,7 @@ export default function SettingsHubPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Paramètres</h1>
-            <p className="text-sm text-white/70">Configurez votre espace de travail</p>
+            <p className="text-sm text-sky-200">Configurez votre espace de travail</p>
           </div>
         </div>
       </div>
