@@ -8,6 +8,7 @@ using DropFlow.Infrastructure;
 using DropFlow.Infrastructure.Persistence;
 using DropFlow.Infrastructure.Services.Geocoding;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
 using Serilog;
 using Serilog.Events;
@@ -40,7 +41,7 @@ public class Program
             // ═══════════════════════════════════════════════════════════════
 
             // Infrastructure (Database, Services externes)
-            builder.Services.AddInfrastructureServices(builder.Configuration);
+            builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
 
             // Application (Services métier)
             builder.Services.AddApplicationServices();
@@ -94,6 +95,21 @@ public class Program
             // ═══════════════════════════════════════════════════════════════
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var cs = db.Database.GetConnectionString() ?? string.Empty;
+                var host = cs.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p => p.Trim().Split('=', 2))
+                    .Where(p => p.Length == 2 && p[0].Equals("Host", StringComparison.OrdinalIgnoreCase))
+                    .Select(p => p[1])
+                    .FirstOrDefault() ?? "unknown";
+                var isNeon = host.Contains("neon.tech", StringComparison.OrdinalIgnoreCase);
+
+                Log.Information("Database connected: {Label} (host={Host}, environment={Environment})",
+                    isNeon ? "Neon" : "Local", host, app.Environment.EnvironmentName);
+            }
 
             // Exception Handling
             app.UseCustomExceptionHandling();

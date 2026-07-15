@@ -14,18 +14,24 @@ using DropFlow.Infrastructure.Services.Pdf;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace DropFlow.Infrastructure;
 
 public static class DependencyInjection
 {
     public static void AddInfrastructureServices(this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration, IHostEnvironment environment)
     {
+        // Dev connects to the local Postgres instance; every other environment uses Neon.
+        var connectionString = environment.IsDevelopment()
+            ? configuration.GetConnectionString("DefaultConnection")
+            : configuration.GetConnectionString("NeonConnection");
+
         // Database
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(
-                configuration.GetConnectionString("NeonConnection"),
+                connectionString,
                 b => b.MigrationsAssembly("DropFlow.Infrastructure")));
 
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
