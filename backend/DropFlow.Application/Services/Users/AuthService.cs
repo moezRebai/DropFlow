@@ -366,13 +366,22 @@ public class AuthService(
                 var role = roles.FirstOrDefault() ?? "User";
 
                 // ? IMPORTANT : Inclure TenantId dans l'email
-                await emailService.SendPasswordResetEmailAsync(
-                    user.Email!, 
-                    resetToken, 
-                    userName,
-                    tenant?.Name ?? "Unknown",  // ? Nom du tenant
-                    user.TenantId,              // ? TenantId
-                    role); 
+                // Non-bloquant : un échec d'envoi ne doit ni interrompre les autres comptes
+                // ni faire fuiter l'existence du compte via la réponse d'erreur générique.
+                try
+                {
+                    await emailService.SendPasswordResetEmailAsync(
+                        user.Email!,
+                        resetToken,
+                        userName,
+                        tenant?.Name ?? "Unknown",  // ? Nom du tenant
+                        user.TenantId,              // ? TenantId
+                        role);
+                }
+                catch (Exception emailEx)
+                {
+                    logger.LogWarning(emailEx, "Password reset email failed for {Email} (tenant {TenantId})", user.Email, user.TenantId);
+                }
 
                 // Audit
                 await auditService.LogAsync(

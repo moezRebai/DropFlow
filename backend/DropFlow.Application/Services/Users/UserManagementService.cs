@@ -64,10 +64,18 @@ public class UserManagementService(
             context.UserInvitations.Add(invitation);
             await context.SaveChangesAsync();
 
-            await emailService.SendInvitationEmailAsync(
-                dto.Email,
-                invitation.Token,
-                tenantService.GetCurrentTenant()?.Name);
+            // Email d'invitation (non-bloquant — l'invitation est déjà persistée même si l'email échoue)
+            try
+            {
+                await emailService.SendInvitationEmailAsync(
+                    dto.Email,
+                    invitation.Token,
+                    tenantService.GetCurrentTenant()?.Name);
+            }
+            catch (Exception emailEx)
+            {
+                logger.LogWarning(emailEx, "Invitation email failed for {Email}, invitation still created", dto.Email);
+            }
 
             await auditService.LogAsync(
                 tenantId: tenantId,
