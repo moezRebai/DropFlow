@@ -181,13 +181,13 @@ public static class DatabaseExtensions
         await context.SaveChangesAsync();
 
         testTenant.UpdateCompanyInfo(
-            companyName: "Test Company SARL",
-            address: "123 Avenue des Tests",
-            zipCode: "75001",
-            city: "Paris",
+            companyName: "JOY",
+            address: "21 Rue des Carnets",
+            zipCode: "92140",
+            city: "Clamart",
             phone: "01 23 45 67 89",
-            email: "contact@testcompany.fr",
-            website: "https://testcompany.fr"
+            email: "contact@joy.fr",
+            website: "https://joy.fr"
         );
 
         testTenant.UpdateLegalInfo(
@@ -206,9 +206,9 @@ public static class DatabaseExtensions
         // 2. Créer un utilisateur Manager de test
         var testUser = ApplicationUser.Create(
             tenantId: testTenant.Id,
-            email: "defaultManager@test.com",
-            firstName: "John",
-            lastName: "Dupont"
+            email: "Manager@test.com",
+            firstName: "Moez",
+            lastName: "Rebai"
         );
 
         await userManager.CreateAsync(testUser, "Test@123");

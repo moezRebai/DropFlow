@@ -124,13 +124,32 @@ public class ApplicationDbContext(
 
     private void ApplyTenantId()
     {
-        var tenantId = GetCurrentTenantId();
+        var addedTenantEntities = ChangeTracker.Entries<ITenantEntity>()
+            .Where(e => e.State == EntityState.Added)
+            .ToList();
 
-        if (tenantId == TenantIds.DropFlowAdmin || tenantId == 0)
+        // Nothing tenant-scoped is being saved (e.g. login issuing a RefreshToken
+        // on an anonymous request) — no tenant context is required.
+        if (addedTenantEntities.Count == 0)
             return;
 
-        foreach (var entry in ChangeTracker.Entries<ITenantEntity>()
-                     .Where(e => e.State == EntityState.Added))
+        // No HTTP request in flight (startup seeding, EF migrations, background/hosted
+        // services) — there are no claims to resolve a tenant from. The caller is
+        // responsible for setting TenantId explicitly on entities it creates in that
+        // context (see DatabaseExtensions seed methods), so trust it rather than throw.
+        if (httpContextAccessor.HttpContext is null)
+            return;
+
+        var tenantId = GetCurrentTenantId();
+
+        if (tenantId == TenantIds.DropFlowAdmin)
+            return;
+
+        if (tenantId == TenantIds.Unresolved)
+            throw new UnauthorizedAccessException(
+                "Cannot save tenant-scoped entities without a resolved TenantId claim.");
+
+        foreach (var entry in addedTenantEntities)
         {
             entry.Entity.TenantId = tenantId;
         }
@@ -140,7 +159,10 @@ public class ApplicationDbContext(
     {
         var tenantIdClaim = httpContextAccessor.HttpContext?.User
             .FindFirst("TenantId")?.Value;
-    
-        return int.TryParse(tenantIdClaim, out var tenantId) ? tenantId : 0;
+
+        // Fail closed: an unresolvable claim must never be treated as
+        // TenantIds.DropFlowAdmin (0) — that would bypass every global
+        // query filter below and leak all tenants' data.
+        return int.TryParse(tenantIdClaim, out var tenantId) ? tenantId : TenantIds.Unresolved;
     }
 }
