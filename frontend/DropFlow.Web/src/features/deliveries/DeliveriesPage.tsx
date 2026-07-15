@@ -34,6 +34,19 @@ import { cn } from '@/lib/utils'
 const DEFAULT_STATUSES = [DeliveryStatus.ToBePlanned, DeliveryStatus.Confirmed, DeliveryStatus.InProgress]
 const PAGE_SIZE_OPTIONS = [20, 40, 60]
 
+type DeliveryStatusFilter = DeliveryStatus | 'all' | 'active' | 'issues'
+
+const STATUS_TABS: Array<{ label: string; value: DeliveryStatusFilter }> = [
+  { label: 'Actives', value: 'active' },
+  { label: 'Toutes', value: 'all' },
+  { label: 'À planifier', value: DeliveryStatus.ToBePlanned },
+  { label: 'Confirmée', value: DeliveryStatus.Confirmed },
+  { label: 'En cours', value: DeliveryStatus.InProgress },
+  { label: 'Livrée', value: DeliveryStatus.Delivered },
+  { label: 'Annulée', value: DeliveryStatus.Canceled },
+  { label: 'Problèmes', value: 'issues' },
+]
+
 // France bounding box
 const isInFrance = (lat: number, lng: number) =>
   lat >= 41.3 && lat <= 51.2 && lng >= -5.2 && lng <= 9.6
@@ -98,6 +111,16 @@ function WarningIcons({ delivery, onGeocode }: { delivery: DeliveryViewDto; onGe
         </span>
       )}
     </div>
+  )
+}
+
+// ─── Stat chip ─────────────────────────────────────────────────────────────────
+
+function StatChip({ icon, label, className }: { icon: React.ReactNode; label: string; className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-semibold text-white', className)}>
+      {icon}{label}
+    </span>
   )
 }
 
@@ -188,7 +211,7 @@ function SelectionBanner({
     DeliveryStatus.InProgress, DeliveryStatus.Delivered, DeliveryStatus.Canceled,
   ]
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-primary/5 px-4 py-2.5">
+    <div className="flex items-center gap-3 rounded-xl border bg-primary/5 px-4 py-2.5">
       <span className="text-sm font-medium">{count} sélectionnée{count > 1 ? 's' : ''}</span>
       <div className="flex flex-1 items-center gap-2">
         <DropdownMenu>
@@ -228,7 +251,7 @@ export default function DeliveriesPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<DeliveryStatus | 'all' | 'active' | 'issues'>('active')
+  const [statusFilter, setStatusFilter] = useState<DeliveryStatusFilter>('active')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
 
@@ -330,45 +353,61 @@ export default function DeliveriesPage() {
     setSelected(new Set())
   }
 
-  // ─── Filters UI ───────────────────────────────────────────────────────────────
-
-  const statusOptions: { value: string; label: string }[] = [
-    { value: 'active', label: 'Actives (défaut)' },
-    { value: 'all', label: 'Toutes' },
-    { value: 'issues', label: 'Problèmes' },
-    ...Object.values(DeliveryStatus)
-      .filter((v): v is DeliveryStatus => typeof v === 'number')
-      .map(s => ({ value: String(s), label: STATUS_LABELS[s] })),
-  ]
-
   const issueCount = allDeliveries.filter(hasIssue).length
 
   return (
-    <div className="flex h-full flex-col gap-4 p-6">
+    <div className="flex flex-col gap-6 p-6">
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Livraisons</h1>
-          {!isLoading && (
-            <p className="text-sm text-muted-foreground">
-              {data?.totalCount ?? 0} livraison{(data?.totalCount ?? 0) > 1 ? 's' : ''}
-              {issueCount > 0 && (
-                <button
-                  className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25 transition-colors"
-                  onClick={() => setStatusFilter('issues')}
-                >
-                  <AlertTriangle className="h-3 w-3" />{issueCount} problème{issueCount > 1 ? 's' : ''}
-                </button>
-              )}
-            </p>
-          )}
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 p-6 shadow-lg">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-1 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">Livraisons</h1>
+            </div>
+            <p className="text-sm text-sky-200">Suivez et gérez vos livraisons</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {!isLoading && (
+              <StatChip icon={<Package className="h-3.5 w-3.5" />} label={`${data?.totalCount ?? 0} livraison${(data?.totalCount ?? 0) > 1 ? 's' : ''}`} />
+            )}
+            {!isLoading && issueCount > 0 && (
+              <button
+                onClick={() => setStatusFilter('issues')}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-400/25 px-3 py-1.5 text-xs font-semibold text-amber-100 ring-1 ring-amber-300/40 transition-colors hover:bg-amber-400/35"
+              >
+                <AlertTriangle className="h-3.5 w-3.5" />{issueCount} problème{issueCount > 1 ? 's' : ''}
+              </button>
+            )}
+            <Link
+              to="/deliveries/new"
+              className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+            >
+              <Plus className="h-3.5 w-3.5" />Nouvelle livraison
+            </Link>
+          </div>
         </div>
-        <Button asChild>
-          <Link to="/deliveries/new">
-            <Plus className="mr-2 h-4 w-4" />Nouvelle livraison
-          </Link>
-        </Button>
+      </div>
+
+      {/* Status tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto rounded-xl border bg-muted p-1">
+        {STATUS_TABS.map(tab => (
+          <button
+            key={String(tab.value)}
+            onClick={() => setStatusFilter(tab.value)}
+            aria-pressed={statusFilter === tab.value}
+            className={cn(
+              'shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+              statusFilter === tab.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -379,7 +418,7 @@ export default function DeliveriesPage() {
             placeholder="Référence, client, ville…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-9"
           />
           {search && (
             <button onClick={() => setSearch('')} aria-label="Effacer la recherche" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -387,17 +426,6 @@ export default function DeliveriesPage() {
             </button>
           )}
         </div>
-
-        <Select value={String(statusFilter)} onValueChange={v => setStatusFilter(v as typeof statusFilter)}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Statut" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map(o => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         <div className="flex rounded-md border" role="group" aria-label="Mode d'affichage">
           <button
@@ -431,112 +459,115 @@ export default function DeliveriesPage() {
       )}
 
       {/* Content */}
-      <div className="min-h-0 flex-1">
-        {isLoading ? (
-          <div className={cn(view === 'cards' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'space-y-2')}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className={view === 'cards' ? 'h-44 rounded-xl' : 'h-12'} />
-            ))}
-          </div>
-        ) : deliveries.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
-            <Package className="h-10 w-10 opacity-30" />
-            <p className="font-medium">
-              {statusFilter === 'issues' ? 'Aucun problème détecté ✓' : 'Aucune livraison trouvée'}
-            </p>
-            {search && <Button variant="ghost" size="sm" onClick={() => setSearch('')}>Effacer la recherche</Button>}
-          </div>
-        ) : view === 'cards' ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {deliveries.map(d => (
-              <DeliveryCard
-                key={d.id}
-                delivery={d}
-                selected={selected.has(d.id)}
-                onSelect={toggleSelect}
-                onGeocode={id => geocodeMutation.mutate(id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-8 py-2 pl-3 pr-0">
-                    <Checkbox
-                      checked={selected.size === deliveries.length && deliveries.length > 0}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead className="w-6 py-2 px-1" />
-                  <TableHead className="py-2 text-xs">#</TableHead>
-                  <TableHead className="py-2 text-xs">Référence / Client</TableHead>
-                  <TableHead className="py-2 text-xs">Ville</TableHead>
-                  <TableHead className="py-2 text-xs">Dépôt</TableHead>
-                  <TableHead className="py-2 text-xs">Colis</TableHead>
-                  <TableHead className="py-2 text-xs">Dates</TableHead>
-                  <TableHead className="py-2 text-xs">Prix</TableHead>
-                  <TableHead className="py-2 text-xs">Statut</TableHead>
-                  <TableHead className="w-20 py-2" />
+      {isLoading ? (
+        <div className={cn(view === 'cards' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'space-y-2')}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className={view === 'cards' ? 'h-44 rounded-xl' : 'h-12'} />
+          ))}
+        </div>
+      ) : deliveries.length === 0 ? (
+        <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
+          <Package className="h-10 w-10 opacity-30" />
+          <p className="font-medium">
+            {statusFilter === 'issues' ? 'Aucun problème détecté ✓' : 'Aucune livraison trouvée'}
+          </p>
+          {search && <Button variant="ghost" size="sm" onClick={() => setSearch('')}>Effacer la recherche</Button>}
+        </div>
+      ) : view === 'cards' ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {deliveries.map(d => (
+            <DeliveryCard
+              key={d.id}
+              delivery={d}
+              selected={selected.has(d.id)}
+              onSelect={toggleSelect}
+              onGeocode={id => geocodeMutation.mutate(id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-8 py-2 pl-3 pr-0">
+                  <Checkbox
+                    checked={selected.size === deliveries.length && deliveries.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="w-6 py-2 px-1" />
+                <TableHead className="py-2 text-xs">#</TableHead>
+                <TableHead className="py-2 text-xs">Référence / Client</TableHead>
+                <TableHead className="py-2 text-xs">Ville</TableHead>
+                <TableHead className="py-2 text-xs">Dépôt</TableHead>
+                <TableHead className="py-2 text-xs">Colis</TableHead>
+                <TableHead className="py-2 text-xs">Dates</TableHead>
+                <TableHead className="py-2 text-xs">Prix</TableHead>
+                <TableHead className="py-2 text-xs">Statut</TableHead>
+                <TableHead className="w-20 py-2" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {deliveries.map(d => (
+                <TableRow
+                  key={d.id}
+                  className={cn(
+                    'cursor-pointer',
+                    hasIssue(d)
+                      ? 'bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-500/5 dark:hover:bg-amber-500/10'
+                      : 'hover:bg-sky-50/40 dark:hover:bg-sky-500/5',
+                  )}
+                  onClick={() => navigate(`/deliveries/${d.id}`)}
+                >
+                  <TableCell className="py-1.5 pl-3 pr-0" onClick={e => e.stopPropagation()}>
+                    <Checkbox checked={selected.has(d.id)} onCheckedChange={() => toggleSelect(d.id)} />
+                  </TableCell>
+                  <TableCell className="py-1.5 px-1" onClick={e => e.stopPropagation()}>
+                    <WarningIcons delivery={d} onGeocode={id => geocodeMutation.mutate(id)} />
+                  </TableCell>
+                  <TableCell className="py-1.5 text-xs text-muted-foreground">{d.sequentialNumber}</TableCell>
+                  <TableCell className="py-1.5">
+                    <p className="text-sm font-medium leading-tight">{d.reference}</p>
+                    <p className="text-xs text-muted-foreground">{d.clientName}</p>
+                  </TableCell>
+                  <TableCell className="py-1.5 text-sm">{d.city}</TableCell>
+                  <TableCell className="py-1.5 text-sm">{d.storeName}</TableCell>
+                  <TableCell className="py-1.5 text-sm">{d.totalPackages || '—'}</TableCell>
+                  <TableCell className="py-1.5">
+                    {d.scheduledDate
+                      ? <p className="text-xs font-medium">{formatDate(d.scheduledDate)}</p>
+                      : <p className="text-xs text-muted-foreground">—</p>}
+                    <p className="text-xs text-muted-foreground">{formatDate(d.createdDate)}</p>
+                  </TableCell>
+                  <TableCell className="py-1.5 text-sm font-medium text-green-600 dark:text-green-400">{formatPrice(d.price)}</TableCell>
+                  <TableCell className="py-1.5"><DeliveryStatusBadge status={d.status} /></TableCell>
+                  <TableCell className="py-1.5" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-0.5">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => navigate(`/deliveries/${d.id}`)}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      {d.status !== DeliveryStatus.Delivered && d.status !== DeliveryStatus.Canceled && (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={() => navigate(`/deliveries/${d.id}/edit`)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteMutation.mutate(d.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deliveries.map(d => (
-                  <TableRow
-                    key={d.id}
-                    className={cn('cursor-pointer', hasIssue(d) && 'bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-500/5 dark:hover:bg-amber-500/10')}
-                    onClick={() => navigate(`/deliveries/${d.id}`)}
-                  >
-                    <TableCell className="py-1.5 pl-3 pr-0" onClick={e => e.stopPropagation()}>
-                      <Checkbox checked={selected.has(d.id)} onCheckedChange={() => toggleSelect(d.id)} />
-                    </TableCell>
-                    <TableCell className="py-1.5 px-1" onClick={e => e.stopPropagation()}>
-                      <WarningIcons delivery={d} onGeocode={id => geocodeMutation.mutate(id)} />
-                    </TableCell>
-                    <TableCell className="py-1.5 text-xs text-muted-foreground">{d.sequentialNumber}</TableCell>
-                    <TableCell className="py-1.5">
-                      <p className="text-sm font-medium leading-tight">{d.reference}</p>
-                      <p className="text-xs text-muted-foreground">{d.clientName}</p>
-                    </TableCell>
-                    <TableCell className="py-1.5 text-sm">{d.city}</TableCell>
-                    <TableCell className="py-1.5 text-sm">{d.storeName}</TableCell>
-                    <TableCell className="py-1.5 text-sm">{d.totalPackages || '—'}</TableCell>
-                    <TableCell className="py-1.5">
-                      {d.scheduledDate
-                        ? <p className="text-xs font-medium">{formatDate(d.scheduledDate)}</p>
-                        : <p className="text-xs text-muted-foreground">—</p>}
-                      <p className="text-xs text-muted-foreground">{formatDate(d.createdDate)}</p>
-                    </TableCell>
-                    <TableCell className="py-1.5 text-sm font-medium text-green-600 dark:text-green-400">{formatPrice(d.price)}</TableCell>
-                    <TableCell className="py-1.5"><DeliveryStatusBadge status={d.status} /></TableCell>
-                    <TableCell className="py-1.5" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          onClick={() => navigate(`/deliveries/${d.id}`)}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        {d.status !== DeliveryStatus.Delivered && d.status !== DeliveryStatus.Canceled && (
-                          <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                              onClick={() => navigate(`/deliveries/${d.id}/edit`)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => deleteMutation.mutate(d.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Pagination */}
       {!isLoading && totalPages > 1 && (

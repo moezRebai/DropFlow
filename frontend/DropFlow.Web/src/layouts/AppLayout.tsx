@@ -16,8 +16,8 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useAuthStore, type UserRole } from '@/store/authStore'
 import { useLogout } from '@/hooks/useLogout'
@@ -27,6 +27,17 @@ interface NavItem {
   label: string
   icon: React.ElementType
   badge?: number
+}
+
+type Zone = 'standard' | 'admin'
+
+function getZone(role: UserRole, tenantId: number): Zone {
+  return role === 'Admin' && tenantId === 0 ? 'admin' : 'standard'
+}
+
+const ZONE_GRADIENT: Record<Zone, string> = {
+  standard: 'from-sky-500 to-blue-600',
+  admin: 'from-violet-600 to-indigo-700',
 }
 
 function getNavItems(role: UserRole, tenantId: number): NavItem[] {
@@ -60,127 +71,170 @@ function getNavItems(role: UserRole, tenantId: number): NavItem[] {
 
 interface SidebarContentProps {
   collapsed?: boolean
-  onToggle?: () => void
   onNavigate?: () => void
 }
 
-function SidebarContent({ collapsed = false, onToggle, onNavigate }: SidebarContentProps) {
+function NavLink({ item, isActive, collapsed, gradient, onNavigate }: {
+  item: NavItem
+  isActive: boolean
+  collapsed: boolean
+  gradient: string
+  onNavigate?: () => void
+}) {
+  const link = (
+    <Link
+      to={item.path}
+      onClick={onNavigate}
+      aria-current={isActive ? 'page' : undefined}
+      className={cn(
+        'group relative z-10 flex items-center rounded-lg py-2 text-sm transition-colors duration-200',
+        collapsed ? 'justify-center px-2' : 'gap-3 pr-3',
+        isActive
+          ? 'bg-sidebar-accent/70 font-semibold text-sidebar-foreground'
+          : 'font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground',
+      )}
+    >
+      <span className={cn(
+        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
+        isActive
+          ? cn('bg-gradient-to-br text-white shadow-sm', gradient)
+          : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground',
+      )}>
+        <item.icon className="h-4 w-4" />
+      </span>
+      {!collapsed && (
+        <>
+          <span className="flex-1 truncate">{item.label}</span>
+          {item.badge !== undefined && item.badge > 0 && (
+            <Badge variant={isActive ? 'secondary' : 'default'} className="text-xs">
+              {item.badge}
+            </Badge>
+          )}
+        </>
+      )}
+    </Link>
+  )
+
+  if (!collapsed) return link
+
+  return (
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>{link}</TooltipTrigger>
+      <TooltipContent side="right">{item.label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function SidebarContent({ collapsed = false, onNavigate }: SidebarContentProps) {
   const { pathname } = useLocation()
   const user = useAuthStore(s => s.user)
   const logout = useLogout()
 
   const navItems = user ? getNavItems(user.role, user.tenantId) : []
+  const zone = user ? getZone(user.role, user.tenantId) : 'standard'
+  const gradient = ZONE_GRADIENT[zone]
 
   return (
-    <div className="flex h-full flex-col">
+    <TooltipProvider>
+      <div className="flex h-full flex-col">
 
-      {/* Logo */}
-      <div className={cn(
-        'flex shrink-0 items-center border-b transition-all duration-200',
-        collapsed ? 'h-14 justify-center px-0' : 'min-h-14 gap-2.5 px-4 py-3',
-      )}>
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-600">
-          <DropflowLogo className="h-4 w-4 text-white" />
-        </div>
-        {!collapsed && (
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="text-sm font-bold leading-tight tracking-tight">DropFlow</span>
-            {user?.tenantName && (
-              <span className="truncate text-xs text-muted-foreground leading-tight mt-0.5">
-                {user.tenantName}
-              </span>
-            )}
+        {/* Logo */}
+        <div className={cn(
+          'relative flex shrink-0 items-center overflow-hidden border-b border-sidebar-border transition-all duration-200',
+          collapsed ? 'h-14 justify-center px-0' : 'min-h-16 gap-2.5 px-4 py-3.5',
+        )}>
+          <div className={cn('pointer-events-none absolute inset-0 bg-gradient-to-br opacity-[0.06]', gradient)} />
+          <div className={cn('relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br shadow-sm', gradient)}>
+            <DropflowLogo className="h-4 w-4 text-white" />
           </div>
-        )}
-        {!collapsed && onToggle && (
-          <button
-            onClick={onToggle}
-            title="Réduire le menu"
-            className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Nav */}
-      <ScrollArea className="flex-1">
-        <nav className="space-y-0.5 p-2">
-          {navItems.map(item => {
-            const isActive = pathname === item.path || pathname.startsWith(item.path + '/')
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={onNavigate}
-                title={collapsed ? item.label : undefined}
-                className={cn(
-                  'flex items-center rounded-md py-2 text-sm font-medium transition-colors',
-                  collapsed ? 'justify-center px-2' : 'gap-3 px-3',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                )}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {!collapsed && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <Badge variant={isActive ? 'secondary' : 'default'} className="text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </Link>
-            )
-          })}
-        </nav>
-      </ScrollArea>
-
-      {/* Footer */}
-      <div className="shrink-0 border-t p-2">
-        <Link
-          to="/help"
-          onClick={onNavigate}
-          title={collapsed ? 'Aide & Support' : undefined}
-          className={cn(
-            'flex items-center rounded-md py-2 text-sm font-medium text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-            collapsed ? 'justify-center px-2' : 'gap-3 px-3',
+          {!collapsed && (
+            <div className="relative flex min-w-0 flex-1 flex-col">
+              <span className="text-sm font-bold leading-tight tracking-tight text-sidebar-foreground">DropFlow</span>
+              {user?.tenantName ? (
+                <span className="truncate text-xs leading-tight text-sidebar-foreground/55 mt-0.5">
+                  {user.tenantName}
+                </span>
+              ) : zone === 'admin' && (
+                <span className="truncate text-xs font-medium leading-tight mt-0.5 text-violet-600 dark:text-violet-400">
+                  Super Admin
+                </span>
+              )}
+            </div>
           )}
-        >
-          <HelpCircle className="h-4 w-4 shrink-0" />
-          {!collapsed && 'Aide & Support'}
-        </Link>
+        </div>
 
-        <button
-          onClick={logout}
-          title={collapsed ? 'Déconnexion' : undefined}
-          className={cn(
-            'flex w-full items-center rounded-md py-2 text-sm font-medium text-sidebar-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive',
-            collapsed ? 'justify-center px-2' : 'gap-3 px-3',
-          )}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && 'Déconnexion'}
-        </button>
+        {/* Nav */}
+        <ScrollArea className="flex-1">
+          <nav className={cn('relative py-3', collapsed ? 'space-y-1 px-2' : 'space-y-0.5 px-3')}>
+            {!collapsed && (
+              <span aria-hidden className="pointer-events-none absolute bottom-3 left-7 top-3 z-0 w-px bg-sidebar-border" />
+            )}
+            {navItems.map(item => {
+              const isActive = pathname === item.path || pathname.startsWith(item.path + '/')
+              return (
+                <NavLink
+                  key={item.path}
+                  item={item}
+                  isActive={isActive}
+                  collapsed={collapsed}
+                  gradient={gradient}
+                  onNavigate={onNavigate}
+                />
+              )
+            })}
+          </nav>
+        </ScrollArea>
 
-        {/* Expand button — collapsed mode only */}
-        {onToggle && collapsed && (
-          <>
-            <Separator className="my-2 opacity-40" />
-            <button
-              onClick={onToggle}
-              title="Développer le menu"
-              className="flex w-full items-center justify-center rounded-md py-2 text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        {/* Footer */}
+        <div className="shrink-0 border-t border-sidebar-border p-2">
+          {collapsed ? (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/help"
+                  onClick={onNavigate}
+                  className="flex items-center justify-center rounded-lg px-2 py-2 text-sm font-medium text-sidebar-foreground/60 transition-colors duration-200 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                >
+                  <HelpCircle className="h-4 w-4 shrink-0" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Aide &amp; Support</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Link
+              to="/help"
+              onClick={onNavigate}
+              className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium text-sidebar-foreground/60 transition-colors duration-200 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
             >
-              <ChevronRight className="h-4 w-4 shrink-0" />
+              <HelpCircle className="h-4 w-4 shrink-0" />
+              Aide &amp; Support
+            </Link>
+          )}
+
+          {collapsed ? (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={logout}
+                  className="flex w-full items-center justify-center rounded-lg px-2 py-2 text-sm font-medium text-sidebar-foreground/60 transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Déconnexion</TooltipContent>
+            </Tooltip>
+          ) : (
+            <button
+              onClick={logout}
+              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium text-sidebar-foreground/60 transition-colors duration-200 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              Déconnexion
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }
 
@@ -475,10 +529,18 @@ export function AppLayout() {
       <div className="flex h-screen bg-background">
         {/* Desktop sidebar */}
         <aside className={cn(
-          'hidden shrink-0 flex-col border-r bg-sidebar transition-all duration-200 md:flex',
+          'relative hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200 md:flex',
           collapsed ? 'w-14' : 'w-64',
         )}>
-          <SidebarContent collapsed={collapsed} onToggle={toggleCollapsed} />
+          <SidebarContent collapsed={collapsed} />
+
+          <button
+            onClick={toggleCollapsed}
+            title={collapsed ? 'Développer le menu' : 'Réduire le menu'}
+            className="absolute -right-3 top-16 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-card text-muted-foreground shadow-sm transition-all duration-200 hover:border-primary/40 hover:text-primary"
+          >
+            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          </button>
         </aside>
 
         <div className="flex flex-1 flex-col overflow-hidden">
