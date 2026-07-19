@@ -33,8 +33,22 @@ public static class DatabaseExtensions
             // 3. Seed Dev Data
             if (app.Environment.IsDevelopment())
             {
-                await SeedDevelopmentDataAsync(services, logger);
-                await ResetDeliveriesOnlyAsync(services, logger);
+                var configuration = services.GetRequiredService<IConfiguration>();
+
+                if (configuration.GetValue("DevData:CleanAll", true))
+                {
+                    await CleanDevelopmentDataAsync(services.GetRequiredService<ApplicationDbContext>(), logger);
+                }
+                
+                if (configuration.GetValue("DevData:SkipSeed", false))
+                {
+                    logger.LogInformation("DevData:SkipSeed=true — skipping dev data seeding, database stays as-is");
+                }
+                else
+                {
+                    await SeedDevelopmentDataAsync(services, logger);
+                    await ResetDeliveriesOnlyAsync(services, logger);
+                }
             }
         }
         catch (Exception ex)
